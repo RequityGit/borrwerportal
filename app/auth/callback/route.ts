@@ -6,7 +6,6 @@ import type { Database } from "@/lib/supabase/types";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/login";
 
   if (code) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,11 +38,30 @@ export async function GET(request: Request) {
     );
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      // Get user role and redirect to their dashboard
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.role) {
+          return NextResponse.redirect(`${origin}/${profile.role}/dashboard`);
+        }
+      }
+
+      // Default redirect if no profile found yet
+      return NextResponse.redirect(`${origin}/investor/dashboard`);
     }
   }
 
-  // If no code or error, redirect to login
-  return NextResponse.redirect(`${origin}/login`);
+  // Auth error - redirect to login with error
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
 }
