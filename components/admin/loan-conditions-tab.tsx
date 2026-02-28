@@ -29,6 +29,7 @@ import {
 import {
   CONDITION_STATUSES,
   CONDITION_CATEGORIES,
+  CONDITION_STAGES,
   RESPONSIBLE_PARTIES,
 } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
@@ -82,10 +83,10 @@ export function LoanConditionsTab({
   const { toast } = useToast();
 
   const ptaConditions = conditions
-    .filter((c) => c.category === "prior_to_approval")
+    .filter((c) => c.category === "prior_to_approval" || c.required_stage === "processing")
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const ptfConditions = conditions
-    .filter((c) => c.category === "prior_to_funding")
+    .filter((c) => c.category === "prior_to_funding" || c.required_stage === "closed_onboarding")
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   // Summary stats
@@ -94,7 +95,7 @@ export function LoanConditionsTab({
     (c) => c.status === "approved" || c.status === "waived"
   ).length;
   const receivedCount = conditions.filter(
-    (c) => c.status === "received" || c.status === "under_review"
+    (c) => c.status === "submitted" || c.status === "under_review"
   ).length;
   const outstandingCount = conditions.filter(
     (c) => !["approved", "waived"].includes(c.status)
@@ -118,7 +119,7 @@ export function LoanConditionsTab({
   async function updateConditionStatus(
     conditionId: string,
     newStatus: string,
-    rejectionReason?: string
+    _rejectionReason?: string
   ) {
     const supabase = createClient();
     const now = new Date().toISOString();
@@ -128,21 +129,11 @@ export function LoanConditionsTab({
       updated_at: now,
     };
 
-    if (newStatus === "requested") {
+    if (newStatus === "submitted") {
       updateData.submitted_at = now;
-    } else if (newStatus === "received") {
-      updateData.received_date = now;
-    } else if (newStatus === "approved") {
-      updateData.approved_date = now;
-      updateData.reviewed_by = currentUserId;
+    } else if (newStatus === "approved" || newStatus === "rejected") {
       updateData.reviewed_at = now;
-    } else if (newStatus === "waived") {
       updateData.reviewed_by = currentUserId;
-      updateData.reviewed_at = now;
-    } else if (newStatus === "rejected") {
-      updateData.rejection_reason = rejectionReason || null;
-      updateData.reviewed_by = currentUserId;
-      updateData.reviewed_at = now;
     }
 
     const { error } = await supabase
@@ -187,7 +178,7 @@ export function LoanConditionsTab({
           color="text-green-700"
         />
         <SummaryCard
-          label="Received"
+          label="Submitted"
           value={receivedCount}
           color="text-indigo-700"
         />
@@ -533,29 +524,28 @@ function ConditionRow({
   // Quick action buttons based on current status
   function getQuickActions() {
     switch (condition.status) {
-      case "not_requested":
+      case "pending":
         return (
           <Button
             size="sm"
             variant="outline"
             className="h-7 text-xs"
-            onClick={() => onStatusChange(condition.id, "requested")}
+            onClick={() => onStatusChange(condition.id, "submitted")}
           >
-            Request
+            Submit
           </Button>
         );
-      case "requested":
+      case "submitted":
         return (
           <Button
             size="sm"
             variant="outline"
             className="h-7 text-xs"
-            onClick={() => onStatusChange(condition.id, "received")}
+            onClick={() => onStatusChange(condition.id, "under_review")}
           >
-            Mark Received
+            Review
           </Button>
         );
-      case "received":
       case "under_review":
         return (
           <div className="flex gap-1">
@@ -634,12 +624,20 @@ function ConditionRow({
                   Due: {formatDate(condition.due_date)}
                 </span>
               )}
+              {condition.submitted_at && (
+                <span>Submitted: {formatDate(condition.submitted_at)}</span>
+              )}
               {condition.received_date && (
                 <span>Received: {formatDate(condition.received_date)}</span>
               )}
               {condition.approved_date && (
                 <span className="text-green-700">
                   Approved: {formatDate(condition.approved_date)}
+                </span>
+              )}
+              {condition.reviewed_at && (
+                <span className="text-green-700">
+                  Reviewed: {formatDate(condition.reviewed_at)}
                 </span>
               )}
             </div>
@@ -935,7 +933,8 @@ function AddConditionDialog({
     condition_name: "",
     internal_description: "",
     borrower_description: "",
-    category: "prior_to_approval",
+    category: "borrower_documents",
+    required_stage: "processing",
     responsible_party: "borrower",
     critical_path_item: false,
     due_date: "",
@@ -959,11 +958,12 @@ function AddConditionDialog({
         internal_description: form.internal_description || null,
         borrower_description: form.borrower_description || null,
         category: form.category as any,
+        required_stage: form.required_stage as any,
         responsible_party: form.responsible_party,
         critical_path_item: form.critical_path_item,
         due_date: form.due_date || null,
         notes: form.notes || null,
-        status: "not_requested",
+        status: "pending" as any,
       });
 
       if (error) throw error;
@@ -974,7 +974,8 @@ function AddConditionDialog({
         condition_name: "",
         internal_description: "",
         borrower_description: "",
-        category: "prior_to_approval",
+        category: "borrower_documents",
+        required_stage: "processing",
         responsible_party: "borrower",
         critical_path_item: false,
         due_date: "",
