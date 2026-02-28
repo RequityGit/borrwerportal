@@ -137,7 +137,7 @@ export function ConditionTemplateEditor({
     toast({ title: "Template duplicated" });
   }
 
-  async function handleToggleActive(id: string, currentActive: boolean) {
+  async function handleToggleActive(id: string, currentActive: boolean | null) {
     const supabase = createClient();
     const { error } = await supabase
       .from("loan_condition_templates")
@@ -242,7 +242,7 @@ export function ConditionTemplateEditor({
           </h4>
           <div className="space-y-2">
             {items
-              .sort((a, b) => a.sort_order - b.sort_order)
+              .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
               .map((template) => (
                 <TemplateRow
                   key={template.id}
@@ -419,8 +419,8 @@ function AddTemplateDialog({
         .from("loan_condition_templates")
         .insert({
           condition_name: form.condition_name,
-          category: form.category,
-          required_stage: form.required_stage,
+          category: form.category as any,
+          required_stage: form.required_stage as any,
           internal_description: form.internal_description || null,
           borrower_description: form.borrower_description || null,
           responsible_party: form.responsible_party || null,

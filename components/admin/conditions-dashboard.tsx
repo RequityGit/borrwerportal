@@ -195,12 +195,9 @@ export function ConditionsDashboard({
     if (!condition) return;
     await supabase.from("loan_activity_log").insert({
       loan_id: condition.loan_id,
-      user_id: currentUserId,
-      activity_type: "condition_status_change",
+      performed_by: currentUserId,
+      action: "condition_status_change",
       description: `${condition.condition_name}: status changed to ${newStatus}`,
-      old_value: condition.status,
-      new_value: newStatus,
-      field_name: "condition_status",
     });
 
     setConditions((prev: ConditionWithLoan[]) =>

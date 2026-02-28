@@ -63,10 +63,10 @@ export function LoanConditionsTab({
 
   const ptaConditions = conditions
     .filter((c) => c.category === "prior_to_approval" || c.required_stage === "processing")
-    .sort((a, b) => a.sort_order - b.sort_order);
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const ptfConditions = conditions
     .filter((c) => c.category === "prior_to_funding" || c.required_stage === "closed_onboarding")
-    .sort((a, b) => a.sort_order - b.sort_order);
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   // Summary stats
   const totalCount = conditions.length;
@@ -133,12 +133,9 @@ export function LoanConditionsTab({
     const condition = conditions.find((c) => c.id === conditionId);
     await supabase.from("loan_activity_log").insert({
       loan_id: loanId,
-      user_id: currentUserId,
-      activity_type: "condition_status_change",
+      performed_by: currentUserId,
+      action: "condition_status_change",
       description: `${condition?.condition_name}: status changed to ${newStatus}`,
-      old_value: condition?.status,
-      new_value: newStatus,
-      field_name: "condition_status",
     });
 
     setConditions((prev) =>
@@ -599,13 +596,13 @@ function AddConditionDialog({
         condition_name: form.condition_name,
         internal_description: form.internal_description || null,
         borrower_description: form.borrower_description || null,
-        category: form.category,
-        required_stage: form.required_stage,
+        category: form.category as any,
+        required_stage: form.required_stage as any,
         responsible_party: form.responsible_party,
         critical_path_item: form.critical_path_item,
         due_date: form.due_date || null,
         notes: form.notes || null,
-        status: "pending",
+        status: "pending" as any,
       });
 
       if (error) throw error;
