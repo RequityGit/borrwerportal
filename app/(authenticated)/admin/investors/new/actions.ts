@@ -47,10 +47,22 @@ export async function addInvestorAction(input: AddInvestorInput) {
     });
 
     // Check if an investor profile with this email already exists
-    const { data: existingProfiles } = await adminClient
+    let existingProfiles: { id: string; email: string; role: string; full_name?: string }[] | null = null;
+    const { data: profilesWithName, error: selectError } = await adminClient
       .from("profiles")
       .select("id, email, role, full_name")
       .eq("email", input.email);
+
+    if (selectError && selectError.message.includes("full_name")) {
+      // full_name column doesn't exist yet — query without it
+      const { data: profilesBasic } = await adminClient
+        .from("profiles")
+        .select("id, email, role")
+        .eq("email", input.email);
+      existingProfiles = profilesBasic;
+    } else {
+      existingProfiles = profilesWithName;
+    }
 
     if (existingProfiles && existingProfiles.length > 0) {
       const existingInvestor = existingProfiles.find(
@@ -68,28 +80,28 @@ export async function addInvestorAction(input: AddInvestorInput) {
           profileUpdate.company_name = input.company_name;
         }
 
-        const { error: updateError } = await adminClient
+        let { error: updateError } = await adminClient
           .from("profiles")
           .update(profileUpdate)
           .eq("id", existingInvestor.id);
 
+        // Retry removing columns that don't exist in the schema
+        if (updateError && updateError.message.includes("company_name")) {
+          delete profileUpdate.company_name;
+          ({ error: updateError } = await adminClient
+            .from("profiles")
+            .update(profileUpdate)
+            .eq("id", existingInvestor.id));
+        }
+        if (updateError && updateError.message.includes("full_name")) {
+          delete profileUpdate.full_name;
+          ({ error: updateError } = await adminClient
+            .from("profiles")
+            .update(profileUpdate)
+            .eq("id", existingInvestor.id));
+        }
         if (updateError) {
-          // If company_name column doesn't exist, retry without it
-          if (
-            updateError.message.includes("company_name") &&
-            input.company_name
-          ) {
-            delete profileUpdate.company_name;
-            const { error: retryError } = await adminClient
-              .from("profiles")
-              .update(profileUpdate)
-              .eq("id", existingInvestor.id);
-            if (retryError) {
-              return { error: retryError.message };
-            }
-          } else {
-            return { error: updateError.message };
-          }
+          return { error: updateError.message };
         }
 
         return { success: true, investorId: existingInvestor.id };
@@ -130,7 +142,7 @@ export async function addInvestorAction(input: AddInvestorInput) {
             profileUpdate.company_name = input.company_name;
           }
 
-          const { error: upsertError } = await adminClient
+          let { error: upsertError } = await adminClient
             .from("profiles")
             .upsert({
               id: existingAuthUser.id,
@@ -138,26 +150,29 @@ export async function addInvestorAction(input: AddInvestorInput) {
               ...profileUpdate,
             });
 
+          // Retry removing columns that don't exist in the schema
+          if (upsertError && upsertError.message.includes("company_name")) {
+            delete profileUpdate.company_name;
+            ({ error: upsertError } = await adminClient
+              .from("profiles")
+              .upsert({
+                id: existingAuthUser.id,
+                email: input.email,
+                ...profileUpdate,
+              }));
+          }
+          if (upsertError && upsertError.message.includes("full_name")) {
+            delete profileUpdate.full_name;
+            ({ error: upsertError } = await adminClient
+              .from("profiles")
+              .upsert({
+                id: existingAuthUser.id,
+                email: input.email,
+                ...profileUpdate,
+              }));
+          }
           if (upsertError) {
-            // If company_name column doesn't exist, retry without it
-            if (
-              upsertError.message.includes("company_name") &&
-              input.company_name
-            ) {
-              delete profileUpdate.company_name;
-              const { error: retryError } = await adminClient
-                .from("profiles")
-                .upsert({
-                  id: existingAuthUser.id,
-                  email: input.email,
-                  ...profileUpdate,
-                });
-              if (retryError) {
-                return { error: retryError.message };
-              }
-            } else {
-              return { error: upsertError.message };
-            }
+            return { error: upsertError.message };
           }
 
           return { success: true, investorId: existingAuthUser.id };
@@ -180,32 +195,30 @@ export async function addInvestorAction(input: AddInvestorInput) {
       profileUpdate.company_name = input.company_name;
     }
 
-    const { error: updateError } = await adminClient
+    let { error: updateError } = await adminClient
       .from("profiles")
       .update(profileUpdate)
       .eq("id", newUser.user.id);
 
+    // Retry removing columns that don't exist in the schema
+    if (updateError && updateError.message.includes("company_name")) {
+      delete profileUpdate.company_name;
+      ({ error: updateError } = await adminClient
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", newUser.user.id));
+    }
+    if (updateError && updateError.message.includes("full_name")) {
+      delete profileUpdate.full_name;
+      ({ error: updateError } = await adminClient
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", newUser.user.id));
+    }
     if (updateError) {
-      // If company_name column doesn't exist, retry without it
-      if (
-        updateError.message.includes("company_name") &&
-        input.company_name
-      ) {
-        delete profileUpdate.company_name;
-        const { error: retryError } = await adminClient
-          .from("profiles")
-          .update(profileUpdate)
-          .eq("id", newUser.user.id);
-        if (retryError) {
-          // Clean up: delete the auth user since we can't set up the profile
-          await adminClient.auth.admin.deleteUser(newUser.user.id);
-          return { error: retryError.message };
-        }
-      } else {
-        // Clean up: delete the auth user since we can't set up the profile
-        await adminClient.auth.admin.deleteUser(newUser.user.id);
-        return { error: updateError.message };
-      }
+      // Clean up: delete the auth user since we can't set up the profile
+      await adminClient.auth.admin.deleteUser(newUser.user.id);
+      return { error: updateError.message };
     }
 
     return { success: true, investorId: newUser.user.id };
