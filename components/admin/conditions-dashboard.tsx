@@ -190,12 +190,13 @@ export function ConditionsDashboard({
     }
 
     const condition = conditions.find((c: ConditionWithLoan) => c.id === conditionId);
+    if (!condition) return;
     await supabase.from("loan_activity_log").insert({
-      loan_id: condition?.loan_id,
+      loan_id: condition.loan_id,
       user_id: currentUserId,
       activity_type: "condition_status_change",
-      description: `${condition?.name}: status changed to ${newStatus}`,
-      old_value: condition?.status,
+      description: `${condition.name}: status changed to ${newStatus}`,
+      old_value: condition.status,
       new_value: newStatus,
       field_name: "condition_status",
     });

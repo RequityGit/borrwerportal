@@ -77,7 +77,7 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
   } catch { /* table may not exist */ }
 
   // Lookup team member names
-  const teamIds = [loan.originator_id, loan.processor_id, loan.underwriter_id, loan.closer_id].filter(Boolean);
+  const teamIds = [loan.originator_id, loan.processor_id, loan.underwriter_id, loan.closer_id].filter((id): id is string => Boolean(id));
   let teamProfiles: Record<string, string> = {};
   if (teamIds.length > 0) {
     const { data: profiles } = await supabase

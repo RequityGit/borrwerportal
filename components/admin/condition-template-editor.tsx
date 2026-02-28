@@ -185,7 +185,7 @@ export function ConditionTemplateEditor({
         borrower_description: item.borrower_description,
         category: item.category,
         responsible_party: item.responsible_party,
-        due_date_offset_days: item.due_date_offset_days,
+        due_date_offset_days: item.due_date_offset_days ?? undefined,
         is_critical_path: item.is_critical_path,
         sort_order: item.sort_order,
       }));
@@ -197,10 +197,10 @@ export function ConditionTemplateEditor({
 
       setTemplates((prev: Template[]) => [
         ...prev,
-        { ...newTemplate, items: insertedItems ?? [] },
+        { ...newTemplate, loan_type: newTemplate.loan_type ?? "", items: insertedItems ?? [] } as Template,
       ]);
     } else {
-      setTemplates((prev: Template[]) => [...prev, { ...newTemplate, items: [] }]);
+      setTemplates((prev: Template[]) => [...prev, { ...newTemplate, loan_type: newTemplate.loan_type ?? "", items: [] } as Template]);
     }
 
     toast({ title: "Template duplicated" });
@@ -523,7 +523,7 @@ function CreateTemplateDialog({
 
       if (error) throw error;
 
-      onCreated({ ...data, items: [] });
+      onCreated({ ...data, loan_type: data.loan_type ?? "", items: [] } as Template);
       toast({ title: "Template created" });
       setOpen(false);
       setForm({ name: "", loan_type: "", description: "", is_default: false });
@@ -669,7 +669,7 @@ function AddTemplateItemDialog({
           responsible_party: form.responsible_party,
           due_date_offset_days: form.due_date_offset_days
             ? parseInt(form.due_date_offset_days)
-            : null,
+            : undefined,
           is_critical_path: form.is_critical_path,
           sort_order: nextSortOrder,
         })
