@@ -48,7 +48,7 @@ export default async function AdminConditionsPage() {
   }
 
   // Fetch borrower names for the loans
-  const borrowerIds = [...new Set((activeLoans ?? []).map((l: any) => l.borrower_id).filter(Boolean))];
+  const borrowerIds = Array.from(new Set((activeLoans ?? []).map((l: any) => l.borrower_id).filter(Boolean)));
   let borrowerNames: Record<string, string> = {};
   if (borrowerIds.length > 0) {
     const { data: profiles } = await supabase
