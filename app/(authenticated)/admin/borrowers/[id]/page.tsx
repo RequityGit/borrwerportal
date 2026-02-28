@@ -4,9 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DataTable, Column } from "@/components/shared/data-table";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import {
   Mail,
   Phone,
@@ -16,9 +14,9 @@ import {
   Shield,
   Hash,
 } from "lucide-react";
-import Link from "next/link";
 import { BorrowerEntityList } from "@/components/admin/borrower-entity-list";
 import { BorrowerEditDialog } from "@/components/admin/borrower-edit-dialog";
+import { BorrowerLoanTable } from "@/components/admin/borrower-loan-table";
 
 interface PageProps {
   params: { id: string };
@@ -59,54 +57,6 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
 
   const entities = entitiesResult.data ?? [];
   const loans = loansResult.data ?? [];
-
-  const loanColumns: Column<any>[] = [
-    {
-      key: "loan_number",
-      header: "Loan #",
-      cell: (row) => (
-        <Link
-          href={`/admin/loans/${row.id}`}
-          className="font-medium text-blue-600 hover:underline"
-        >
-          {row.loan_number || "—"}
-        </Link>
-      ),
-    },
-    {
-      key: "property_address",
-      header: "Property",
-      cell: (row) =>
-        row.property_address
-          ? `${row.property_address}, ${row.property_city || ""} ${row.property_state || ""}`
-          : "—",
-    },
-    {
-      key: "loan_type",
-      header: "Type",
-      cell: (row) =>
-        row.loan_type ? (
-          <span className="capitalize">{row.loan_type.replace(/_/g, " ")}</span>
-        ) : (
-          "—"
-        ),
-    },
-    {
-      key: "loan_amount",
-      header: "Amount",
-      cell: (row) => formatCurrency(row.loan_amount),
-    },
-    {
-      key: "stage",
-      header: "Stage",
-      cell: (row) => <StatusBadge status={row.stage} />,
-    },
-    {
-      key: "origination_date",
-      header: "Originated",
-      cell: (row) => formatDate(row.origination_date),
-    },
-  ];
 
   const fullName = `${borrower.first_name} ${borrower.last_name}`;
 
@@ -259,11 +209,7 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
         </TabsContent>
 
         <TabsContent value="loans" className="mt-4">
-          <DataTable
-            columns={loanColumns}
-            data={loans}
-            emptyMessage="No loans found for this borrower."
-          />
+          <BorrowerLoanTable loans={loans} />
         </TabsContent>
       </Tabs>
     </div>
