@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@supabase/supabase-js";
 
 interface AddInvestorInput {
@@ -31,19 +32,15 @@ export async function addInvestorAction(input: AddInvestorInput) {
     return { error: "Unauthorized" };
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  let adminClient;
+  try {
+    adminClient = createAdminClient();
+  } catch {
     return {
       error:
-        "SUPABASE_SERVICE_ROLE_KEY is required to add investors. Add it to your environment variables. You can find it in Supabase Dashboard → Settings → API → service_role key.",
+        "Server configuration error: unable to create investors. Please contact your system administrator.",
     };
   }
-
-  const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   const { data: newUser, error: createError } =
     await adminClient.auth.admin.createUser({
@@ -111,20 +108,10 @@ export async function sendActivationLinkAction(investorId: string) {
     return { error: "Investor not found" };
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl) {
-    return { error: "Missing Supabase configuration" };
-  }
-
   // Send a magic link (OTP) so the investor can sign in and activate
-  if (supabaseServiceRoleKey) {
-    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
+  // Prefer admin client (service role key) for generateLink, fall back to anon client for OTP
+  try {
+    const adminClient = createAdminClient();
     const { error: linkError } =
       await adminClient.auth.admin.generateLink({
         type: "magiclink",
@@ -134,7 +121,18 @@ export async function sendActivationLinkAction(investorId: string) {
     if (linkError) {
       return { error: linkError.message };
     }
-  } else if (supabaseAnonKey) {
+  } catch {
+    // Service role key not available, fall back to anon OTP flow
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return {
+        error:
+          "Server configuration error: unable to send activation link. Please contact your system administrator.",
+      };
+    }
+
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -149,8 +147,6 @@ export async function sendActivationLinkAction(investorId: string) {
     if (otpError) {
       return { error: otpError.message };
     }
-  } else {
-    return { error: "Missing Supabase configuration" };
   }
 
   // Mark as link_sent
