@@ -130,7 +130,11 @@ export function DocumentUploadForm({
           Upload Document
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent
+        className="max-w-lg"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
         </DialogHeader>
