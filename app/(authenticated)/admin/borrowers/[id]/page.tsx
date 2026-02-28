@@ -6,9 +6,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable, Column } from "@/components/shared/data-table";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { LOAN_STAGE_LABELS } from "@/lib/constants";
-import { Mail, Phone, Building2, Calendar } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  CreditCard,
+  Shield,
+  Hash,
+  Pencil,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { BorrowerEntityList } from "@/components/admin/borrower-entity-list";
+import { BorrowerEditDialog } from "@/components/admin/borrower-edit-dialog";
 
 interface PageProps {
   params: { id: string };
@@ -25,43 +36,29 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   const { data: borrower } = await supabase
-    .from("profiles")
+    .from("borrowers")
     .select("*")
     .eq("id", id)
-    .eq("role", "borrower")
     .single();
 
   if (!borrower) notFound();
 
   // Fetch related data in parallel
-  const [loansResult, drawRequestsResult, paymentsResult, documentsResult] =
-    await Promise.all([
-      supabase
-        .from("loans")
-        .select("*")
-        .eq("borrower_id", id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("draw_requests")
-        .select("*, loans(property_address)")
-        .eq("borrower_id", id)
-        .order("submitted_at", { ascending: false }),
-      supabase
-        .from("loan_payments")
-        .select("*, loans(property_address)")
-        .eq("borrower_id", id)
-        .order("due_date", { ascending: false }),
-      supabase
-        .from("documents")
-        .select("*")
-        .eq("owner_id", id)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [entitiesResult, loansResult] = await Promise.all([
+    supabase
+      .from("borrower_entities")
+      .select("*")
+      .eq("borrower_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("loans")
+      .select("*")
+      .eq("borrower_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
 
+  const entities = entitiesResult.data ?? [];
   const loans = loansResult.data ?? [];
-  const drawRequests = drawRequestsResult.data ?? [];
-  const payments = paymentsResult.data ?? [];
-  const documents = documentsResult.data ?? [];
 
   const loanColumns: Column<any>[] = [
     {
@@ -72,21 +69,27 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
           href={`/admin/loans/${row.id}`}
           className="font-medium text-blue-600 hover:underline"
         >
-          {row.loan_number}
+          {row.loan_number || "—"}
         </Link>
       ),
     },
     {
       key: "property_address",
       header: "Property",
-      cell: (row) => row.property_address,
+      cell: (row) =>
+        row.property_address
+          ? `${row.property_address}, ${row.property_city || ""} ${row.property_state || ""}`
+          : "—",
     },
     {
       key: "loan_type",
       header: "Type",
-      cell: (row) => (
-        <span className="capitalize">{row.loan_type.replace(/_/g, " ")}</span>
-      ),
+      cell: (row) =>
+        row.loan_type ? (
+          <span className="capitalize">{row.loan_type.replace(/_/g, " ")}</span>
+        ) : (
+          "—"
+        ),
     },
     {
       key: "loan_amount",
@@ -96,11 +99,7 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
     {
       key: "stage",
       header: "Stage",
-      cell: (row) => (
-        <StatusBadge
-          status={row.stage}
-        />
-      ),
+      cell: (row) => <StatusBadge status={row.stage} />,
     },
     {
       key: "origination_date",
@@ -109,197 +108,161 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
     },
   ];
 
-  const drawRequestColumns: Column<any>[] = [
-    {
-      key: "loan",
-      header: "Loan",
-      cell: (row) => (row as any).loans?.loan_number ?? "—",
-    },
-    {
-      key: "draw_number",
-      header: "Draw #",
-      cell: (row) => row.draw_number,
-    },
-    {
-      key: "amount_requested",
-      header: "Requested",
-      cell: (row) => formatCurrency(row.amount_requested),
-    },
-    {
-      key: "amount_approved",
-      header: "Approved",
-      cell: (row) => formatCurrency(row.amount_approved),
-    },
-    {
-      key: "submitted_at",
-      header: "Submitted",
-      cell: (row) => formatDate(row.submitted_at),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusBadge status={row.status} />,
-    },
-  ];
-
-  const paymentColumns: Column<any>[] = [
-    {
-      key: "loan",
-      header: "Loan",
-      cell: (row) => (row as any).loans?.loan_number ?? "—",
-    },
-    {
-      key: "payment_number",
-      header: "Payment #",
-      cell: (row) => row.payment_number,
-    },
-    {
-      key: "amount_due",
-      header: "Amount Due",
-      cell: (row) => formatCurrency(row.amount_due),
-    },
-    {
-      key: "amount_paid",
-      header: "Paid",
-      cell: (row) => formatCurrency(row.amount_paid),
-    },
-    {
-      key: "due_date",
-      header: "Due Date",
-      cell: (row) => formatDate(row.due_date),
-    },
-    {
-      key: "paid_date",
-      header: "Paid Date",
-      cell: (row) => formatDate(row.paid_date),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusBadge status={row.status} />,
-    },
-  ];
-
-  const documentColumns: Column<any>[] = [
-    {
-      key: "file_name",
-      header: "File Name",
-      cell: (row) => (
-        <span className="font-medium">{row.description || row.file_name}</span>
-      ),
-    },
-    {
-      key: "document_type",
-      header: "Type",
-      cell: (row) => (
-        <span className="capitalize">
-          {row.document_type.replace(/_/g, " ")}
-        </span>
-      ),
-    },
-    {
-      key: "created_at",
-      header: "Uploaded",
-      cell: (row) => formatDate(row.created_at),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusBadge status={row.status} />,
-    },
-  ];
+  const fullName = `${borrower.first_name} ${borrower.last_name}`;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={borrower.full_name || "Borrower"}
-        description="Borrower profile and loan activity"
+        title={fullName}
+        description="Borrower profile, entities, and loan activity"
+        action={<BorrowerEditDialog borrower={borrower} />}
       />
 
       {/* Borrower Info Header */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
               <div>
                 <p className="text-xs text-muted-foreground">Email</p>
-                <p className="text-sm font-medium">{borrower.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Phone</p>
-                <p className="text-sm font-medium">{borrower.phone || "—"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Company</p>
                 <p className="text-sm font-medium">
-                  {borrower.company_name || "—"}
+                  {borrower.email || "—"}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground">Joined</p>
+                <p className="text-xs text-muted-foreground">Phone</p>
+                <p className="text-sm font-medium">
+                  {borrower.phone || "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Location</p>
+                <p className="text-sm font-medium">
+                  {borrower.city && borrower.state
+                    ? `${borrower.city}, ${borrower.state}`
+                    : borrower.state || "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Date of Birth</p>
+                <p className="text-sm font-medium">
+                  {formatDate(borrower.date_of_birth)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Credit Score</p>
+                <p className="text-sm font-medium">
+                  {borrower.credit_score ? (
+                    <span
+                      className={`${
+                        borrower.credit_score >= 740
+                          ? "text-green-600"
+                          : borrower.credit_score >= 680
+                          ? "text-amber-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {borrower.credit_score}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                  {borrower.credit_report_date && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({formatDate(borrower.credit_report_date)})
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Experience</p>
+                <p className="text-sm font-medium">
+                  {borrower.experience_count}{" "}
+                  {borrower.experience_count === 1 ? "deal" : "deals"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">US Citizen</p>
+                <p className="text-sm font-medium">
+                  {borrower.is_us_citizen ? "Yes" : "No"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Added</p>
                 <p className="text-sm font-medium">
                   {formatDate(borrower.created_at)}
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Address */}
+          {borrower.address_line1 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-1">Address</p>
+              <p className="text-sm">
+                {borrower.address_line1}
+                {borrower.address_line2 && `, ${borrower.address_line2}`}
+                {borrower.city && `, ${borrower.city}`}
+                {borrower.state && `, ${borrower.state}`}{" "}
+                {borrower.zip && borrower.zip}
+              </p>
+            </div>
+          )}
+
+          {/* Notes */}
+          {borrower.notes && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-1">Notes</p>
+              <p className="text-sm whitespace-pre-wrap">{borrower.notes}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Tabbed Data */}
-      <Tabs defaultValue="loans">
+      <Tabs defaultValue="entities">
         <TabsList>
+          <TabsTrigger value="entities">
+            Entities ({entities.length})
+          </TabsTrigger>
           <TabsTrigger value="loans">Loans ({loans.length})</TabsTrigger>
-          <TabsTrigger value="draw-requests">
-            Draw Requests ({drawRequests.length})
-          </TabsTrigger>
-          <TabsTrigger value="payments">
-            Payments ({payments.length})
-          </TabsTrigger>
-          <TabsTrigger value="documents">
-            Documents ({documents.length})
-          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="entities" className="mt-4">
+          <BorrowerEntityList
+            borrowerId={borrower.id}
+            entities={entities}
+          />
+        </TabsContent>
 
         <TabsContent value="loans" className="mt-4">
           <DataTable
             columns={loanColumns}
             data={loans}
             emptyMessage="No loans found for this borrower."
-          />
-        </TabsContent>
-
-        <TabsContent value="draw-requests" className="mt-4">
-          <DataTable
-            columns={drawRequestColumns}
-            data={drawRequests}
-            emptyMessage="No draw requests for this borrower."
-          />
-        </TabsContent>
-
-        <TabsContent value="payments" className="mt-4">
-          <DataTable
-            columns={paymentColumns}
-            data={payments}
-            emptyMessage="No payments for this borrower."
-          />
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-4">
-          <DataTable
-            columns={documentColumns}
-            data={documents}
-            emptyMessage="No documents for this borrower."
           />
         </TabsContent>
       </Tabs>
