@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") redirect("/admin/dashboard");
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") redirect("/admin/dashboard");
 
   return (
     <div className="space-y-6">
