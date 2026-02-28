@@ -3,18 +3,17 @@ import { redirect, notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoanStageTracker } from "@/components/shared/loan-stage-tracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DataTable, Column } from "@/components/shared/data-table";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Separator } from "@/components/ui/separator";
 import {
   formatCurrency,
-  formatCurrencyDetailed,
   formatDate,
   formatPercent,
 } from "@/lib/format";
-import { LOAN_STAGE_LABELS } from "@/lib/constants";
+import { LOAN_STAGE_LABELS, LOAN_TYPES } from "@/lib/constants";
 import { LoanDetailActions } from "@/components/admin/loan-detail-actions";
+import { Flame, Pause } from "lucide-react";
 
 interface PageProps {
   params: { id: string };
@@ -32,13 +31,13 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
 
   const { data: loan } = await supabase
     .from("loans")
-    .select("*, profiles!loans_borrower_id_fkey(full_name, email)")
+    .select(`*, borrower:profiles!loans_borrower_id_fkey(full_name, email)`)
     .eq("id", id)
     .single();
 
   if (!loan) notFound();
 
-  // Fetch all related data in parallel
+  // Fetch all related data in parallel — keep conditions/activity separate so they don't break if tables don't exist
   const [drawRequestsResult, paymentsResult, documentsResult] =
     await Promise.all([
       supabase
@@ -58,127 +57,63 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         .order("created_at", { ascending: false }),
     ]);
 
+  // Conditions and activity log — may not exist if migrations haven't been applied
+  let conditionsResult: { data: any[] | null } = { data: [] };
+  let activityResult: { data: any[] | null } = { data: [] };
+  try {
+    conditionsResult = await supabase
+      .from("loan_conditions")
+      .select("*")
+      .eq("loan_id", id)
+      .order("sort_order");
+  } catch { /* table may not exist */ }
+  try {
+    activityResult = await supabase
+      .from("loan_activity_log")
+      .select("*")
+      .eq("loan_id", id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+  } catch { /* table may not exist */ }
+
+  // Lookup team member names
+  const teamIds = [loan.originator_id, loan.processor_id, loan.underwriter_id, loan.closer_id].filter(Boolean);
+  let teamProfiles: Record<string, string> = {};
+  if (teamIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", teamIds);
+    (profiles ?? []).forEach((p: any) => {
+      teamProfiles[p.id] = p.full_name ?? "Unknown";
+    });
+  }
+
   const drawRequests = drawRequestsResult.data ?? [];
   const payments = paymentsResult.data ?? [];
   const documents = documentsResult.data ?? [];
+  const conditions = conditionsResult.data ?? [];
+  const activityLog = activityResult.data ?? [];
 
-  const borrowerName = (loan as any).profiles?.full_name ?? "—";
+  const borrowerName = (loan as any).borrower?.full_name ?? "—";
+  const originatorName = (loan.originator_id && teamProfiles[loan.originator_id]) ?? loan.originator ?? "—";
+  const processorName = (loan.processor_id && teamProfiles[loan.processor_id]) ?? "—";
+  const underwriterName = (loan.underwriter_id && teamProfiles[loan.underwriter_id]) ?? "—";
+  const closerName = (loan.closer_id && teamProfiles[loan.closer_id]) ?? "—";
 
-  const drawRequestColumns: Column<any>[] = [
-    {
-      key: "draw_number",
-      header: "Draw #",
-      cell: (row) => row.draw_number,
-    },
-    {
-      key: "amount_requested",
-      header: "Requested",
-      cell: (row) => formatCurrency(row.amount_requested),
-    },
-    {
-      key: "amount_approved",
-      header: "Approved",
-      cell: (row) => formatCurrency(row.amount_approved),
-    },
-    {
-      key: "description",
-      header: "Description",
-      cell: (row) => row.description || "—",
-    },
-    {
-      key: "submitted_at",
-      header: "Submitted",
-      cell: (row) => formatDate(row.submitted_at),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusBadge status={row.status} />,
-    },
-    {
-      key: "actions",
-      header: "",
-      cell: () => null, // Actions handled by client component
-    },
-  ];
+  const loanTypeLabel = LOAN_TYPES.find((t) => t.value === loan.loan_type)?.label ?? (loan.loan_type ?? "—").replace(/_/g, " ");
 
-  const paymentColumns: Column<any>[] = [
-    {
-      key: "payment_number",
-      header: "Payment #",
-      cell: (row) => row.payment_number,
-    },
-    {
-      key: "amount_due",
-      header: "Due",
-      cell: (row) => formatCurrency(row.amount_due),
-    },
-    {
-      key: "amount_paid",
-      header: "Paid",
-      cell: (row) => formatCurrency(row.amount_paid),
-    },
-    {
-      key: "principal_amount",
-      header: "Principal",
-      cell: (row) => formatCurrency(row.principal_amount),
-    },
-    {
-      key: "interest_amount",
-      header: "Interest",
-      cell: (row) => formatCurrency(row.interest_amount),
-    },
-    {
-      key: "due_date",
-      header: "Due Date",
-      cell: (row) => formatDate(row.due_date),
-    },
-    {
-      key: "paid_date",
-      header: "Paid Date",
-      cell: (row) => formatDate(row.paid_date),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusBadge status={row.status} />,
-    },
-  ];
-
-  const documentColumns: Column<any>[] = [
-    {
-      key: "file_name",
-      header: "File Name",
-      cell: (row) => (
-        <span className="font-medium">{row.description || row.file_name}</span>
-      ),
-    },
-    {
-      key: "document_type",
-      header: "Type",
-      cell: (row) => (
-        <span className="capitalize">
-          {row.document_type.replace(/_/g, " ")}
-        </span>
-      ),
-    },
-    {
-      key: "created_at",
-      header: "Uploaded",
-      cell: (row) => formatDate(row.created_at),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => <StatusBadge status={row.status} />,
-    },
-  ];
+  // Condition summary for the header
+  const condTotal = conditions.length;
+  const condComplete = conditions.filter(
+    (c: any) => c.status === "approved" || c.status === "waived"
+  ).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={`Loan ${loan.loan_number}`}
-        description={`${loan.property_address} - ${borrowerName}`}
+        description={`${loan.property_address ?? "No address"} — ${borrowerName}`}
       />
 
       {/* Stage Tracker */}
@@ -188,19 +123,38 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      {/* Loan Details */}
+      {/* Overview Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Loan Details</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Loan Overview</CardTitle>
+            <div className="flex items-center gap-2">
+              {loan.priority === "hot" && (
+                <Badge className="bg-red-100 text-red-800 border-red-200 gap-1">
+                  <Flame className="h-3 w-3" />
+                  Hot
+                </Badge>
+              )}
+              {loan.priority === "on_hold" && (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200 gap-1">
+                  <Pause className="h-3 w-3" />
+                  On Hold
+                </Badge>
+              )}
+              <StatusBadge status={loan.stage} />
+              {condTotal > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {condComplete}/{condTotal} conditions
+                </Badge>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-y-4 gap-x-6">
             <DetailField label="Loan Number" value={loan.loan_number ?? "—"} />
             <DetailField label="Borrower" value={borrowerName} />
-            <DetailField
-              label="Type"
-              value={(loan.loan_type ?? "").replace(/_/g, " ") || "—"}
-            />
+            <DetailField label="Type" value={loanTypeLabel} />
             <DetailField
               label="Stage"
               value={
@@ -214,14 +168,46 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
               value={formatCurrency(loan.loan_amount)}
             />
             <DetailField
-              label="Interest Rate"
-              value={formatPercent(loan.interest_rate)}
+              label="Purchase Price"
+              value={formatCurrency(loan.purchase_price)}
             />
-            <DetailField label="Term" value={`${loan.term_months} months`} />
-            <DetailField label="LTV" value={formatPercent(loan.ltv)} />
             <DetailField
               label="Appraised Value"
               value={formatCurrency(loan.appraised_value)}
+            />
+            <DetailField label="LTV" value={formatPercent(loan.ltv)} />
+            <DetailField
+              label="Interest Rate"
+              value={formatPercent(loan.interest_rate)}
+            />
+            <DetailField label="Points" value={loan.points ? `${loan.points}%` : "—"} />
+            <DetailField label="Term" value={loan.term_months ? `${loan.term_months} months` : "—"} />
+            <DetailField
+              label="Expected Close"
+              value={formatDate(loan.expected_close_date)}
+            />
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Team */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-6">
+            <DetailField label="Originator" value={originatorName} />
+            <DetailField label="Processor" value={processorName} />
+            <DetailField label="Underwriter" value={underwriterName} />
+            <DetailField label="Closer" value={closerName} />
+          </div>
+
+          {/* Key Dates */}
+          <Separator className="my-4" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-6">
+            <DetailField
+              label="Application Date"
+              value={formatDate(loan.application_date)}
+            />
+            <DetailField
+              label="Approval Date"
+              value={formatDate(loan.approval_date)}
             />
             <DetailField
               label="Origination Date"
@@ -232,11 +218,27 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
               value={formatDate(loan.maturity_date)}
             />
           </div>
+
+          {/* Next action / blocker */}
+          {loan.next_action && (
+            <>
+              <Separator className="my-4" />
+              <div className="bg-amber-50 rounded-lg p-3">
+                <p className="text-xs font-medium text-amber-800 mb-0.5">
+                  Next Action / Blocker
+                </p>
+                <p className="text-sm text-amber-900">{loan.next_action}</p>
+              </div>
+            </>
+          )}
+
           {loan.notes && (
             <>
               <Separator className="my-4" />
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Internal Notes
+                </p>
                 <p className="text-sm">{loan.notes}</p>
               </div>
             </>
@@ -269,6 +271,10 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         drawRequests={drawRequests}
         payments={payments}
         documents={documents}
+        conditions={conditions}
+        activityLog={activityLog}
+        currentUserId={user.id}
+        loanId={loan.id}
       />
     </div>
   );
