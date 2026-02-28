@@ -9,6 +9,155 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      borrowers: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          first_name: string;
+          last_name: string;
+          email: string | null;
+          phone: string | null;
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          state: string | null;
+          zip: string | null;
+          country: string;
+          ssn_last_four: string | null;
+          date_of_birth: string | null;
+          is_us_citizen: boolean;
+          credit_score: number | null;
+          credit_report_date: string | null;
+          experience_count: number;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          first_name: string;
+          last_name: string;
+          email?: string | null;
+          phone?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          country?: string;
+          ssn_last_four?: string | null;
+          date_of_birth?: string | null;
+          is_us_citizen?: boolean;
+          credit_score?: number | null;
+          credit_report_date?: string | null;
+          experience_count?: number;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          first_name?: string;
+          last_name?: string;
+          email?: string | null;
+          phone?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          country?: string;
+          ssn_last_four?: string | null;
+          date_of_birth?: string | null;
+          is_us_citizen?: boolean;
+          credit_score?: number | null;
+          credit_report_date?: string | null;
+          experience_count?: number;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      borrower_entities: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          borrower_id: string;
+          entity_name: string;
+          entity_type: string;
+          ein: string | null;
+          state_of_formation: string | null;
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          state: string | null;
+          zip: string | null;
+          country: string;
+          operating_agreement_url: string | null;
+          articles_of_org_url: string | null;
+          certificate_good_standing_url: string | null;
+          ein_letter_url: string | null;
+          is_foreign_filed: boolean;
+          foreign_filed_states: string[] | null;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          borrower_id: string;
+          entity_name: string;
+          entity_type: string;
+          ein?: string | null;
+          state_of_formation?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          country?: string;
+          operating_agreement_url?: string | null;
+          articles_of_org_url?: string | null;
+          certificate_good_standing_url?: string | null;
+          ein_letter_url?: string | null;
+          is_foreign_filed?: boolean;
+          foreign_filed_states?: string[] | null;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          borrower_id?: string;
+          entity_name?: string;
+          entity_type?: string;
+          ein?: string | null;
+          state_of_formation?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state?: string | null;
+          zip?: string | null;
+          country?: string;
+          operating_agreement_url?: string | null;
+          articles_of_org_url?: string | null;
+          certificate_good_standing_url?: string | null;
+          ein_letter_url?: string | null;
+          is_foreign_filed?: boolean;
+          foreign_filed_states?: string[] | null;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "borrower_entities_borrower_id_fkey";
+            columns: ["borrower_id"];
+            isOneToOne: false;
+            referencedRelation: "borrowers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -895,6 +1044,14 @@ export type Database = {
 };
 
 // Convenience type aliases
+export type Borrower = Database["public"]["Tables"]["borrowers"]["Row"];
+export type BorrowerInsert = Database["public"]["Tables"]["borrowers"]["Insert"];
+export type BorrowerUpdate = Database["public"]["Tables"]["borrowers"]["Update"];
+
+export type BorrowerEntity = Database["public"]["Tables"]["borrower_entities"]["Row"];
+export type BorrowerEntityInsert = Database["public"]["Tables"]["borrower_entities"]["Insert"];
+export type BorrowerEntityUpdate = Database["public"]["Tables"]["borrower_entities"]["Update"];
+
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];

@@ -14,51 +14,53 @@ export default async function AdminBorrowersPage() {
 
   if (!user) redirect("/login");
 
-  // Fetch all borrower profiles
+  // Fetch all borrowers from the dedicated borrowers table
   const { data: borrowers } = await supabase
-    .from("profiles")
+    .from("borrowers")
     .select("*")
-    .eq("role", "borrower")
-    .order("full_name");
+    .order("created_at", { ascending: false });
 
-  // Fetch all loans grouped by borrower
+  // Fetch entity counts per borrower
+  const { data: entities } = await supabase
+    .from("borrower_entities")
+    .select("borrower_id");
+
+  // Fetch loan counts per borrower
   const { data: loans } = await supabase
     .from("loans")
-    .select("borrower_id, loan_amount, stage");
+    .select("borrower_id, stage");
 
-  // Aggregate loans per borrower
-  const loansByBorrower = new Map<
-    string,
-    { activeCount: number; totalOutstanding: number }
-  >();
+  // Aggregate entity counts
+  const entityCountByBorrower = new Map<string, number>();
+  entities?.forEach((e) => {
+    entityCountByBorrower.set(
+      e.borrower_id,
+      (entityCountByBorrower.get(e.borrower_id) || 0) + 1
+    );
+  });
 
+  // Aggregate loan counts
+  const loanCountByBorrower = new Map<string, number>();
   loans?.forEach((l) => {
-    const existing = loansByBorrower.get(l.borrower_id) || {
-      activeCount: 0,
-      totalOutstanding: 0,
-    };
-    if (["funded", "servicing"].includes(l.stage)) {
-      existing.activeCount += 1;
-      existing.totalOutstanding += l.loan_amount || 0;
-    }
-    loansByBorrower.set(l.borrower_id, existing);
+    loanCountByBorrower.set(
+      l.borrower_id,
+      (loanCountByBorrower.get(l.borrower_id) || 0) + 1
+    );
   });
 
-  const borrowerRows = (borrowers ?? []).map((b) => {
-    const agg = loansByBorrower.get(b.id) || {
-      activeCount: 0,
-      totalOutstanding: 0,
-    };
-    return {
-      id: b.id,
-      full_name: b.full_name || "—",
-      email: b.email,
-      company: b.company_name || "—",
-      phone: b.phone || "—",
-      activeLoans: agg.activeCount,
-      totalOutstanding: agg.totalOutstanding,
-    };
-  });
+  const borrowerRows = (borrowers ?? []).map((b) => ({
+    id: b.id,
+    first_name: b.first_name,
+    last_name: b.last_name,
+    email: b.email || "—",
+    phone: b.phone || "—",
+    state: b.state || "—",
+    credit_score: b.credit_score,
+    experience_count: b.experience_count,
+    entity_count: entityCountByBorrower.get(b.id) || 0,
+    loan_count: loanCountByBorrower.get(b.id) || 0,
+    created_at: b.created_at,
+  }));
 
   return (
     <div className="space-y-6">
@@ -66,7 +68,7 @@ export default async function AdminBorrowersPage() {
         title="Borrowers"
         description="Manage all borrower profiles and their loan activity."
         action={
-          <Link href="/admin/borrowers">
+          <Link href="/admin/borrowers/new">
             <Button className="gap-2">
               <UserPlus className="h-4 w-4" />
               Add Borrower
