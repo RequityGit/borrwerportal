@@ -14,7 +14,7 @@ export default async function RoleManagementPage() {
 
   // Check if user is super_admin
   const { data: isSuperAdmin } = await (supabase as any).rpc("is_super_admin");
-  if (!isSuperAdmin) redirect("/admin");
+  if (!isSuperAdmin) redirect("/admin/dashboard");
 
   // Fetch all user roles with profile info
   const { data: userRoles } = await (supabase as any)

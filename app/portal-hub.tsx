@@ -18,11 +18,11 @@ function PortalHubContent({ userName }: { userName: string }) {
     if (roles.length === 1) {
       const role = roles[0].role;
       if (role === "super_admin" || role === "admin") {
-        router.replace("/admin");
+        router.replace("/admin/dashboard");
       } else if (role === "borrower") {
-        router.replace("/borrower");
+        router.replace("/borrower/dashboard");
       } else if (role === "investor") {
-        router.replace("/investor");
+        router.replace("/investor/dashboard");
       }
       return;
     }
@@ -30,11 +30,11 @@ function PortalHubContent({ userName }: { userName: string }) {
     // If activeRole is set, redirect to that role's dashboard
     if (activeRole) {
       if (activeRole === "super_admin" || activeRole === "admin") {
-        router.replace("/admin");
+        router.replace("/admin/dashboard");
       } else if (activeRole === "borrower") {
-        router.replace("/borrower");
+        router.replace("/borrower/dashboard");
       } else if (activeRole === "investor") {
-        router.replace("/investor");
+        router.replace("/investor/dashboard");
       }
     }
     // Otherwise, show the role hub
