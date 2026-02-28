@@ -22,7 +22,7 @@ async function requireAdmin() {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") return { error: "Unauthorized" } as const;
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") return { error: "Unauthorized" } as const;
 
   return { user } as const;
 }

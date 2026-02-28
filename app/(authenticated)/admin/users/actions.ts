@@ -23,7 +23,7 @@ async function requireAdmin(): Promise<
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") return { error: "Unauthorized" };
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") return { error: "Unauthorized" };
 
   return { user };
 }
@@ -322,10 +322,12 @@ export async function addRoleAction(
     const auth = await requireAdmin();
     if (auth.error) return { error: auth.error };
 
+    // Use the authenticated user's client for the RPC call so the DB function
+    // can verify the caller is a super_admin via auth.uid()
+    const userClient = await createClient();
     const admin = createAdminClient();
 
-    // Grant role via DB function
-    const { error: rpcError } = await admin.rpc("grant_role" as never, {
+    const { error: rpcError } = await userClient.rpc("grant_role" as never, {
       _user_id: userId,
       _role: role,
       _investor_id: investorId || null,
@@ -374,10 +376,12 @@ export async function removeRoleAction(
     const auth = await requireAdmin();
     if (auth.error) return { error: auth.error };
 
+    // Use the authenticated user's client for the RPC call so the DB function
+    // can verify the caller is a super_admin via auth.uid()
+    const userClient = await createClient();
     const admin = createAdminClient();
 
-    // Revoke role via DB function
-    const { error: rpcError } = await admin.rpc("revoke_role" as never, {
+    const { error: rpcError } = await userClient.rpc("revoke_role" as never, {
       _user_id: userId,
       _role: role,
       _investor_id: investorId || null,
