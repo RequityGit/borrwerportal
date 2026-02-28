@@ -68,7 +68,7 @@ export default async function AdminInvestorsPage() {
         title="Investors"
         description="Manage all investor profiles and their fund commitments."
         action={
-          <Link href="/admin/investors">
+          <Link href="/admin/investors/new">
             <Button className="gap-2">
               <UserPlus className="h-4 w-4" />
               Add Investor

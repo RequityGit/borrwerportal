@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
-import Link from "next/link";
 import { LoanListView } from "@/components/admin/loan-list-view";
+import { CreateLoanDialog } from "@/components/admin/create-loan-dialog";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminLoansPage() {
   const supabase = await createClient();
@@ -14,44 +14,117 @@ export default async function AdminLoansPage() {
 
   if (!user) redirect("/login");
 
-  const { data: loans } = await supabase
-    .from("loans")
-    .select("*, profiles!loans_borrower_id_fkey(full_name)")
-    .order("created_at", { ascending: false });
+  // Core data: loans, team, borrowers
+  const [loansResult, teamResult, borrowersResult, documentsResult] = await Promise.all([
+    supabase
+      .from("loans")
+      .select(`*, borrower:profiles!loans_borrower_id_fkey(full_name)`)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("role", "admin")
+      .order("full_name"),
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, company_name")
+      .eq("role", "borrower")
+      .order("full_name"),
+    supabase
+      .from("documents")
+      .select("loan_id")
+      .not("loan_id", "is", null),
+  ]);
 
-  const loanRows = (loans ?? []).map((l) => ({
+  // Condition counts — separate query so it won't break if the table doesn't exist yet
+  let conditionsResult: { data: any[] | null } = { data: [] };
+  try {
+    conditionsResult = await supabase
+      .from("loan_conditions")
+      .select("loan_id, status");
+  } catch {
+    // table may not exist yet if migration hasn't been applied
+  }
+
+  // Build profiles lookup for originator/processor names
+  const allProfiles: Record<string, string> = {};
+  (teamResult.data ?? []).forEach((t: { id: string; full_name: string | null }) => {
+    allProfiles[t.id] = t.full_name ?? "Unknown";
+  });
+
+  const loans = loansResult.data ?? [];
+  const teamMembers = (teamResult.data ?? []).map((t: { id: string; full_name: string | null }) => ({
+    id: t.id,
+    full_name: t.full_name ?? "Unknown",
+  }));
+  const borrowers = (borrowersResult.data ?? []).map((b: { id: string; full_name: string | null; email: string; company_name: string | null }) => ({
+    id: b.id,
+    full_name: b.full_name ?? "Unknown",
+    email: b.email,
+    company_name: b.company_name,
+  }));
+
+  // Count documents per loan
+  const docCounts: Record<string, number> = {};
+  (documentsResult.data ?? []).forEach((d: { loan_id: string | null }) => {
+    if (d.loan_id) {
+      docCounts[d.loan_id] = (docCounts[d.loan_id] ?? 0) + 1;
+    }
+  });
+
+  // Count conditions per loan: total and received/approved/waived
+  const conditionTotals: Record<string, number> = {};
+  const conditionReceived: Record<string, number> = {};
+  (conditionsResult.data ?? []).forEach((c: { loan_id: string; status: string }) => {
+    conditionTotals[c.loan_id] = (conditionTotals[c.loan_id] ?? 0) + 1;
+    if (["received", "under_review", "approved", "waived"].includes(c.status)) {
+      conditionReceived[c.loan_id] = (conditionReceived[c.loan_id] ?? 0) + 1;
+    }
+  });
+
+  const loanRows = loans.map((l: any) => ({
     id: l.id,
     loan_number: l.loan_number,
     property_address: l.property_address,
     property_city: l.property_city,
     property_state: l.property_state,
-    borrower_name: (l as any).profiles?.full_name ?? "—",
+    borrower_name: (l as any).borrower?.full_name ?? "—",
     borrower_id: l.borrower_id,
     loan_type: l.loan_type,
     loan_amount: l.loan_amount,
-    ltv: l.ltv,
-    interest_rate: l.interest_rate,
     stage: l.stage,
-    origination_date: l.origination_date,
+    stage_updated_at: l.stage_updated_at,
     created_at: l.created_at,
+    priority: l.priority ?? "normal",
+    next_action: l.next_action,
+    originator_name:
+      (l.originator_id && allProfiles[l.originator_id]) ?? l.originator ?? null,
+    processor_name:
+      (l.processor_id && allProfiles[l.processor_id]) ?? null,
+    document_count: docCounts[l.id] ?? 0,
+    total_conditions: conditionTotals[l.id] ?? 0,
   }));
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Loans"
-        description="Manage all loans in the pipeline."
+        title="Loan Pipeline"
+        description="Manage all loans from lead to funding."
         action={
-          <Link href="/admin/loans">
-            <Button className="gap-2">
-              <PlusCircle className="h-4 w-4" />
-              Create Loan
-            </Button>
-          </Link>
+          <CreateLoanDialog
+            teamMembers={teamMembers}
+            borrowers={borrowers}
+            currentUserId={user.id}
+          />
         }
       />
 
-      <LoanListView data={loanRows} />
+      <LoanListView
+        data={loanRows}
+        teamMembers={teamMembers}
+        currentUserId={user.id}
+      />
     </div>
   );
 }

@@ -126,17 +126,22 @@ INSERT INTO public.distributions (id, fund_id, investor_id, distribution_type, a
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
--- LOANS
+-- LOANS (updated for pipeline stages)
 -- ============================================
-INSERT INTO public.loans (id, borrower_id, loan_type, property_address, property_city, property_state, property_zip, loan_amount, appraised_value, interest_rate, term_months, stage, stage_updated_at, originator, notes) VALUES
-  ('l0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'bridge_residential', '1425 Oak Street', 'Houston', 'TX', '77001', 850000, 1200000, 10.5, 12, 'servicing', '2024-11-15', 'Sarah Chen', 'Rehab project, good borrower history'),
-  ('l0000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'bridge_commercial', '500 Commerce Blvd, Suite 200', 'Atlanta', 'GA', '30301', 2500000, 3500000, 11.0, 18, 'funded', '2025-01-20', 'James Martinez', 'Mixed-use commercial property'),
-  ('l0000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003', 'fix_and_flip', '782 Elm Avenue', 'Dallas', 'TX', '75201', 425000, 650000, 12.0, 9, 'underwriting', '2025-02-01', 'Sarah Chen', 'Single family fix and flip'),
-  ('l0000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000004', 'ground_up', '15 Harbor View Lane', 'Phoenix', 'AZ', '85001', 3200000, 4800000, 11.5, 24, 'approved', '2025-02-10', 'Lisa Thompson', 'New construction townhomes'),
-  ('l0000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000005', 'fix_and_flip', '2200 Pine Street', 'Portland', 'OR', '97201', 375000, 550000, 12.5, 6, 'closed', '2025-02-15', 'James Martinez', 'Quick flip opportunity'),
-  ('l0000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000006', 'bridge_commercial', '8900 Industrial Pkwy', 'Seattle', 'WA', '98101', 4500000, 6200000, 10.0, 18, 'lead', '2025-02-20', 'Sarah Chen', 'Industrial warehouse conversion'),
-  ('l0000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000007', 'stabilized', '350 Maple Court, Units 1-4', 'Chicago', 'IL', '60601', 1200000, 1650000, 8.5, 36, 'servicing', '2024-08-01', 'Lisa Thompson', 'Multi-unit stabilized rental'),
-  ('l0000000-0000-0000-0000-000000000008', '20000000-0000-0000-0000-000000000008', 'bridge_residential', '945 Sunset Drive', 'Scottsdale', 'AZ', '85251', 675000, 950000, 11.0, 12, 'docs_out', '2025-02-22', 'James Martinez', 'Luxury rehab project')
+INSERT INTO public.loans (id, borrower_id, loan_type, property_address, property_city, property_state, property_zip, loan_amount, appraised_value, interest_rate, term_months, stage, stage_updated_at, originator, originator_id, processor_id, priority, next_action, expected_close_date, purchase_price, notes) VALUES
+  ('l0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'bridge_residential', '1425 Oak Street', 'Houston', 'TX', '77001', 850000, 1200000, 10.5, 12, 'servicing', '2024-11-15', 'Sarah Chen', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'normal', NULL, NULL, 975000, 'Rehab project, good borrower history'),
+  ('l0000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'bridge_commercial', '500 Commerce Blvd, Suite 200', 'Atlanta', 'GA', '30301', 2500000, 3500000, 11.0, 18, 'funded', '2025-01-20', 'James Martinez', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'normal', NULL, NULL, 2800000, 'Mixed-use commercial property'),
+  ('l0000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003', 'fix_and_flip', '782 Elm Avenue', 'Dallas', 'TX', '75201', 425000, 650000, 12.0, 9, 'underwriting', '2025-02-01', 'Sarah Chen', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'hot', 'Waiting on borrower entity docs', '2025-04-15', 510000, 'Single family fix and flip'),
+  ('l0000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000004', 'ground_up', '15 Harbor View Lane', 'Phoenix', 'AZ', '85001', 3200000, 4800000, 11.5, 24, 'approved', '2025-02-10', 'Lisa Thompson', '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'hot', 'Title commitment needed', '2025-03-30', 3800000, 'New construction townhomes'),
+  ('l0000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000005', 'fix_and_flip', '2200 Pine Street', 'Portland', 'OR', '97201', 375000, 550000, 12.5, 6, 'clear_to_close', '2025-02-15', 'James Martinez', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'normal', 'Final docs in review', '2025-03-10', 420000, 'Quick flip opportunity'),
+  ('l0000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000006', 'bridge_commercial', '8900 Industrial Pkwy', 'Seattle', 'WA', '98101', 4500000, 6200000, 10.0, 18, 'lead', '2025-02-20', 'Sarah Chen', '00000000-0000-0000-0000-000000000001', NULL, 'normal', 'Initial borrower outreach', '2025-06-01', 5200000, 'Industrial warehouse conversion'),
+  ('l0000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000007', 'stabilized', '350 Maple Court, Units 1-4', 'Chicago', 'IL', '60601', 1200000, 1650000, 8.5, 36, 'servicing', '2024-08-01', 'Lisa Thompson', '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'normal', NULL, NULL, 1450000, 'Multi-unit stabilized rental'),
+  ('l0000000-0000-0000-0000-000000000008', '20000000-0000-0000-0000-000000000008', 'bridge_residential', '945 Sunset Drive', 'Scottsdale', 'AZ', '85251', 675000, 950000, 11.0, 12, 'processing', '2025-02-22', 'James Martinez', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'on_hold', 'Waiting on insurance quote', '2025-04-01', 780000, 'Luxury rehab project'),
+  -- Additional pipeline loans for a fuller board
+  ('l0000000-0000-0000-0000-000000000009', '20000000-0000-0000-0000-000000000001', 'dscr', '2100 Main Street', 'Austin', 'TX', '78701', 520000, 720000, 9.5, 30, 'application', '2025-02-25', 'Sarah Chen', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'normal', 'Application under review', '2025-05-15', 600000, 'DSCR rental property, strong cash flow'),
+  ('l0000000-0000-0000-0000-000000000010', '20000000-0000-0000-0000-000000000003', 'bridge_residential', '410 Cherry Lane', 'Denver', 'CO', '80201', 390000, 560000, 11.5, 12, 'processing', '2025-02-18', 'Lisa Thompson', '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'hot', 'Credit check pending', '2025-04-10', 450000, 'Duplex conversion project'),
+  ('l0000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000005', 'fix_and_flip', '7788 Birch Road', 'Tampa', 'FL', '33601', 280000, 420000, 13.0, 6, 'application', '2025-02-26', 'James Martinez', '00000000-0000-0000-0000-000000000002', NULL, 'normal', NULL, '2025-05-01', 320000, 'Small SFR flip'),
+  ('l0000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000006', 'bridge_commercial', '1200 Enterprise Way', 'Miami', 'FL', '33101', 6800000, 9200000, 9.5, 24, 'lead', '2025-02-27', 'Sarah Chen', '00000000-0000-0000-0000-000000000001', NULL, 'hot', 'Broker referral - high priority', NULL, 7500000, 'Large office-to-residential conversion')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
@@ -188,4 +193,86 @@ INSERT INTO public.documents (id, owner_id, uploaded_by, document_type, file_nam
   ('doc00000-0000-0000-0000-000000000010', '20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'closing_docs', 'closing-500-commerce.pdf', 'Closing Package - 500 Commerce Blvd', 'loan-documents/20000000-0000-0000-0000-000000000002/closing_docs/closing-500-commerce.pdf', 3500000, 'application/pdf', NULL, 'l0000000-0000-0000-0000-000000000002', 'approved'),
   ('doc00000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'draw_approval', 'draw-1-approval-1425-oak.pdf', 'Draw #1 Approval - 1425 Oak Street', 'loan-documents/20000000-0000-0000-0000-000000000001/draw_approval/draw-1-approval-1425-oak.pdf', 95000, 'application/pdf', NULL, 'l0000000-0000-0000-0000-000000000001', 'approved'),
   ('doc00000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000003', 'loan_agreement', 'loan-agreement-350-maple.pdf', 'Loan Agreement - 350 Maple Court', 'loan-documents/20000000-0000-0000-0000-000000000007/loan_agreement/loan-agreement-350-maple.pdf', 410000, 'application/pdf', NULL, 'l0000000-0000-0000-0000-000000000007', 'approved')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================
+-- CONDITION TEMPLATES
+-- ============================================
+INSERT INTO public.condition_templates (id, name, loan_type, description, is_default, created_by) VALUES
+  ('ct000000-0000-0000-0000-000000000001', 'Residential Bridge - Standard', 'bridge_residential', 'Standard conditions for residential bridge loans', true, '00000000-0000-0000-0000-000000000001'),
+  ('ct000000-0000-0000-0000-000000000002', 'Commercial Bridge - Standard', 'bridge_commercial', 'Standard conditions for commercial bridge loans', true, '00000000-0000-0000-0000-000000000001'),
+  ('ct000000-0000-0000-0000-000000000003', 'Fix & Flip - Standard', 'fix_and_flip', 'Standard conditions for fix and flip loans', true, '00000000-0000-0000-0000-000000000001'),
+  ('ct000000-0000-0000-0000-000000000004', 'Ground-Up Construction', 'ground_up', 'Standard conditions for ground-up construction loans', true, '00000000-0000-0000-0000-000000000001'),
+  ('ct000000-0000-0000-0000-000000000005', 'DSCR Rental', 'dscr', 'Standard conditions for DSCR rental loans', true, '00000000-0000-0000-0000-000000000001'),
+  ('ct000000-0000-0000-0000-000000000006', 'Stabilized', 'stabilized', 'Standard conditions for stabilized rental loans', true, '00000000-0000-0000-0000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================
+-- CONDITION TEMPLATE ITEMS — Residential Bridge
+-- ============================================
+INSERT INTO public.condition_template_items (id, template_id, name, description, borrower_description, category, responsible_party, due_date_offset_days, is_critical_path, sort_order) VALUES
+  -- PTA Conditions
+  ('cti00000-0000-0000-0001-000000000001', 'ct000000-0000-0000-0000-000000000001', 'Signed Loan Application', 'Complete and signed loan application form', 'Please complete and sign the loan application', 'pta', 'borrower', 3, true, 1),
+  ('cti00000-0000-0000-0001-000000000002', 'ct000000-0000-0000-0000-000000000001', 'Credit Authorization', 'Signed credit check authorization', 'Please sign the credit authorization form so we can run your credit', 'pta', 'borrower', 3, true, 2),
+  ('cti00000-0000-0000-0001-000000000003', 'ct000000-0000-0000-0000-000000000001', 'Entity Documents', 'Articles of Org, Operating Agreement, EIN Letter', 'Please provide your entity formation documents (Articles of Organization, Operating Agreement, and EIN letter)', 'pta', 'borrower', 5, true, 3),
+  ('cti00000-0000-0000-0001-000000000004', 'ct000000-0000-0000-0000-000000000001', 'Personal Financial Statement', 'Current personal financial statement for all guarantors', 'Please provide a current personal financial statement', 'pta', 'borrower', 5, false, 4),
+  ('cti00000-0000-0000-0001-000000000005', 'ct000000-0000-0000-0000-000000000001', 'Bank Statements (2 months)', 'Last 2 months of bank statements for all accounts', 'Please provide your last 2 months of bank statements', 'pta', 'borrower', 5, true, 5),
+  ('cti00000-0000-0000-0001-000000000006', 'ct000000-0000-0000-0000-000000000001', 'Purchase Contract', 'Fully executed purchase agreement', 'Please provide the signed purchase contract', 'pta', 'borrower', 5, true, 6),
+  ('cti00000-0000-0000-0001-000000000007', 'ct000000-0000-0000-0000-000000000001', 'Proof of Funds for Down Payment', 'Documentation showing available funds for down payment and reserves', 'Please provide proof of funds for your down payment', 'pta', 'borrower', 5, true, 7),
+  ('cti00000-0000-0000-0001-000000000008', 'ct000000-0000-0000-0000-000000000001', 'Insurance Quote', 'Property insurance quote or binder', 'Please provide an insurance quote for the property', 'pta', 'insurance_agent', 7, false, 8),
+  ('cti00000-0000-0000-0001-000000000009', 'ct000000-0000-0000-0000-000000000001', 'Background & Credit Check', 'Internal background and credit check completed', 'No action needed — we will handle this internally', 'pta', 'internal', 5, true, 9),
+  ('cti00000-0000-0000-0001-000000000010', 'ct000000-0000-0000-0000-000000000001', 'Rehab Budget / Scope of Work', 'Detailed rehab budget and scope of work', 'Please provide your detailed rehab budget and scope of work', 'pta', 'borrower', 7, false, 10),
+  -- PTF Conditions
+  ('cti00000-0000-0000-0001-000000000011', 'ct000000-0000-0000-0000-000000000001', 'Final Title Commitment', 'Clean title commitment with no unacceptable exceptions', 'No action needed — your title company will provide this', 'ptf', 'title_company', 10, true, 11),
+  ('cti00000-0000-0000-0001-000000000012', 'ct000000-0000-0000-0000-000000000001', 'Executed Loan Documents', 'All loan documents signed by borrower', 'You will need to sign all loan documents at closing', 'ptf', 'borrower', 10, true, 12),
+  ('cti00000-0000-0000-0001-000000000013', 'ct000000-0000-0000-0000-000000000001', 'Proof of Insurance (Bound Policy)', 'Evidence of hazard insurance with proper endorsements', 'Please ensure your insurance agent binds the policy before closing', 'ptf', 'insurance_agent', 10, true, 13),
+  ('cti00000-0000-0000-0001-000000000014', 'ct000000-0000-0000-0000-000000000001', 'Wire Instructions', 'Verified wire transfer instructions', 'Please provide your wire transfer instructions', 'ptf', 'borrower', 10, false, 14),
+  ('cti00000-0000-0000-0001-000000000015', 'ct000000-0000-0000-0000-000000000001', 'Appraisal or BPO', 'Final appraisal or Broker Price Opinion', 'No action needed — we will order the appraisal', 'ptf', 'internal', 14, true, 15),
+  ('cti00000-0000-0000-0001-000000000016', 'ct000000-0000-0000-0000-000000000001', 'Flood Certification', 'Flood zone determination certificate', 'No action needed — we will order the flood cert', 'ptf', 'internal', 7, false, 16)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================
+-- CONDITION TEMPLATE ITEMS — Commercial Bridge
+-- ============================================
+INSERT INTO public.condition_template_items (id, template_id, name, description, borrower_description, category, responsible_party, due_date_offset_days, is_critical_path, sort_order) VALUES
+  -- PTA
+  ('cti00000-0000-0000-0002-000000000001', 'ct000000-0000-0000-0000-000000000002', 'Signed Loan Application', 'Complete and signed loan application form', 'Please complete and sign the loan application', 'pta', 'borrower', 3, true, 1),
+  ('cti00000-0000-0000-0002-000000000002', 'ct000000-0000-0000-0000-000000000002', 'Credit Authorization', 'Signed credit check authorization', 'Please sign the credit authorization form', 'pta', 'borrower', 3, true, 2),
+  ('cti00000-0000-0000-0002-000000000003', 'ct000000-0000-0000-0000-000000000002', 'Entity Documents', 'Articles of Org, Operating Agreement, EIN Letter for all entities', 'Please provide all entity formation documents', 'pta', 'borrower', 5, true, 3),
+  ('cti00000-0000-0000-0002-000000000004', 'ct000000-0000-0000-0000-000000000002', 'Personal Financial Statement', 'Current PFS for all guarantors', 'Please provide a current personal financial statement', 'pta', 'borrower', 5, false, 4),
+  ('cti00000-0000-0000-0002-000000000005', 'ct000000-0000-0000-0000-000000000002', 'Bank Statements (2 months)', 'Last 2 months of bank statements', 'Please provide your last 2 months of bank statements', 'pta', 'borrower', 5, true, 5),
+  ('cti00000-0000-0000-0002-000000000006', 'ct000000-0000-0000-0000-000000000002', 'Purchase Contract / LOI', 'Executed purchase agreement or Letter of Intent', 'Please provide the signed purchase contract or LOI', 'pta', 'borrower', 5, true, 6),
+  ('cti00000-0000-0000-0002-000000000007', 'ct000000-0000-0000-0000-000000000002', 'Rent Roll', 'Current rent roll and lease abstracts', 'Please provide the current rent roll with all lease details', 'pta', 'borrower', 5, false, 7),
+  ('cti00000-0000-0000-0002-000000000008', 'ct000000-0000-0000-0000-000000000002', 'Operating Statements (2 years)', 'Trailing 24 months of operating statements / P&L', 'Please provide the last 2 years of property operating statements', 'pta', 'borrower', 7, false, 8),
+  ('cti00000-0000-0000-0002-000000000009', 'ct000000-0000-0000-0000-000000000002', 'Environmental Report (Phase I)', 'Phase I Environmental Site Assessment', 'No action needed — we will order the Phase I ESA', 'pta', 'internal', 21, true, 9),
+  ('cti00000-0000-0000-0002-000000000010', 'ct000000-0000-0000-0000-000000000002', 'Background & Credit Check', 'Internal background and credit check', 'No action needed — handled internally', 'pta', 'internal', 5, true, 10),
+  -- PTF
+  ('cti00000-0000-0000-0002-000000000011', 'ct000000-0000-0000-0000-000000000002', 'Final Title Commitment', 'Clean title commitment', 'Your title company will provide this', 'ptf', 'title_company', 10, true, 11),
+  ('cti00000-0000-0000-0002-000000000012', 'ct000000-0000-0000-0000-000000000002', 'Executed Loan Documents', 'All loan documents signed', 'You will sign all loan documents at closing', 'ptf', 'borrower', 10, true, 12),
+  ('cti00000-0000-0000-0002-000000000013', 'ct000000-0000-0000-0000-000000000002', 'Proof of Insurance (Bound Policy)', 'Commercial property insurance with required endorsements', 'Please ensure your insurance agent binds the commercial policy', 'ptf', 'insurance_agent', 10, true, 13),
+  ('cti00000-0000-0000-0002-000000000014', 'ct000000-0000-0000-0000-000000000002', 'Survey', 'ALTA/NSPS land title survey', 'No action needed — we will order the survey', 'ptf', 'internal', 14, false, 14),
+  ('cti00000-0000-0000-0002-000000000015', 'ct000000-0000-0000-0000-000000000002', 'Appraisal', 'Full commercial appraisal', 'No action needed — we will order the appraisal', 'ptf', 'internal', 21, true, 15),
+  ('cti00000-0000-0000-0002-000000000016', 'ct000000-0000-0000-0000-000000000002', 'Wire Instructions', 'Verified wire instructions', 'Please provide wire transfer instructions', 'ptf', 'borrower', 10, false, 16),
+  ('cti00000-0000-0000-0002-000000000017', 'ct000000-0000-0000-0000-000000000002', 'Flood Certification', 'Flood zone determination', 'No action needed', 'ptf', 'internal', 7, false, 17),
+  ('cti00000-0000-0000-0002-000000000018', 'ct000000-0000-0000-0000-000000000002', 'Estoppel Certificates', 'Tenant estoppel certificates (if applicable)', 'Please obtain estoppel certificates from current tenants', 'ptf', 'borrower', 14, false, 18)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================
+-- CONDITION TEMPLATE ITEMS — Fix & Flip
+-- ============================================
+INSERT INTO public.condition_template_items (id, template_id, name, description, borrower_description, category, responsible_party, due_date_offset_days, is_critical_path, sort_order) VALUES
+  ('cti00000-0000-0000-0003-000000000001', 'ct000000-0000-0000-0000-000000000003', 'Signed Loan Application', 'Complete and signed application', 'Please complete and sign the loan application', 'pta', 'borrower', 3, true, 1),
+  ('cti00000-0000-0000-0003-000000000002', 'ct000000-0000-0000-0000-000000000003', 'Credit Authorization', 'Signed credit authorization', 'Please sign the credit authorization form', 'pta', 'borrower', 3, true, 2),
+  ('cti00000-0000-0000-0003-000000000003', 'ct000000-0000-0000-0000-000000000003', 'Entity Documents', 'Articles of Org, Operating Agreement, EIN Letter', 'Please provide entity formation documents', 'pta', 'borrower', 5, true, 3),
+  ('cti00000-0000-0000-0003-000000000004', 'ct000000-0000-0000-0000-000000000003', 'Bank Statements (2 months)', 'Last 2 months of bank statements', 'Please provide 2 months of bank statements', 'pta', 'borrower', 5, true, 4),
+  ('cti00000-0000-0000-0003-000000000005', 'ct000000-0000-0000-0000-000000000003', 'Purchase Contract', 'Executed purchase agreement', 'Please provide the signed purchase contract', 'pta', 'borrower', 5, true, 5),
+  ('cti00000-0000-0000-0003-000000000006', 'ct000000-0000-0000-0000-000000000003', 'Proof of Funds', 'Proof of down payment and rehab reserve funds', 'Please show proof of funds for down payment and rehab costs', 'pta', 'borrower', 5, true, 6),
+  ('cti00000-0000-0000-0003-000000000007', 'ct000000-0000-0000-0000-000000000003', 'Rehab Budget & Scope of Work', 'Detailed line-item rehab budget with contractor bids', 'Please provide a detailed rehab budget with scope of work and contractor bids', 'pta', 'borrower', 7, true, 7),
+  ('cti00000-0000-0000-0003-000000000008', 'ct000000-0000-0000-0000-000000000003', 'Contractor Info & License', 'General contractor license and insurance', 'Please provide your GC license and insurance certificate', 'pta', 'borrower', 7, false, 8),
+  ('cti00000-0000-0000-0003-000000000009', 'ct000000-0000-0000-0000-000000000003', 'Background & Credit Check', 'Internal check', 'No action needed', 'pta', 'internal', 5, true, 9),
+  ('cti00000-0000-0000-0003-000000000010', 'ct000000-0000-0000-0000-000000000003', 'Final Title Commitment', 'Clean title commitment', 'Title company will provide this', 'ptf', 'title_company', 10, true, 10),
+  ('cti00000-0000-0000-0003-000000000011', 'ct000000-0000-0000-0000-000000000003', 'Executed Loan Documents', 'All loan docs signed', 'Sign all loan documents at closing', 'ptf', 'borrower', 10, true, 11),
+  ('cti00000-0000-0000-0003-000000000012', 'ct000000-0000-0000-0000-000000000003', 'Proof of Insurance', 'Builders risk or hazard insurance bound', 'Ensure your insurance agent binds builders risk coverage', 'ptf', 'insurance_agent', 10, true, 12),
+  ('cti00000-0000-0000-0003-000000000013', 'ct000000-0000-0000-0000-000000000003', 'BPO or Appraisal', 'As-is and ARV valuation', 'No action needed — we will order the valuation', 'ptf', 'internal', 14, true, 13),
+  ('cti00000-0000-0000-0003-000000000014', 'ct000000-0000-0000-0000-000000000003', 'Wire Instructions', 'Verified wire instructions', 'Please provide wire instructions', 'ptf', 'borrower', 10, false, 14)
 ON CONFLICT (id) DO NOTHING;
