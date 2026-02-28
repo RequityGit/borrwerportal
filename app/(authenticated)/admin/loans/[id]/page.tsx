@@ -13,7 +13,6 @@ import {
 } from "@/lib/format";
 import { LOAN_STAGE_LABELS, LOAN_TYPES } from "@/lib/constants";
 import { LoanDetailActions } from "@/components/admin/loan-detail-actions";
-import { LoanConditionsTab } from "@/components/admin/loan-conditions-tab";
 import { Flame, Pause } from "lucide-react";
 
 interface PageProps {
@@ -32,19 +31,14 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
 
   const { data: loan } = await supabase
     .from("loans")
-    .select(`*,
-      borrower:profiles!loans_borrower_id_fkey(full_name, email),
-      originator_profile:profiles!loans_originator_id_fkey(full_name),
-      processor_profile:profiles!loans_processor_id_fkey(full_name),
-      underwriter_profile:profiles!loans_underwriter_id_fkey(full_name),
-      closer_profile:profiles!loans_closer_id_fkey(full_name)`)
+    .select(`*, borrower:profiles!loans_borrower_id_fkey(full_name, email)`)
     .eq("id", id)
     .single();
 
   if (!loan) notFound();
 
-  // Fetch all related data in parallel
-  const [drawRequestsResult, paymentsResult, documentsResult, conditionsResult, activityResult] =
+  // Fetch all related data in parallel — keep conditions/activity separate so they don't break if tables don't exist
+  const [drawRequestsResult, paymentsResult, documentsResult] =
     await Promise.all([
       supabase
         .from("draw_requests")
@@ -61,18 +55,39 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         .select("*")
         .eq("loan_id", id)
         .order("created_at", { ascending: false }),
-      supabase
-        .from("loan_conditions")
-        .select("*")
-        .eq("loan_id", id)
-        .order("sort_order"),
-      supabase
-        .from("loan_activity_log")
-        .select("*, user:profiles!loan_activity_log_user_id_fkey(full_name)")
-        .eq("loan_id", id)
-        .order("created_at", { ascending: false })
-        .limit(50),
     ]);
+
+  // Conditions and activity log — may not exist if migrations haven't been applied
+  let conditionsResult: { data: any[] | null } = { data: [] };
+  let activityResult: { data: any[] | null } = { data: [] };
+  try {
+    conditionsResult = await supabase
+      .from("loan_conditions")
+      .select("*")
+      .eq("loan_id", id)
+      .order("sort_order");
+  } catch { /* table may not exist */ }
+  try {
+    activityResult = await supabase
+      .from("loan_activity_log")
+      .select("*")
+      .eq("loan_id", id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+  } catch { /* table may not exist */ }
+
+  // Lookup team member names
+  const teamIds = [loan.originator_id, loan.processor_id, loan.underwriter_id, loan.closer_id].filter(Boolean);
+  let teamProfiles: Record<string, string> = {};
+  if (teamIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", teamIds);
+    (profiles ?? []).forEach((p: any) => {
+      teamProfiles[p.id] = p.full_name ?? "Unknown";
+    });
+  }
 
   const drawRequests = drawRequestsResult.data ?? [];
   const payments = paymentsResult.data ?? [];
@@ -81,10 +96,10 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
   const activityLog = activityResult.data ?? [];
 
   const borrowerName = (loan as any).borrower?.full_name ?? "—";
-  const originatorName = (loan as any).originator_profile?.full_name ?? loan.originator ?? "—";
-  const processorName = (loan as any).processor_profile?.full_name ?? "—";
-  const underwriterName = (loan as any).underwriter_profile?.full_name ?? "—";
-  const closerName = (loan as any).closer_profile?.full_name ?? "—";
+  const originatorName = (loan.originator_id && teamProfiles[loan.originator_id]) ?? loan.originator ?? "—";
+  const processorName = (loan.processor_id && teamProfiles[loan.processor_id]) ?? "—";
+  const underwriterName = (loan.underwriter_id && teamProfiles[loan.underwriter_id]) ?? "—";
+  const closerName = (loan.closer_id && teamProfiles[loan.closer_id]) ?? "—";
 
   const loanTypeLabel = LOAN_TYPES.find((t) => t.value === loan.loan_type)?.label ?? (loan.loan_type ?? "—").replace(/_/g, " ");
 

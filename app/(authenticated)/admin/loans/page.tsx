@@ -14,40 +14,44 @@ export default async function AdminLoansPage() {
 
   if (!user) redirect("/login");
 
-  // Fetch loans with borrower, originator, and processor names + borrowers list + team + doc counts + condition counts
-  const [loansResult, teamResult, borrowersResult, documentsResult, conditionsResult] = await Promise.all([
+  // Core data: loans, team, borrowers
+  const [loansResult, teamResult, borrowersResult, documentsResult] = await Promise.all([
     supabase
       .from("loans")
-      .select(
-        `*,
-        borrower:profiles!loans_borrower_id_fkey(full_name),
-        originator_profile:profiles!loans_originator_id_fkey(full_name),
-        processor_profile:profiles!loans_processor_id_fkey(full_name)`
-      )
+      .select(`*, borrower:profiles!loans_borrower_id_fkey(full_name)`)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
-    // Fetch admin team members for the filter dropdown and assignment
     supabase
       .from("profiles")
       .select("id, full_name")
       .eq("role", "admin")
       .order("full_name"),
-    // Fetch borrowers for the create loan form
     supabase
       .from("profiles")
       .select("id, full_name, email, company_name")
       .eq("role", "borrower")
       .order("full_name"),
-    // Fetch document counts per loan
     supabase
       .from("documents")
       .select("loan_id")
       .not("loan_id", "is", null),
-    // Fetch condition counts per loan
-    supabase
-      .from("loan_conditions")
-      .select("loan_id, status"),
   ]);
+
+  // Condition counts — separate query so it won't break if the table doesn't exist yet
+  let conditionsResult: { data: any[] | null } = { data: [] };
+  try {
+    conditionsResult = await supabase
+      .from("loan_conditions")
+      .select("loan_id, status");
+  } catch {
+    // table may not exist yet if migration hasn't been applied
+  }
+
+  // Build profiles lookup for originator/processor names
+  const allProfiles: Record<string, string> = {};
+  (teamResult.data ?? []).forEach((t: { id: string; full_name: string | null }) => {
+    allProfiles[t.id] = t.full_name ?? "Unknown";
+  });
 
   const loans = loansResult.data ?? [];
   const teamMembers = (teamResult.data ?? []).map((t: { id: string; full_name: string | null }) => ({
@@ -95,9 +99,10 @@ export default async function AdminLoansPage() {
     priority: l.priority ?? "normal",
     next_action: l.next_action,
     originator_name:
-      (l as any).originator_profile?.full_name ?? l.originator ?? null,
-    processor_name: (l as any).processor_profile?.full_name ?? null,
-    document_count: conditionReceived[l.id] ?? docCounts[l.id] ?? 0,
+      (l.originator_id && allProfiles[l.originator_id]) ?? l.originator ?? null,
+    processor_name:
+      (l.processor_id && allProfiles[l.processor_id]) ?? null,
+    document_count: docCounts[l.id] ?? 0,
     total_conditions: conditionTotals[l.id] ?? 0,
   }));
 

@@ -13,7 +13,7 @@ export default async function AdminConditionsPage() {
 
   if (!user) redirect("/login");
 
-  // Fetch all conditions for active loans (non-terminal stages)
+  // Fetch active loans first
   const activeStages = [
     "lead",
     "application",
@@ -24,26 +24,55 @@ export default async function AdminConditionsPage() {
     "funded",
   ];
 
-  const { data: conditions } = await supabase
-    .from("loan_conditions")
-    .select(
-      `*,
-      loan:loans!loan_conditions_loan_id_fkey(
-        id, loan_number, property_address, stage, borrower_id, loan_amount,
-        borrower:profiles!loans_borrower_id_fkey(full_name)
-      )`
-    )
-    .in(
-      "loan_id",
-      (
-        await supabase
-          .from("loans")
-          .select("id")
-          .in("stage", activeStages)
-          .is("deleted_at", null)
-      ).data?.map((l: any) => l.id) ?? []
-    )
-    .order("due_date", { ascending: true });
+  const { data: activeLoans } = await supabase
+    .from("loans")
+    .select("id, loan_number, property_address, stage, borrower_id, loan_amount")
+    .in("stage", activeStages)
+    .is("deleted_at", null);
+
+  const loanIds = (activeLoans ?? []).map((l: any) => l.id);
+
+  // Fetch conditions for active loans
+  let conditions: any[] = [];
+  if (loanIds.length > 0) {
+    try {
+      const { data } = await supabase
+        .from("loan_conditions")
+        .select("*")
+        .in("loan_id", loanIds)
+        .order("due_date", { ascending: true });
+      conditions = data ?? [];
+    } catch {
+      // table may not exist
+    }
+  }
+
+  // Fetch borrower names for the loans
+  const borrowerIds = [...new Set((activeLoans ?? []).map((l: any) => l.borrower_id).filter(Boolean))];
+  let borrowerNames: Record<string, string> = {};
+  if (borrowerIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", borrowerIds);
+    (profiles ?? []).forEach((p: any) => {
+      borrowerNames[p.id] = p.full_name ?? "Unknown";
+    });
+  }
+
+  // Build loan lookup and attach to conditions
+  const loanLookup: Record<string, any> = {};
+  (activeLoans ?? []).forEach((l: any) => {
+    loanLookup[l.id] = {
+      ...l,
+      borrower: { full_name: borrowerNames[l.borrower_id] ?? "Unknown" },
+    };
+  });
+
+  const conditionsWithLoan = conditions.map((c: any) => ({
+    ...c,
+    loan: loanLookup[c.loan_id] ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -52,7 +81,7 @@ export default async function AdminConditionsPage() {
         description="Track outstanding conditions across all active loans"
       />
       <ConditionsDashboard
-        conditions={conditions ?? []}
+        conditions={conditionsWithLoan}
         currentUserId={user.id}
       />
     </div>
