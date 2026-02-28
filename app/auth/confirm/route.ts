@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/login";
 
   if (token_hash && type) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -42,10 +41,28 @@ export async function GET(request: NextRequest) {
     );
 
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
+
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.role) {
+          return NextResponse.redirect(`${origin}/${profile.role}/dashboard`);
+        }
+      }
+
+      // No profile yet — send to onboarding
+      return NextResponse.redirect(`${origin}/onboarding`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/login`);
+  return NextResponse.redirect(`${origin}/login?error=verification_failed`);
 }

@@ -42,7 +42,7 @@ export default function LoginPage() {
       }
 
       // Get user role to redirect appropriately
-      let redirectPath = "/borrower/dashboard";
+      let redirectPath = "/onboarding";
 
       const {
         data: { user },

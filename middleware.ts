@@ -16,7 +16,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 };
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/auth/callback", "/auth/confirm"];
+const PUBLIC_ROUTES = ["/login", "/auth/callback", "/auth/confirm", "/onboarding"];
 
 export async function middleware(request: NextRequest) {
   const { supabase, user, supabaseResponse } = await updateSession(request);
@@ -61,6 +61,13 @@ export async function middleware(request: NextRequest) {
       url.pathname = dashboardPath;
       return NextResponse.redirect(url);
     }
+
+    // Authenticated but no profile — send to onboarding (unless already there)
+    if (!pathname.startsWith("/onboarding")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -78,16 +85,21 @@ export async function middleware(request: NextRequest) {
         .eq("id", user.id)
         .single();
 
-      if (profile?.role) {
-        const allowedPrefix = ROLE_ROUTES[profile.role];
+      // No profile at all — redirect to onboarding
+      if (!profile?.role) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
+      }
 
-        // User is trying to access a route outside their role
-        if (allowedPrefix && !pathname.startsWith(allowedPrefix)) {
-          const url = request.nextUrl.clone();
-          url.pathname =
-            ROLE_DASHBOARDS[profile.role] || "/borrower/dashboard";
-          return NextResponse.redirect(url);
-        }
+      const allowedPrefix = ROLE_ROUTES[profile.role];
+
+      // User is trying to access a route outside their role
+      if (allowedPrefix && !pathname.startsWith(allowedPrefix)) {
+        const url = request.nextUrl.clone();
+        url.pathname =
+          ROLE_DASHBOARDS[profile.role] || "/borrower/dashboard";
+        return NextResponse.redirect(url);
       }
     }
   }
