@@ -11,6 +11,8 @@ Requity Group Unified Portal — a full-stack SaaS platform for lending/fintech 
 - `npm run start` — Start production server
 - `npm run lint` — Run ESLint
 
+There is no test framework configured. No unit or integration tests exist.
+
 ## Tech Stack
 
 - **Framework**: Next.js 14.2.21 with App Router
@@ -23,6 +25,15 @@ Requity Group Unified Portal — a full-stack SaaS platform for lending/fintech 
 - **Icons**: Lucide React
 - **Drag & Drop**: @dnd-kit
 - **Deployment**: Netlify (`netlify.toml`)
+
+## Environment Variables
+
+Required in `.env` (see `.env.example`):
+```
+NEXT_PUBLIC_SUPABASE_URL=        # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=   # Supabase anon/public key
+SUPABASE_SERVICE_ROLE_KEY=       # Supabase service role key (server-side only, for admin operations)
+```
 
 ## Project Structure
 
@@ -64,6 +75,16 @@ middleware.ts                 # Role-based route protection & redirects
 - **Server components by default**: Use `"use client"` directive only when needed for interactivity.
 - **Supabase clients**: Use `createClient()` from `lib/supabase/client.ts` in client components, `createServerClient()` from `lib/supabase/server.ts` in server components/actions, and `createAdminClient()` for service-role operations.
 
+### Server Actions Pattern
+
+Server actions live in `actions.ts` files colocated with their page (e.g., `app/(authenticated)/admin/borrowers/new/actions.ts`). They follow this pattern:
+
+1. Start with `"use server"` directive
+2. Verify auth with `requireAdmin()` helper (checks user session + role)
+3. Use admin client (`createAdminClient()`) for write operations that bypass RLS
+4. Return `{ success: true, ... }` or `{ error: string }` objects
+5. Wrap in try/catch with console.error logging
+
 ## Code Style
 
 - TypeScript strict mode — avoid `any` types
@@ -78,3 +99,22 @@ middleware.ts                 # Role-based route protection & redirects
 - Core tables: `profiles`, `funds`, `investor_commitments`, `capital_calls`, `distributions`, `loans`, `draw_requests`, `payments`, `documents`
 - Migrations live in `supabase/migrations/` — create new timestamped migration files for schema changes
 - Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+
+### Row Level Security (RLS)
+
+All tables have RLS enabled. General pattern:
+- **Users** see only their own rows (via `auth.uid()` match)
+- **Admins** have full CRUD on all tables
+- **Borrowers** can insert their own draw requests
+- **Storage**: Two buckets (`investor-documents`, `loan-documents`) with folder-based RLS
+
+## Important Notes
+
+- The `@/` path alias is used everywhere — always use it for imports
+- No test framework is configured; run `npm run lint` to check for issues
+- The project deploys to Netlify using `@netlify/plugin-nextjs`
+- Supabase migrations are in `supabase/migrations/` and are ordered by timestamp
+- The authenticated layout sets `dynamic = "force-dynamic"` to prevent static generation
+- When creating new pages, follow existing patterns: server component with data fetching, use `PageHeader`, `KpiCard`, shared components
+- Server actions should always verify authentication and admin role before performing mutations
+- All financial amounts use `formatCurrency()` or `formatCurrencyDetailed()` from `lib/format.ts`
