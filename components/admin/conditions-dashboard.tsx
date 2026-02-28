@@ -39,15 +39,18 @@ interface ConditionWithLoan {
   loan_id: string;
   condition_name: string;
   internal_description: string | null;
+  borrower_description: string | null;
   category: string;
+  required_stage: string;
   status: string;
-  responsible_party: string;
-  critical_path_item: boolean | null;
+  responsible_party: string | null;
+  critical_path_item: boolean;
   due_date: string | null;
-  received_date: string | null;
-  approved_date: string | null;
-  rejection_reason: string | null;
-  sort_order: number | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  notes: string | null;
+  sort_order: number;
   loan?: {
     id: string;
     loan_number: string | null;
@@ -168,12 +171,10 @@ export function ConditionsDashboard({
     const now = new Date().toISOString();
 
     const updateData: any = { status: newStatus, updated_at: now };
-    if (newStatus === "requested") updateData.submitted_at = now;
-    else if (newStatus === "received") updateData.received_date = now;
-    else if (newStatus === "approved") {
-      updateData.approved_date = now;
-      updateData.reviewed_by = currentUserId;
+    if (newStatus === "submitted") updateData.submitted_at = now;
+    else if (newStatus === "approved" || newStatus === "rejected") {
       updateData.reviewed_at = now;
+      updateData.reviewed_by = currentUserId;
     }
 
     const { error } = await supabase
@@ -460,7 +461,7 @@ export function ConditionsDashboard({
                           </div>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          {condition.status === "not_requested" && (
+                          {condition.status === "pending" && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -468,14 +469,14 @@ export function ConditionsDashboard({
                               onClick={() =>
                                 quickStatusChange(
                                   condition.id,
-                                  "requested"
+                                  "submitted"
                                 )
                               }
                             >
-                              Request
+                              Submit
                             </Button>
                           )}
-                          {condition.status === "requested" && (
+                          {condition.status === "submitted" && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -483,15 +484,14 @@ export function ConditionsDashboard({
                               onClick={() =>
                                 quickStatusChange(
                                   condition.id,
-                                  "received"
+                                  "under_review"
                                 )
                               }
                             >
-                              Received
+                              Review
                             </Button>
                           )}
-                          {(condition.status === "received" ||
-                            condition.status === "under_review") && (
+                          {condition.status === "under_review" && (
                             <Button
                               size="sm"
                               variant="outline"
