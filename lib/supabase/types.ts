@@ -17,6 +17,7 @@ export type Database = {
           company_name: string | null;
           phone: string | null;
           role: "admin" | "borrower" | "investor";
+          activation_status: "pending" | "link_sent" | "activated";
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +28,7 @@ export type Database = {
           company_name?: string | null;
           phone?: string | null;
           role: "admin" | "borrower" | "investor";
+          activation_status?: "pending" | "link_sent" | "activated";
           created_at?: string;
           updated_at?: string;
         };
@@ -37,6 +39,7 @@ export type Database = {
           company_name?: string | null;
           phone?: string | null;
           role?: "admin" | "borrower" | "investor";
+          activation_status?: "pending" | "link_sent" | "activated";
           created_at?: string;
           updated_at?: string;
         };
