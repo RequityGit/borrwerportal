@@ -63,7 +63,7 @@ export function OwnerBadge({ name }: { name: string | null }) {
 }
 
 // --- Recurring Badge ---
-const patternLabels: Record<string, string> = {
+const simplePatternLabels: Record<string, string> = {
   daily: "Daily",
   weekly: "Weekly",
   biweekly: "Biweekly",
@@ -71,6 +71,36 @@ const patternLabels: Record<string, string> = {
   quarterly: "Quarterly",
   annually: "Annually",
 };
+
+const ordinals = ["", "1st", "2nd", "3rd", "4th"];
+const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function getPatternLabel(pattern: string): string {
+  // Simple patterns
+  if (simplePatternLabels[pattern]) return simplePatternLabels[pattern];
+
+  // monthly_day:DD  →  "15th of month"
+  if (pattern.startsWith("monthly_day:")) {
+    const day = parseInt(pattern.split(":")[1], 10);
+    const suffix = day === 1 || day === 21 || day === 31 ? "st"
+      : day === 2 || day === 22 ? "nd"
+      : day === 3 || day === 23 ? "rd"
+      : "th";
+    return `${day}${suffix} of month`;
+  }
+
+  // monthly_nth:N:DOW  →  "1st Mon of month" or "Last Fri of month"
+  if (pattern.startsWith("monthly_nth:")) {
+    const parts = pattern.split(":");
+    const nth = parseInt(parts[1], 10);
+    const dow = parseInt(parts[2], 10);
+    const dayName = dayNames[dow] ?? "?";
+    const nthLabel = nth === -1 ? "Last" : (ordinals[nth] ?? `${nth}th`);
+    return `${nthLabel} ${dayName} of month`;
+  }
+
+  return pattern;
+}
 
 export function RecurringBadge({
   pattern,
@@ -80,7 +110,7 @@ export function RecurringBadge({
   isActive?: boolean;
 }) {
   if (!pattern) return null;
-  const label = patternLabels[pattern] ?? pattern;
+  const label = getPatternLabel(pattern);
   return (
     <Badge
       variant="outline"

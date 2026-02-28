@@ -50,6 +50,37 @@ WHERE is_recurring = true
 -- Uses fixed-schedule date calculation (next due date based on current due
 -- date, NOT the completion date).
 -- Returns jsonb with result details for frontend toast messages.
+-- Helper: find the Nth occurrence of a weekday (0=Sun..6=Sat) in a given month.
+-- nth=-1 means "last occurrence".
+CREATE OR REPLACE FUNCTION find_nth_weekday_in_month(
+  p_year int, p_month int, p_dow int, p_nth int
+) RETURNS date AS $$
+DECLARE
+  first_of_month date;
+  first_dow int;
+  target_day int;
+  last_day int;
+BEGIN
+  first_of_month := make_date(p_year, p_month, 1);
+  first_dow := EXTRACT(DOW FROM first_of_month)::int;  -- 0=Sun
+  last_day := EXTRACT(DAY FROM (first_of_month + INTERVAL '1 month' - INTERVAL '1 day'))::int;
+
+  IF p_nth = -1 THEN
+    -- Last occurrence: start from last day, walk backwards
+    target_day := last_day - ((EXTRACT(DOW FROM make_date(p_year, p_month, last_day))::int - p_dow + 7) % 7);
+  ELSE
+    -- Nth occurrence: first occurrence + (n-1)*7
+    target_day := 1 + ((p_dow - first_dow + 7) % 7) + (p_nth - 1) * 7;
+    IF target_day > last_day THEN
+      RETURN NULL;  -- e.g., no 5th Monday in this month
+    END IF;
+  END IF;
+
+  RETURN make_date(p_year, p_month, target_day);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
 CREATE OR REPLACE FUNCTION generate_next_recurring_task(task_id uuid)
 RETURNS jsonb AS $$
 DECLARE
@@ -57,6 +88,12 @@ DECLARE
   next_due date;
   new_id uuid;
   series_id uuid;
+  pattern_parts text[];
+  nth_val int;
+  dow_val int;
+  day_val int;
+  ref_month date;
+  candidate date;
 BEGIN
   SELECT * INTO src FROM ops_tasks WHERE id = task_id;
 
@@ -79,6 +116,34 @@ BEGIN
   -- Calculate next due date from the CURRENT due date (fixed schedule)
   IF src.due_date IS NULL THEN
     next_due := CURRENT_DATE;
+  ELSIF src.recurrence_pattern LIKE 'monthly_nth:%' THEN
+    -- Pattern: monthly_nth:N:DOW  (e.g. monthly_nth:1:1 = 1st Monday)
+    pattern_parts := string_to_array(src.recurrence_pattern, ':');
+    nth_val := pattern_parts[2]::int;
+    dow_val := pattern_parts[3]::int;
+    -- Start from the next month after current due date
+    ref_month := (date_trunc('month', src.due_date) + INTERVAL '1 month')::date;
+    next_due := find_nth_weekday_in_month(
+      EXTRACT(YEAR FROM ref_month)::int,
+      EXTRACT(MONTH FROM ref_month)::int,
+      dow_val, nth_val
+    );
+    -- If the Nth weekday doesn't exist in that month (e.g. 5th Monday), skip to next
+    WHILE next_due IS NULL LOOP
+      ref_month := (ref_month + INTERVAL '1 month')::date;
+      next_due := find_nth_weekday_in_month(
+        EXTRACT(YEAR FROM ref_month)::int,
+        EXTRACT(MONTH FROM ref_month)::int,
+        dow_val, nth_val
+      );
+    END LOOP;
+  ELSIF src.recurrence_pattern LIKE 'monthly_day:%' THEN
+    -- Pattern: monthly_day:DD  (e.g. monthly_day:15 = 15th of each month)
+    day_val := (string_to_array(src.recurrence_pattern, ':'))[2]::int;
+    ref_month := (date_trunc('month', src.due_date) + INTERVAL '1 month')::date;
+    -- Clamp day to last day of month (e.g. day 31 in Feb → 28/29)
+    candidate := ref_month + (LEAST(day_val, EXTRACT(DAY FROM (ref_month + INTERVAL '1 month' - INTERVAL '1 day'))::int) - 1) * INTERVAL '1 day';
+    next_due := candidate::date;
   ELSE
     next_due := CASE src.recurrence_pattern
       WHEN 'daily'     THEN src.due_date + INTERVAL '1 day'
@@ -97,14 +162,36 @@ BEGIN
 
   -- If next_due is in the past (task was overdue), advance until future
   WHILE next_due < CURRENT_DATE LOOP
-    next_due := CASE src.recurrence_pattern
-      WHEN 'daily'     THEN next_due + INTERVAL '1 day'
-      WHEN 'weekly'    THEN next_due + INTERVAL '1 week'
-      WHEN 'biweekly'  THEN next_due + INTERVAL '2 weeks'
-      WHEN 'monthly'   THEN next_due + INTERVAL '1 month'
-      WHEN 'quarterly' THEN next_due + INTERVAL '3 months'
-      WHEN 'annually'  THEN next_due + INTERVAL '1 year'
-    END;
+    IF src.recurrence_pattern LIKE 'monthly_nth:%' THEN
+      pattern_parts := string_to_array(src.recurrence_pattern, ':');
+      nth_val := pattern_parts[2]::int;
+      dow_val := pattern_parts[3]::int;
+      ref_month := (date_trunc('month', next_due) + INTERVAL '1 month')::date;
+      next_due := NULL;
+      WHILE next_due IS NULL LOOP
+        next_due := find_nth_weekday_in_month(
+          EXTRACT(YEAR FROM ref_month)::int,
+          EXTRACT(MONTH FROM ref_month)::int,
+          dow_val, nth_val
+        );
+        IF next_due IS NULL THEN
+          ref_month := (ref_month + INTERVAL '1 month')::date;
+        END IF;
+      END LOOP;
+    ELSIF src.recurrence_pattern LIKE 'monthly_day:%' THEN
+      day_val := (string_to_array(src.recurrence_pattern, ':'))[2]::int;
+      ref_month := (date_trunc('month', next_due) + INTERVAL '1 month')::date;
+      next_due := (ref_month + (LEAST(day_val, EXTRACT(DAY FROM (ref_month + INTERVAL '1 month' - INTERVAL '1 day'))::int) - 1) * INTERVAL '1 day')::date;
+    ELSE
+      next_due := CASE src.recurrence_pattern
+        WHEN 'daily'     THEN next_due + INTERVAL '1 day'
+        WHEN 'weekly'    THEN next_due + INTERVAL '1 week'
+        WHEN 'biweekly'  THEN next_due + INTERVAL '2 weeks'
+        WHEN 'monthly'   THEN next_due + INTERVAL '1 month'
+        WHEN 'quarterly' THEN next_due + INTERVAL '3 months'
+        WHEN 'annually'  THEN next_due + INTERVAL '1 year'
+      END;
+    END IF;
   END LOOP;
 
   -- Check if the series has an end date and we've passed it
