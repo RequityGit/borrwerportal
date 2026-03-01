@@ -18,6 +18,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useImpersonation } from "./impersonation-context";
 import { UserSearchModal } from "./user-search-modal";
 import { Badge } from "@/components/ui/badge";
+import { CommandSearch } from "@/components/search/CommandSearch";
 
 interface TopbarProps {
   userName: string;
@@ -56,6 +57,7 @@ export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdm
           )}
         </div>
         <div className="flex items-center gap-4">
+          <CommandSearch role={role} />
           <NotificationBell userId={userId} />
 
           {isImpersonating ? (
