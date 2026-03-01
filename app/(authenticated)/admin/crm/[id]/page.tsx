@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CrmActivityLog } from "@/components/crm/crm-activity-log";
 import { ContactEditDialog } from "@/components/crm/contact-edit-dialog";
+import { DeleteContactButton } from "@/components/crm/delete-contact-button";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { CRM_CONTACT_TYPES, CRM_CONTACT_SOURCES } from "@/lib/constants";
 import {
@@ -37,6 +38,17 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // Check if user is super admin
+  const { data: superAdminRole } = await supabase
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "super_admin")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const isSuperAdmin = !!superAdminRole;
 
   const { id } = await params;
   const admin = createAdminClient();
@@ -161,7 +173,17 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
         title={fullName}
         description={`${contactTypeLabel} contact`}
         action={
-          <ContactEditDialog contact={contact} teamMembers={teamMembers} />
+          <div className="flex items-center gap-2">
+            <ContactEditDialog contact={contact} teamMembers={teamMembers} />
+            {isSuperAdmin && (
+              <DeleteContactButton
+                contactId={contact.id}
+                contactName={fullName}
+                redirectTo="/admin/crm"
+                variant="button"
+              />
+            )}
+          </div>
         }
       />
 

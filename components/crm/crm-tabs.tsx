@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { AddContactDialog } from "@/components/crm/add-contact-dialog";
+import { DeleteContactButton } from "@/components/crm/delete-contact-button";
 import { formatDate } from "@/lib/format";
 import { CRM_CONTACT_TYPES, CRM_CONTACT_STATUSES } from "@/lib/constants";
 import {
@@ -70,6 +71,7 @@ interface CrmTabsProps {
   contacts: CrmContactRow[];
   teamMembers: TeamMember[];
   currentUserId: string;
+  isSuperAdmin?: boolean;
 }
 
 type TabValue = "all" | "investors" | "borrowers" | "leads";
@@ -80,6 +82,7 @@ export function CrmTabs({
   contacts,
   teamMembers,
   currentUserId,
+  isSuperAdmin = false,
 }: CrmTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -457,10 +460,28 @@ export function CrmTabs({
       row.last_contacted_at ? formatDate(row.last_contacted_at) : "—",
   };
 
+  const actionsColumn: Column<CrmContactRow> | null = isSuperAdmin
+    ? {
+        key: "actions",
+        header: "",
+        cell: (row) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DeleteContactButton
+              contactId={row.id}
+              contactName={`${row.first_name} ${row.last_name}`}
+              variant="icon"
+            />
+          </div>
+        ),
+        className: "w-10",
+      }
+    : null;
+
   const columns: Column<CrmContactRow>[] = useMemo(() => {
+    let cols: Column<CrmContactRow>[];
     switch (activeTab) {
       case "investors":
-        return [
+        cols = [
           nameColumn,
           emailColumn,
           phoneColumn,
@@ -479,8 +500,9 @@ export function CrmTabs({
           followUpColumn,
           lastContactedColumn,
         ];
+        break;
       case "borrowers":
-        return [
+        cols = [
           nameColumn,
           emailColumn,
           phoneColumn,
@@ -512,8 +534,9 @@ export function CrmTabs({
           followUpColumn,
           lastContactedColumn,
         ];
+        break;
       case "leads":
-        return [
+        cols = [
           nameColumn,
           {
             key: "company_name",
@@ -533,8 +556,9 @@ export function CrmTabs({
           followUpColumn,
           lastContactedColumn,
         ];
+        break;
       default:
-        return [
+        cols = [
           nameColumn,
           {
             key: "company_name",
@@ -552,9 +576,12 @@ export function CrmTabs({
           assignedToColumn,
           followUpColumn,
         ];
+        break;
     }
+    if (actionsColumn) cols.push(actionsColumn);
+    return cols;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, isSuperAdmin]);
 
   // Show type filter only on "all" tab
   const showTypeFilter = activeTab === "all";
