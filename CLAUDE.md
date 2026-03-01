@@ -283,7 +283,11 @@ All column names below are the **actual database columns**. Always use these exa
 - All financial amounts use `formatCurrency()` or `formatCurrencyDetailed()` from `lib/format.ts`
 - Storage buckets: `loan-documents` (structure: `{loan_id}/{filename}`) and `investor-documents` (structure: `{investor_id}/{filename}`)
 
-## Supabase MCP Connection (Required)
+## Supabase MCP (Required)
+
+**CRITICAL: ALWAYS use the Supabase MCP server for ALL database operations. NEVER hardcode connection strings, use raw `psql`, or ask the user to run SQL manually.**
+
+### Connection Setup
 
 Before performing ANY database operations (queries, schema changes, migrations, RLS policies, etc.), ensure the Supabase MCP server is connected. Run this at the start of every session:
 
@@ -304,15 +308,7 @@ MCP config for reference:
 }
 ```
 
-**Rules:**
-- ALWAYS use MCP tools (`list_tables`, `execute_sql`, `apply_migration`, etc.) to interact with Supabase — never hardcode connection strings or use raw `psql`.
-- ALWAYS verify the MCP connection is active before running any database operations.
-- Project ref: `edhlkknvlczhbowasjna`
-- If the MCP connection fails, re-run the `claude mcp add` command above before proceeding.
-
-## Supabase MCP — Mandatory Usage
-
-**CRITICAL: ALWAYS use the Supabase MCP tools for ALL database operations. NEVER ask the user to run SQL manually.**
+### MCP Tool Usage
 
 - **Project ID**: `edhlkknvlczhbowasjna` — always pass this as `project_id` to all Supabase MCP tools
 - **Schema changes (DDL)**: Use `mcp__Supabase__apply_migration` with a descriptive `name` in snake_case
@@ -320,8 +316,15 @@ MCP config for reference:
 - **Data queries & fixes (DML/SELECT)**: Use `mcp__Supabase__execute_sql`
 - **Check applied migrations**: Use `mcp__Supabase__list_migrations`
 - **Generate TypeScript types**: Use `mcp__Supabase__generate_typescript_types` and write output to `lib/supabase/types.ts`
+
+### Rules
+
+- ALWAYS verify the MCP connection is active before running any database operations
+- ALWAYS use MCP tools (`list_tables`, `execute_sql`, `apply_migration`, etc.) to interact with Supabase
+- If the MCP connection fails, re-run the `claude mcp add` command above before proceeding
 - If a migration fails, debug and retry with the MCP tool — do NOT fall back to telling the user to apply it manually
 - When making schema changes that affect TypeScript types, always regenerate types after the migration succeeds
+- Project ref: `edhlkknvlczhbowasjna`
 
 ## GitHub — PR Workflow
 
