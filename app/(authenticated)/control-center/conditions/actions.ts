@@ -140,6 +140,38 @@ export async function reactivateCondition(id: string) {
   }
 }
 
+export async function updateConditionInline(
+  id: string,
+  fields: Partial<{
+    condition_name: string;
+    applies_to_commercial: boolean;
+    applies_to_rtl: boolean;
+    applies_to_dscr: boolean;
+    applies_to_guc: boolean;
+    applies_to_transactional: boolean;
+  }>
+) {
+  try {
+    const auth = await requireSuperAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("loan_condition_templates")
+      .update(fields)
+      .eq("id", id);
+
+    if (error) {
+      console.error("Inline update condition error:", error);
+      return { error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("Inline update condition error:", err);
+    return { error: "Failed to update condition" };
+  }
+}
+
 export async function reorderConditions(
   updates: { id: string; sort_order: number }[]
 ) {
