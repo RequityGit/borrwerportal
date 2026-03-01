@@ -39,6 +39,17 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
 
   if (!user) redirect("/login");
 
+  // Check if user is super admin
+  const { data: superAdminRole } = await supabase
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "super_admin")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const isSuperAdmin = !!superAdminRole;
+
   const { id } = await params;
   const admin = createAdminClient();
 
@@ -187,7 +198,11 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
         title={fullName}
         description={`${contactTypeLabel} contact`}
         action={
-          <ContactEditDialog contact={contact} teamMembers={teamMembers} />
+          <ContactEditDialog
+            contact={contact}
+            teamMembers={teamMembers}
+            isSuperAdmin={isSuperAdmin}
+          />
         }
       />
 
