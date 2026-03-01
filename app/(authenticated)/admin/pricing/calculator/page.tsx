@@ -36,10 +36,10 @@ export default async function PricingCalculatorPage() {
         title="Deal Pricing Calculator"
         description="Run deal analysis without creating a loan record"
         action={
-          <Link href="/admin/pricing">
+          <Link href="/admin/originations">
             <Button variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Pricing
+              Back to Originations
             </Button>
           </Link>
         }
