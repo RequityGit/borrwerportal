@@ -1,0 +1,279 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
+import { Mail, CheckCircle2, XCircle, Loader2, Unplug } from "lucide-react";
+
+interface GmailToken {
+  id: string;
+  email: string;
+  is_active: boolean;
+  connected_at: string;
+}
+
+export function GmailIntegration() {
+  const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [gmailToken, setGmailToken] = useState<GmailToken | null>(null);
+
+  const fetchGmailStatus = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // gmail_tokens table exists in the DB but is not yet in the generated types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("gmail_tokens")
+        .select("id, email, is_active, connected_at")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      setGmailToken(data as GmailToken | null);
+    } catch (err) {
+      console.error("Failed to fetch Gmail status:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Handle OAuth callback query params
+  useEffect(() => {
+    const gmailParam = searchParams.get("gmail");
+    if (gmailParam === "connected") {
+      toast({
+        title: "Gmail connected",
+        description:
+          "Your Gmail account has been connected successfully. Emails will now be sent via your Gmail.",
+      });
+      // Clean up the URL
+      router.replace("/settings", { scroll: false });
+    } else if (gmailParam === "error") {
+      const message = searchParams.get("message");
+      toast({
+        title: "Gmail connection failed",
+        description:
+          message || "Something went wrong connecting your Gmail account. Please try again.",
+        variant: "destructive",
+      });
+      router.replace("/settings", { scroll: false });
+    }
+  }, [searchParams, toast, router]);
+
+  useEffect(() => {
+    fetchGmailStatus();
+  }, [fetchGmailStatus]);
+
+  // Re-fetch after returning from OAuth flow
+  useEffect(() => {
+    const gmailParam = searchParams.get("gmail");
+    if (gmailParam === "connected") {
+      fetchGmailStatus();
+    }
+  }, [searchParams, fetchGmailStatus]);
+
+  async function handleConnect() {
+    setConnecting(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.functions.invoke(
+        "gmail-oauth-start",
+        { method: "POST" }
+      );
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to start Gmail authorization. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.auth_url) {
+        window.location.href = data.auth_url;
+      } else {
+        toast({
+          title: "Error",
+          description: "No authorization URL received. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("Gmail connect error:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConnecting(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // gmail_tokens table exists in the DB but is not yet in the generated types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("gmail_tokens")
+        .update({ is_active: false })
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to disconnect Gmail. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setGmailToken(null);
+      toast({
+        title: "Gmail disconnected",
+        description:
+          "Your Gmail account has been disconnected. Emails will be sent via the default sender.",
+      });
+    } catch (err) {
+      console.error("Gmail disconnect error:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  return (
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+            <Mail className="h-5 w-5 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <CardTitle className="text-base">Gmail Integration</CardTitle>
+            <CardDescription>
+              Connect your Gmail account to send CRM emails directly from your
+              address
+            </CardDescription>
+          </div>
+          {!loading && (
+            <Badge
+              variant={gmailToken ? "default" : "secondary"}
+              className={
+                gmailToken
+                  ? "bg-green-100 text-green-800 border-green-200"
+                  : ""
+              }
+            >
+              {gmailToken ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Connected
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Not connected
+                </>
+              )}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-10 w-36" />
+          </div>
+        ) : gmailToken ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-md bg-green-50 border border-green-200">
+              <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-900">
+                  Connected as {gmailToken.email}
+                </p>
+                <p className="text-xs text-green-700">
+                  CRM emails will be sent from this Gmail account
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              {disconnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Disconnecting...
+                </>
+              ) : (
+                <>
+                  <Unplug className="h-4 w-4 mr-2" />
+                  Disconnect Gmail
+                </>
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              When connected, CRM emails will be sent from your Gmail account
+              instead of the default system sender. Recipients will see your
+              email address and can reply directly to you.
+            </p>
+            <Button onClick={handleConnect} disabled={connecting}>
+              {connecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Connect Gmail Account
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
