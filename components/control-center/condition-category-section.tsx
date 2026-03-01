@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,91 @@ interface ConditionCategorySectionProps {
   onDeactivate: (id: string) => void;
   onReactivate: (id: string) => void;
   onReorder: (items: ConditionTemplate[]) => void;
+  onInlineUpdate: (
+    id: string,
+    fields: Partial<{
+      condition_name: string;
+      applies_to_commercial: boolean;
+      applies_to_rtl: boolean;
+      applies_to_dscr: boolean;
+      applies_to_guc: boolean;
+      applies_to_transactional: boolean;
+    }>
+  ) => Promise<boolean>;
+}
+
+function InlineNameEditor({
+  value,
+  isActive,
+  onSave,
+}: {
+  value: string;
+  isActive: boolean;
+  onSave: (newName: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== value) {
+      onSave(trimmed);
+    } else {
+      setDraft(value);
+    }
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
+          if (e.key === "Escape") {
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+        className="h-7 text-sm font-medium px-1.5 -mx-1.5"
+      />
+    );
+  }
+
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={() => setEditing(true)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setEditing(true);
+        }
+      }}
+      className={cn(
+        "font-medium cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 hover:bg-slate-100 transition-colors",
+        !isActive && "line-through text-muted-foreground"
+      )}
+      title="Click to edit name"
+    >
+      {value}
+    </span>
+  );
 }
 
 export function ConditionCategorySection({
@@ -79,6 +165,7 @@ export function ConditionCategorySection({
   onDeactivate,
   onReactivate,
   onReorder,
+  onInlineUpdate,
 }: ConditionCategorySectionProps) {
   const [deactivateTarget, setDeactivateTarget] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
@@ -183,27 +270,61 @@ export function ConditionCategorySection({
                     </div>
                   </td>
                   <td className="px-4 py-2">
-                    <span
-                      className={cn(
-                        "font-medium",
-                        !item.is_active && "line-through text-muted-foreground"
-                      )}
-                    >
-                      {item.condition_name}
-                    </span>
+                    <InlineNameEditor
+                      value={item.condition_name}
+                      isActive={!!item.is_active}
+                      onSave={(newName) =>
+                        onInlineUpdate(item.id, { condition_name: newName })
+                      }
+                    />
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex gap-0.5">
                       <LoanTypeBadge
                         type="commercial"
                         active={!!item.applies_to_commercial}
+                        onClick={() =>
+                          onInlineUpdate(item.id, {
+                            applies_to_commercial: !item.applies_to_commercial,
+                          })
+                        }
                       />
-                      <LoanTypeBadge type="rtl" active={!!item.applies_to_rtl} />
-                      <LoanTypeBadge type="dscr" active={!!item.applies_to_dscr} />
-                      <LoanTypeBadge type="guc" active={!!item.applies_to_guc} />
+                      <LoanTypeBadge
+                        type="rtl"
+                        active={!!item.applies_to_rtl}
+                        onClick={() =>
+                          onInlineUpdate(item.id, {
+                            applies_to_rtl: !item.applies_to_rtl,
+                          })
+                        }
+                      />
+                      <LoanTypeBadge
+                        type="dscr"
+                        active={!!item.applies_to_dscr}
+                        onClick={() =>
+                          onInlineUpdate(item.id, {
+                            applies_to_dscr: !item.applies_to_dscr,
+                          })
+                        }
+                      />
+                      <LoanTypeBadge
+                        type="guc"
+                        active={!!item.applies_to_guc}
+                        onClick={() =>
+                          onInlineUpdate(item.id, {
+                            applies_to_guc: !item.applies_to_guc,
+                          })
+                        }
+                      />
                       <LoanTypeBadge
                         type="transactional"
                         active={!!item.applies_to_transactional}
+                        onClick={() =>
+                          onInlineUpdate(item.id, {
+                            applies_to_transactional:
+                              !item.applies_to_transactional,
+                          })
+                        }
                       />
                     </div>
                   </td>

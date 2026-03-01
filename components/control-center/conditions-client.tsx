@@ -22,6 +22,7 @@ import {
   deactivateCondition,
   reactivateCondition,
   reorderConditions,
+  updateConditionInline,
 } from "@/app/(authenticated)/control-center/conditions/actions";
 
 interface ConditionTemplate {
@@ -218,6 +219,33 @@ export function ConditionsClient({ templates }: ConditionsClientProps) {
     }
   }
 
+  const handleInlineUpdate = useCallback(
+    async (
+      id: string,
+      fields: Partial<{
+        condition_name: string;
+        applies_to_commercial: boolean;
+        applies_to_rtl: boolean;
+        applies_to_dscr: boolean;
+        applies_to_guc: boolean;
+        applies_to_transactional: boolean;
+      }>
+    ): Promise<boolean> => {
+      const result = await updateConditionInline(id, fields);
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+        return false;
+      }
+      router.refresh();
+      return true;
+    },
+    [toast, router]
+  );
+
   const handleReorder = useCallback(
     async (categoryItems: ConditionTemplate[]) => {
       const updates = categoryItems.map((item, index) => ({
@@ -334,6 +362,7 @@ export function ConditionsClient({ templates }: ConditionsClientProps) {
             onDeactivate={handleDeactivate}
             onReactivate={handleReactivate}
             onReorder={handleReorder}
+            onInlineUpdate={handleInlineUpdate}
           />
         ))}
         {grouped.length === 0 && (
