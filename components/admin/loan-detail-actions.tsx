@@ -52,7 +52,8 @@ import { LoanPricingTab } from "@/components/admin/loan-pricing-tab";
 import { LoanUnderwritingTab } from "@/components/admin/loan-underwriting-tab";
 import { LoanChatter } from "@/components/shared/loan-chatter";
 import type { UnderwritingInputs } from "@/lib/underwriting/types";
-import { Scale } from "lucide-react";
+import { Scale, Building2 } from "lucide-react";
+import Link from "next/link";
 
 interface LoanInfo {
   id: string;
@@ -167,6 +168,7 @@ export function LoanDetailActions({
 }: LoanDetailActionsProps) {
   const router = useRouter();
   const hasPricing = programs && programs.length > 0 && adjusters && loanForPricing;
+  const isCommercial = loan.loan_type === "commercial";
   const uwVersions = underwritingVersions ?? [];
 
   // Build loan defaults for pre-populating first underwriting version
@@ -240,6 +242,12 @@ export function LoanDetailActions({
               Pricing
             </TabsTrigger>
           )}
+          {isCommercial && (
+            <TabsTrigger value="commercial-uw" className="gap-1">
+              <Building2 className="h-3.5 w-3.5" />
+              Commercial UW
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="underwriting" className="mt-4">
@@ -293,6 +301,30 @@ export function LoanDetailActions({
               programs={programs}
               adjusters={adjusters}
             />
+          </TabsContent>
+        )}
+
+        {isCommercial && (
+          <TabsContent value="commercial-uw" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Commercial Underwriting Module
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Full commercial underwriting with rent roll, pro forma, financing analysis, and exit modeling.
+                </p>
+                <Link href={`/admin/loans/${loanId}/commercial-uw`}>
+                  <Button>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Open Commercial Underwriting
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
       </Tabs>
