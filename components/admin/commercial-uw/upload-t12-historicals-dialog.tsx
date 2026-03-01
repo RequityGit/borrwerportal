@@ -89,6 +89,7 @@ interface RowMapping {
 }
 
 const EXCLUDE_VALUE = "__exclude__";
+const SKIP_VALUE = "__skip__";
 
 function autoMapLabel(
   label: string,
@@ -560,14 +561,19 @@ export function UploadT12HistoricalsDialog({
                           <Select
                             value={rowMappings[i]?.category || ""}
                             onValueChange={(v) =>
-                              updateRowMapping(i, v as T12Category | "")
+                              updateRowMapping(
+                                i,
+                                v === SKIP_VALUE
+                                  ? ""
+                                  : (v as T12Category | "")
+                              )
                             }
                           >
                             <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="— Select —" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">— Skip —</SelectItem>
+                              <SelectItem value={SKIP_VALUE}>— Skip —</SelectItem>
                               <SelectItem
                                 disabled
                                 value="__income_header__"
