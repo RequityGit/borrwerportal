@@ -15,7 +15,11 @@ import {
   saveAncillaryRows,
   saveProFormaYears,
   updateUWStatus,
+  saveUploadMapping,
 } from "@/app/(authenticated)/admin/loans/[id]/commercial-uw/actions";
+import type { RentRollImportMetadata } from "./upload-rent-roll-dialog";
+import type { T12ImportMetadata } from "./upload-t12-dialog";
+import type { UploadVersion } from "./rent-roll-version-history";
 import {
   calcLeaseIncome,
   calcOccupancyRevenue,
@@ -70,6 +74,7 @@ interface Props {
   existingOccupancy: unknown[];
   existingAncillary: unknown[];
   existingProforma: unknown[];
+  existingUploadMappings: unknown[];
   expenseDefaults: ExpenseDefault[];
 }
 
@@ -95,6 +100,7 @@ export function CommercialUWClient({
   existingOccupancy,
   existingAncillary,
   existingProforma,
+  existingUploadMappings,
   expenseDefaults,
 }: Props) {
   const router = useRouter();
@@ -234,6 +240,77 @@ export function CommercialUWClient({
   );
   const [pohExpenseRatio, setPohExpenseRatio] = useState(
     (existingUW?.poh_expense_ratio as number) ?? 50
+  );
+
+  // Upload version history
+  const [rentRollVersions, setRentRollVersions] = useState<UploadVersion[]>(
+    () => {
+      const all = (existingUploadMappings ?? []) as UploadVersion[];
+      return all.filter((m) => m.upload_type === "rent_roll");
+    }
+  );
+
+  // Pending upload mappings to save on next Save Draft
+  const [pendingUploads, setPendingUploads] = useState<
+    { uploadType: string; filename: string; columnMapping: Record<string, string>; rowCount: number; parsedData: Record<string, unknown>[] }[]
+  >([]);
+
+  const handleRentRollImport = useCallback(
+    (rows: RentRollRow[], metadata: RentRollImportMetadata) => {
+      setRentRoll(rows);
+      // Queue the upload mapping to be saved on next Save Draft
+      setPendingUploads((prev) => [
+        ...prev,
+        {
+          uploadType: "rent_roll",
+          filename: metadata.filename,
+          columnMapping: metadata.columnMapping,
+          rowCount: metadata.rowCount,
+          parsedData: metadata.parsedData,
+        },
+      ]);
+      // Optimistically add to version history
+      setRentRollVersions((prev) => [
+        {
+          id: `pending-${Date.now()}`,
+          upload_type: "rent_roll",
+          original_filename: metadata.filename,
+          row_count: metadata.rowCount,
+          created_at: new Date().toISOString(),
+          parsed_data: metadata.parsedData,
+          column_mapping: metadata.columnMapping,
+        },
+        ...prev,
+      ]);
+      toast({ title: "Imported", description: `${metadata.rowCount} units imported from ${metadata.filename}` });
+    },
+    [toast]
+  );
+
+  const handleT12Import = useCallback(
+    (data: T12Data, metadata: T12ImportMetadata) => {
+      setT12(data);
+      setPendingUploads((prev) => [
+        ...prev,
+        {
+          uploadType: "t12",
+          filename: metadata.filename,
+          columnMapping: metadata.fieldMapping,
+          rowCount: 1,
+          parsedData: [metadata.parsedData as unknown as Record<string, unknown>],
+        },
+      ]);
+      toast({ title: "Imported", description: `T12 data imported from ${metadata.filename}` });
+    },
+    [toast]
+  );
+
+  const handleRestoreVersion = useCallback(
+    (rows: RentRollRow[]) => {
+      setRentRoll(rows);
+      toast({ title: "Restored", description: "Rent roll restored from previous version. Click Save Draft to persist." });
+    },
+    [toast]
   );
 
   // ---- Computed Values ----
@@ -457,12 +534,25 @@ export function CommercialUWClient({
         cumulative_cash_flow: p.cumulative_cash_flow,
       }));
 
+      // Save pending upload mappings alongside other data
+      const uploadPromises = pendingUploads.map((pu) =>
+        saveUploadMapping(
+          currentUwId!,
+          pu.uploadType,
+          pu.filename,
+          pu.columnMapping,
+          pu.rowCount,
+          pu.parsedData
+        )
+      );
+
       const results = await Promise.all([
         saveUnderwriting(currentUwId, uwData),
         saveRentRoll(currentUwId, rrRows),
         saveOccupancyRows(currentUwId, occRows),
         saveAncillaryRows(currentUwId, ancRows),
         saveProFormaYears(currentUwId, pfRows),
+        ...uploadPromises,
       ]);
 
       const hasError = results.some((r) => r.error);
@@ -473,6 +563,8 @@ export function CommercialUWClient({
           variant: "destructive",
         });
       } else {
+        // Clear pending uploads after successful save
+        setPendingUploads([]);
         toast({ title: "Saved", description: "Underwriting saved successfully." });
       }
     } catch (err) {
@@ -490,7 +582,7 @@ export function CommercialUWClient({
     leaseIncome, occRevenue, ancIncome, t12, expenseOverrides, assumptions,
     financing, purchasePrice, goingInCapRate, computedGoingInCap, exitCapRate,
     dispositionCostPct, equityInvested, pohRentalIncome, pohExpenseRatio,
-    rentRoll, occupancyRows, ancillaryRows, proforma, toast,
+    rentRoll, occupancyRows, ancillaryRows, proforma, toast, pendingUploads,
   ]);
 
   const handleSubmitForReview = useCallback(async () => {
@@ -594,6 +686,9 @@ export function CommercialUWClient({
             ancillaryRows={ancillaryRows}
             setAncillaryRows={setAncillaryRows}
             gpi={gpi}
+            onRentRollImport={handleRentRollImport}
+            rentRollVersions={rentRollVersions}
+            onRestoreVersion={handleRestoreVersion}
           />
         </TabsContent>
 
@@ -610,6 +705,7 @@ export function CommercialUWClient({
             relevantDefaults={relevantDefaults}
             basisCount={basisCount}
             propertyType={propertyType}
+            onT12Import={handleT12Import}
           />
         </TabsContent>
 
