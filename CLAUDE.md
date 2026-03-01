@@ -283,6 +283,33 @@ All column names below are the **actual database columns**. Always use these exa
 - All financial amounts use `formatCurrency()` or `formatCurrencyDetailed()` from `lib/format.ts`
 - Storage buckets: `loan-documents` (structure: `{loan_id}/{filename}`) and `investor-documents` (structure: `{investor_id}/{filename}`)
 
+## Supabase MCP Connection (Required)
+
+Before performing ANY database operations (queries, schema changes, migrations, RLS policies, etc.), ensure the Supabase MCP server is connected. Run this at the start of every session:
+
+```bash
+claude mcp add --scope project --transport http supabase "https://mcp.supabase.com/mcp?project_ref=edhlkknvlczhbowasjna"
+```
+
+MCP config for reference:
+
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=edhlkknvlczhbowasjna"
+    }
+  }
+}
+```
+
+**Rules:**
+- ALWAYS use MCP tools (`list_tables`, `execute_sql`, `apply_migration`, etc.) to interact with Supabase — never hardcode connection strings or use raw `psql`.
+- ALWAYS verify the MCP connection is active before running any database operations.
+- Project ref: `edhlkknvlczhbowasjna`
+- If the MCP connection fails, re-run the `claude mcp add` command above before proceeding.
+
 ## Supabase MCP — Mandatory Usage
 
 **CRITICAL: ALWAYS use the Supabase MCP tools for ALL database operations. NEVER ask the user to run SQL manually.**
