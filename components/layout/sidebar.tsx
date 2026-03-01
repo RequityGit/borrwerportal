@@ -12,8 +12,6 @@ import {
   Briefcase,
   PiggyBank,
   CreditCard,
-  Home,
-  ClipboardList,
   ChevronLeft,
   ChevronRight,
   Landmark,
@@ -22,7 +20,6 @@ import {
   Hammer,
   Settings2,
   Contact,
-  Calculator,
   Banknote,
 } from "lucide-react";
 import { useState } from "react";
@@ -31,6 +28,8 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
+  /** Additional path prefixes that should highlight this nav item */
+  activePaths?: string[];
 }
 
 const investorNav: NavItem[] = [
@@ -57,10 +56,13 @@ const adminNav: NavItem[] = [
   { label: "CRM", href: "/admin/crm", icon: Contact },
   { label: "Investors", href: "/admin/investors", icon: Users },
   { label: "Borrowers", href: "/admin/borrowers", icon: Building2 },
-  { label: "Loans", href: "/admin/loans", icon: Home },
+  {
+    label: "Originations",
+    href: "/admin/originations",
+    icon: Briefcase,
+    activePaths: ["/admin/loans", "/admin/conditions", "/admin/pricing"],
+  },
   { label: "Servicing", href: "/admin/servicing", icon: Banknote },
-  { label: "Conditions", href: "/admin/conditions", icon: ClipboardList },
-  { label: "Pricing", href: "/admin/pricing", icon: Calculator },
   { label: "Investments", href: "/admin/funds", icon: Landmark },
   { label: "Documents", href: "/admin/documents", icon: FolderOpen },
   { label: "Operations", href: "/admin/operations", icon: Settings2 },
@@ -123,7 +125,11 @@ export function Sidebar({ role }: { role: string }) {
       <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === item.href ||
+            pathname.startsWith(item.href + "/") ||
+            (item.activePaths?.some(
+              (p) => pathname === p || pathname.startsWith(p + "/")
+            ) ?? false);
           return (
             <Link
               key={item.href}

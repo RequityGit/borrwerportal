@@ -137,7 +137,7 @@ export default async function AdminDashboardPage() {
                 Add Borrower
               </Button>
             </Link>
-            <Link href="/admin/loans">
+            <Link href="/admin/originations">
               <Button variant="outline" className="gap-2">
                 <PlusCircle className="h-4 w-4" />
                 Create Loan
