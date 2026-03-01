@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CrmActivityLog } from "@/components/crm/crm-activity-log";
 import { ContactEditDialog } from "@/components/crm/contact-edit-dialog";
+import { EmailActivityFeed } from "@/components/crm/email-activity-feed";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { CRM_CONTACT_TYPES, CRM_CONTACT_SOURCES } from "@/lib/constants";
 import {
@@ -38,6 +39,17 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
 
   if (!user) redirect("/login");
 
+  // Check if user is super admin
+  const { data: superAdminRole } = await supabase
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "super_admin")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const isSuperAdmin = !!superAdminRole;
+
   const { id } = await params;
   const admin = createAdminClient();
 
@@ -49,8 +61,8 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
 
   if (!contact) notFound();
 
-  // Fetch activities and team members
-  const [activitiesResult, teamResult] = await Promise.all([
+  // Fetch activities, team members, and emails
+  const [activitiesResult, teamResult, emailsResult] = await Promise.all([
     supabase
       .from("crm_activities")
       .select("*")
@@ -61,6 +73,11 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
       .select("id, full_name, email")
       .eq("role", "admin")
       .order("full_name"),
+    admin
+      .from("crm_emails")
+      .select("*")
+      .eq("linked_contact_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   // Fetch linked investor data if applicable
@@ -139,6 +156,26 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
     created_at: a.created_at,
   }));
 
+  const emails = (emailsResult.data ?? []).map((e: any) => ({
+    id: e.id,
+    created_at: e.created_at,
+    from_email: e.from_email,
+    to_email: e.to_email,
+    to_name: e.to_name,
+    subject: e.subject,
+    body_text: e.body_text,
+    body_html: e.body_html,
+    cc_emails: e.cc_emails,
+    bcc_emails: e.bcc_emails,
+    sent_by_name: e.sent_by_name,
+    postmark_status: e.postmark_status,
+    delivered_at: e.delivered_at,
+    opened_at: e.opened_at,
+    attachments: e.attachments,
+  }));
+
+  const currentUserName = profileLookup[user.id] || user.email || "Unknown";
+
   const fullName = `${contact.first_name} ${contact.last_name}`;
   const assignedToName = contact.assigned_to
     ? profileLookup[contact.assigned_to] || null
@@ -161,7 +198,11 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
         title={fullName}
         description={`${contactTypeLabel} contact`}
         action={
-          <ContactEditDialog contact={contact} teamMembers={teamMembers} />
+          <ContactEditDialog
+            contact={contact}
+            teamMembers={teamMembers}
+            isSuperAdmin={isSuperAdmin}
+          />
         }
       />
 
@@ -569,6 +610,16 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Emails */}
+      <EmailActivityFeed
+        emails={emails}
+        defaultToEmail={contact.email || undefined}
+        defaultToName={fullName}
+        linkedContactId={contact.id}
+        currentUserId={user.id}
+        currentUserName={currentUserName}
+      />
 
       {/* Activity Log */}
       <CrmActivityLog

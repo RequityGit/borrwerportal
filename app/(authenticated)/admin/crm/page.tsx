@@ -14,6 +14,17 @@ export default async function CrmPage() {
 
   if (!user) redirect("/login");
 
+  // Check if user is super admin
+  const { data: superAdminRole } = await supabase
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "super_admin")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const isSuperAdmin = !!superAdminRole;
+
   const admin = createAdminClient();
 
   // Fetch all data in parallel
@@ -130,6 +141,7 @@ export default async function CrmPage() {
         contacts={contactRows}
         teamMembers={teamMembers}
         currentUserId={user.id}
+        isSuperAdmin={isSuperAdmin}
       />
     </div>
   );

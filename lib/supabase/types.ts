@@ -5809,6 +5809,10 @@ export const Constants = {
     },
   },
 } as const
+
+// ---------------------------------------------------------------------------
+// Convenience aliases for common row types
+// ---------------------------------------------------------------------------
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Borrower = Database["public"]["Tables"]["borrowers"]["Row"];
 export type BorrowerInsert = Database["public"]["Tables"]["borrowers"]["Insert"];
@@ -5831,6 +5835,8 @@ export type CapitalCall = Database["public"]["Tables"]["capital_calls"]["Row"];
 export type Distribution = Database["public"]["Tables"]["distributions"]["Row"];
 export type CrmContact = Database["public"]["Tables"]["crm_contacts"]["Row"];
 export type CrmActivity = Database["public"]["Tables"]["crm_activities"]["Row"];
+export type CrmEmail = Database["public"]["Tables"]["crm_emails"]["Row"];
+export type CrmEmailInsert = Database["public"]["Tables"]["crm_emails"]["Insert"];
 export type OpsProject = Database["public"]["Tables"]["ops_projects"]["Row"];
 export type OpsTask = Database["public"]["Tables"]["ops_tasks"]["Row"];
 
@@ -5906,3 +5912,4 @@ export interface CommentMentionRow {
   condition_id: string | null;
   notification_sent: boolean;
 }
+
