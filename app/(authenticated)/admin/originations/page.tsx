@@ -28,9 +28,6 @@ export default async function AdminOriginationsPage() {
     teamResult,
     borrowersResult,
     documentsResult,
-    programsResult,
-    adjustersResult,
-    versionsResult,
   ] = await Promise.all([
     // Pipeline data
     supabase
@@ -51,19 +48,38 @@ export default async function AdminOriginationsPage() {
       .from("documents")
       .select("loan_id")
       .not("loan_id", "is", null),
-    // Pricing data
-    supabase
+  ]);
+
+  // Pricing data — tables may not exist yet
+  let programsData: any[] = [];
+  let adjustersData: any[] = [];
+  let versionsData: any[] = [];
+
+  try {
+    const { data } = await (supabase as any)
       .from("pricing_programs")
       .select("*")
       .order("program_id")
-      .order("version", { ascending: false }),
-    supabase.from("leverage_adjusters").select("*").order("sort_order"),
-    supabase
+      .order("version", { ascending: false });
+    programsData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  try {
+    const { data } = await (supabase as any)
+      .from("leverage_adjusters")
+      .select("*")
+      .order("sort_order");
+    adjustersData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  try {
+    const { data } = await (supabase as any)
       .from("pricing_program_versions")
       .select("*")
       .order("changed_at", { ascending: false })
-      .limit(20),
-  ]);
+      .limit(20);
+    versionsData = data ?? [];
+  } catch { /* table may not exist */ }
 
   // Condition counts — separate query so it won't break if the table doesn't exist yet
   let conditionsResult: { data: any[] | null } = { data: [] };
@@ -220,9 +236,9 @@ export default async function AdminOriginationsPage() {
 
   // ── Build Pricing tab data ─────────────────────────────────────────
 
-  const programs = programsResult.data ?? [];
-  const adjusters = adjustersResult.data ?? [];
-  const versions = versionsResult.data ?? [];
+  const programs = programsData;
+  const adjusters = adjustersData;
+  const versions = versionsData;
 
   // ── KPI calculations ──────────────────────────────────────────────
 
