@@ -109,7 +109,34 @@ export function GmailIntegration() {
   async function handleConnect() {
     setConnecting(true);
     try {
-      const res = await fetch("/api/gmail/auth/start", { method: "POST" });
+      // Get the user's session token to authenticate with the edge function
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to connect Gmail.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Call the Supabase edge function which uses the correct GMAIL_CLIENT_ID
+      // and redirect_uri (NOT the portal login GOOGLE_CLIENT_ID)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const res = await fetch(
+        `${supabaseUrl}/functions/v1/gmail-oauth-start`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       const data = await res.json();
 
       if (!res.ok) {

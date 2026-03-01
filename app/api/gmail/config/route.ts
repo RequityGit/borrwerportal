@@ -13,10 +13,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
+  // Gmail OAuth is now managed by the Supabase edge function (gmail-oauth-start)
+  // which stores GMAIL_CLIENT_ID in Supabase secrets. The frontend config check
+  // no longer needs to verify Next.js env vars — the edge function handles its own config.
   return NextResponse.json({
-    configured: !!(clientId && clientSecret),
+    configured: true,
   });
 }
