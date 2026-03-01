@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-async function requireSuperAdmin() {
+async function requireSuperAdmin(): Promise<
+  { user: { id: string }; error?: never } | { error: string; user?: never }
+> {
   const supabase = createClient();
   const {
     data: { user },
@@ -196,7 +198,7 @@ export async function inviteUser(
 ): Promise<{ success: true; userId: string } | { error: string }> {
   try {
     const auth = await requireSuperAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if (auth.error) return { error: auth.error };
 
     const admin = createAdminClient();
 
