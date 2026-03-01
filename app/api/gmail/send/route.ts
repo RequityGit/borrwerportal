@@ -67,6 +67,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!email.to_email) {
+    return NextResponse.json(
+      { error: "Recipient email address is missing." },
+      { status: 400 }
+    );
+  }
+
   try {
     // Get a valid Gmail access token (refreshes if needed)
     const { accessToken, email: gmailEmail } = await getValidGmailToken(
