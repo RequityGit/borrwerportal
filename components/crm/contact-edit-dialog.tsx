@@ -28,8 +28,10 @@ import {
   CRM_CONTACT_STATUSES,
   US_STATES,
 } from "@/lib/constants";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { Pencil } from "lucide-react";
+import { DeleteContactButton } from "@/components/crm/delete-contact-button";
 import type { CrmContact } from "@/lib/supabase/types";
 
 interface TeamMember {
@@ -40,11 +42,13 @@ interface TeamMember {
 interface ContactEditDialogProps {
   contact: CrmContact;
   teamMembers: TeamMember[];
+  isSuperAdmin?: boolean;
 }
 
 export function ContactEditDialog({
   contact,
   teamMembers,
+  isSuperAdmin = false,
 }: ContactEditDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -325,6 +329,28 @@ export function ContactEditDialog({
               rows={3}
             />
           </div>
+
+          {isSuperAdmin && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-red-600">
+                    Delete Contact
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Permanently remove this contact from the CRM.
+                  </p>
+                </div>
+                <DeleteContactButton
+                  contactId={contact.id}
+                  contactName={`${contact.first_name} ${contact.last_name}`}
+                  redirectTo="/admin/crm"
+                  variant="button"
+                />
+              </div>
+            </>
+          )}
 
           <DialogFooter>
             <Button
