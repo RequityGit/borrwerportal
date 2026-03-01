@@ -38,8 +38,12 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
 
   if (!loan) notFound();
 
+  // Cast to any — some column references may be stale after schema migrations
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loanData = loan as any;
+
   // Fetch all related data in parallel — keep conditions/activity separate so they don't break if tables don't exist
-  const [drawRequestsResult, paymentsResult, documentsResult, programsResult, adjustersResult] =
+  const [drawRequestsResult, paymentsResult, documentsResult] =
     await Promise.all([
       supabase
         .from("draw_requests")
@@ -56,17 +60,29 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         .select("*")
         .eq("loan_id", id)
         .order("created_at", { ascending: false }),
-      supabase
-        .from("pricing_programs")
-        .select("*")
-        .eq("is_current", true)
-        .order("program_id"),
-      supabase
-        .from("leverage_adjusters")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order"),
     ]);
+
+  // Pricing programs & adjusters — tables may not exist in DB
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let programsResult: { data: any[] | null } = { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let adjustersResult: { data: any[] | null } = { data: [] };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    programsResult = await (supabase as any)
+      .from("pricing_programs")
+      .select("*")
+      .eq("is_current", true)
+      .order("program_id");
+  } catch { /* table may not exist */ }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    adjustersResult = await (supabase as any)
+      .from("leverage_adjusters")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order");
+  } catch { /* table may not exist */ }
 
   // Underwriting versions — may not exist if migration hasn't been applied
   let underwritingVersions: any[] = [];
@@ -99,7 +115,7 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
   } catch { /* table may not exist */ }
 
   // Lookup team member names
-  const teamIds = [loan.originator_id, loan.processor_id, loan.underwriter_id, loan.closer_id].filter((id): id is string => Boolean(id));
+  const teamIds = [loanData.originator_id, loanData.processor_id, loanData.underwriter_id, loanData.closer_id].filter((id): id is string => Boolean(id));
   let teamProfiles: Record<string, string> = {};
   if (teamIds.length > 0) {
     const { data: profiles } = await supabase
@@ -119,16 +135,16 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
   const programs = (programsResult.data ?? []) as PricingProgram[];
   const adjusters = (adjustersResult.data ?? []) as LeverageAdjuster[];
 
-  const borrowerRaw = (loan as any).borrower;
+  const borrowerRaw = (loanData as any).borrower;
   const borrowerName = borrowerRaw
     ? `${borrowerRaw.first_name ?? ""} ${borrowerRaw.last_name ?? ""}`.trim() || "—"
     : "—";
-  const originatorName = (loan.originator_id && teamProfiles[loan.originator_id]) ?? loan.originator ?? "—";
-  const processorName = (loan.processor_id && teamProfiles[loan.processor_id]) ?? "—";
-  const underwriterName = (loan.underwriter_id && teamProfiles[loan.underwriter_id]) ?? "—";
-  const closerName = (loan.closer_id && teamProfiles[loan.closer_id]) ?? "—";
+  const originatorName = (loanData.originator_id && teamProfiles[loanData.originator_id]) ?? loanData.originator ?? "—";
+  const processorName = (loanData.processor_id && teamProfiles[loanData.processor_id]) ?? "—";
+  const underwriterName = (loanData.underwriter_id && teamProfiles[loanData.underwriter_id]) ?? "—";
+  const closerName = (loanData.closer_id && teamProfiles[loanData.closer_id]) ?? "—";
 
-  const loanTypeLabel = LOAN_DB_TYPES.find((t) => t.value === loan.type)?.label ?? (loan.type ?? "—").replace(/_/g, " ");
+  const loanTypeLabel = LOAN_DB_TYPES.find((t) => t.value === loanData.type)?.label ?? (loanData.type ?? "—").replace(/_/g, " ");
 
   // Condition summary for the header
   const condTotal = conditions.length;
@@ -139,14 +155,14 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Loan ${loan.loan_number}`}
-        description={`${loan.property_address ?? "No address"} — ${borrowerName}`}
+        title={`Loan ${loanData.loan_number}`}
+        description={`${loanData.property_address ?? "No address"} — ${borrowerName}`}
       />
 
       {/* Stage Tracker */}
       <Card>
         <CardContent className="pt-6 pb-4">
-          <LoanStageTracker currentStage={loan.stage} />
+          <LoanStageTracker currentStage={loanData.stage} />
         </CardContent>
       </Card>
 
@@ -156,19 +172,19 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Loan Overview</CardTitle>
             <div className="flex items-center gap-2">
-              {loan.priority === "hot" && (
+              {loanData.priority === "hot" && (
                 <Badge className="bg-red-100 text-red-800 border-red-200 gap-1">
                   <Flame className="h-3 w-3" />
                   Hot
                 </Badge>
               )}
-              {loan.priority === "on_hold" && (
+              {loanData.priority === "on_hold" && (
                 <Badge className="bg-amber-100 text-amber-800 border-amber-200 gap-1">
                   <Pause className="h-3 w-3" />
                   On Hold
                 </Badge>
               )}
-              <StatusBadge status={loan.stage} />
+              <StatusBadge status={loanData.stage} />
               {condTotal > 0 && (
                 <Badge variant="outline" className="text-xs">
                   {condComplete}/{condTotal} conditions
@@ -179,39 +195,39 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-y-4 gap-x-6">
-            <DetailField label="Loan Number" value={loan.loan_number ?? "—"} />
+            <DetailField label="Loan Number" value={loanData.loan_number ?? "—"} />
             <DetailField label="Borrower" value={borrowerName} />
             <DetailField label="Type" value={loanTypeLabel} />
             <DetailField
               label="Stage"
               value={
                 LOAN_STAGE_LABELS[
-                  loan.stage as keyof typeof LOAN_STAGE_LABELS
-                ] || loan.stage
+                  loanData.stage as keyof typeof LOAN_STAGE_LABELS
+                ] || loanData.stage
               }
             />
             <DetailField
               label="Loan Amount"
-              value={formatCurrency(loan.loan_amount)}
+              value={formatCurrency(loanData.loan_amount)}
             />
             <DetailField
               label="Purchase Price"
-              value={formatCurrency(loan.purchase_price)}
+              value={formatCurrency(loanData.purchase_price)}
             />
             <DetailField
               label="Appraised Value"
-              value={formatCurrency(loan.appraised_value)}
+              value={formatCurrency(loanData.appraised_value)}
             />
-            <DetailField label="LTV" value={formatPercent(loan.ltv)} />
+            <DetailField label="LTV" value={formatPercent(loanData.ltv)} />
             <DetailField
               label="Interest Rate"
-              value={formatPercent(loan.interest_rate)}
+              value={formatPercent(loanData.interest_rate)}
             />
-            <DetailField label="Points" value={loan.points ? `${loan.points}%` : "—"} />
-            <DetailField label="Term" value={loan.loan_term_months ? `${loan.loan_term_months} months` : "—"} />
+            <DetailField label="Points" value={loanData.points ? `${loanData.points}%` : "—"} />
+            <DetailField label="Term" value={loanData.loan_term_months ? `${loanData.loan_term_months} months` : "—"} />
             <DetailField
               label="Expected Close"
-              value={formatDate(loan.expected_close_date)}
+              value={formatDate(loanData.expected_close_date)}
             />
           </div>
 
@@ -230,43 +246,43 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-6">
             <DetailField
               label="Application Date"
-              value={formatDate(loan.application_date)}
+              value={formatDate(loanData.application_date)}
             />
             <DetailField
               label="Approval Date"
-              value={formatDate(loan.approval_date)}
+              value={formatDate(loanData.approval_date)}
             />
             <DetailField
               label="Origination Date"
-              value={formatDate(loan.origination_date)}
+              value={formatDate(loanData.origination_date)}
             />
             <DetailField
               label="Maturity Date"
-              value={formatDate(loan.maturity_date)}
+              value={formatDate(loanData.maturity_date)}
             />
           </div>
 
           {/* Next action / blocker */}
-          {loan.next_action && (
+          {loanData.next_action && (
             <>
               <Separator className="my-4" />
               <div className="bg-amber-50 rounded-lg p-3">
                 <p className="text-xs font-medium text-amber-800 mb-0.5">
                   Next Action / Blocker
                 </p>
-                <p className="text-sm text-amber-900">{loan.next_action}</p>
+                <p className="text-sm text-amber-900">{loanData.next_action}</p>
               </div>
             </>
           )}
 
-          {loan.notes && (
+          {loanData.notes && (
             <>
               <Separator className="my-4" />
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
                   Internal Notes
                 </p>
-                <p className="text-sm">{loan.notes}</p>
+                <p className="text-sm">{loanData.notes}</p>
               </div>
             </>
           )}
@@ -276,42 +292,42 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
       {/* Actions + Tabbed Data */}
       <LoanDetailActions
         loan={{
-          id: loan.id,
-          loan_number: loan.loan_number,
-          borrower_id: loan.borrower_id,
+          id: loanData.id,
+          loan_number: loanData.loan_number,
+          borrower_id: loanData.borrower_id,
           borrower_name: borrowerName,
-          loan_type: loan.type,
-          property_address: loan.property_address,
-          property_city: loan.property_city,
-          property_state: loan.property_state,
-          property_zip: loan.property_zip,
-          loan_amount: loan.loan_amount,
-          interest_rate: loan.interest_rate,
-          term_months: loan.loan_term_months,
-          origination_date: loan.origination_date,
-          maturity_date: loan.maturity_date,
-          stage: loan.stage,
-          ltv: loan.ltv,
-          appraised_value: loan.appraised_value,
-          notes: loan.notes,
-          purchase_price: loan.purchase_price,
-          points: loan.points,
-          after_repair_value: loan.after_repair_value ?? loan.arv,
-          rehab_budget: loan.rehab_budget,
-          property_type: loan.property_type,
-          heated_sqft: loan.heated_sqft,
-          annual_property_tax: loan.annual_property_tax,
-          annual_insurance: loan.annual_insurance,
-          monthly_hoa: loan.monthly_hoa,
-          monthly_utilities: loan.monthly_utilities,
-          holding_period_months: loan.holding_period_months,
-          sales_disposition_pct: loan.sales_disposition_pct,
-          mobilization_draw: loan.mobilization_draw,
-          lender_fees_flat: loan.lender_fees_flat,
-          title_closing_escrow: loan.title_closing_escrow,
-          num_partners: loan.num_partners,
-          credit_score: loan.credit_score,
-          experience_count: loan.experience_deals_24mo,
+          loan_type: loanData.type,
+          property_address: loanData.property_address,
+          property_city: loanData.property_city,
+          property_state: loanData.property_state,
+          property_zip: loanData.property_zip,
+          loan_amount: loanData.loan_amount,
+          interest_rate: loanData.interest_rate,
+          term_months: loanData.loan_term_months,
+          origination_date: loanData.origination_date,
+          maturity_date: loanData.maturity_date,
+          stage: loanData.stage,
+          ltv: loanData.ltv,
+          appraised_value: loanData.appraised_value,
+          notes: loanData.notes,
+          purchase_price: loanData.purchase_price,
+          points: loanData.points,
+          after_repair_value: loanData.after_repair_value ?? loanData.arv,
+          rehab_budget: loanData.rehab_budget,
+          property_type: loanData.property_type,
+          heated_sqft: (loanData as Record<string, unknown>).heated_sqft as number | null,
+          annual_property_tax: loanData.annual_property_tax,
+          annual_insurance: loanData.annual_insurance,
+          monthly_hoa: loanData.monthly_hoa,
+          monthly_utilities: loanData.monthly_utilities,
+          holding_period_months: loanData.holding_period_months,
+          sales_disposition_pct: loanData.sales_disposition_pct,
+          mobilization_draw: loanData.mobilization_draw,
+          lender_fees_flat: loanData.lender_fees_flat,
+          title_closing_escrow: loanData.title_closing_escrow,
+          num_partners: loanData.num_partners,
+          credit_score: loanData.credit_score,
+          experience_count: loanData.experience_deals_24mo,
         }}
         drawRequests={drawRequests}
         payments={payments}
@@ -319,37 +335,37 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
         conditions={conditions}
         activityLog={activityLog}
         currentUserId={user.id}
-        loanId={loan.id}
+        loanId={loanData.id}
         programs={programs}
         adjusters={adjusters}
         loanForPricing={{
-          id: loan.id,
-          purchase_price: loan.purchase_price,
-          rehab_budget: loan.rehab_budget,
-          after_repair_value: loan.after_repair_value,
-          arv: loan.arv,
-          credit_score: loan.credit_score,
-          experience_deals_24mo: loan.experience_deals_24mo,
-          legal_status: loan.legal_status,
-          property_type: loan.property_type,
-          flood_zone: loan.flood_zone,
-          is_in_flood_zone: loan.is_in_flood_zone,
-          rural_status: loan.rural_status,
-          holding_period_months: loan.holding_period_months,
-          loan_term_months: loan.loan_term_months,
-          requested_loan_amount: loan.requested_loan_amount,
-          loan_amount: loan.loan_amount,
-          heated_sqft: loan.heated_sqft,
-          mobilization_draw: loan.mobilization_draw,
-          annual_property_tax: loan.annual_property_tax,
-          annual_insurance: loan.annual_insurance,
-          monthly_utilities: loan.monthly_utilities,
-          monthly_hoa: loan.monthly_hoa,
-          title_closing_escrow: loan.title_closing_escrow,
-          lender_fees_flat: loan.lender_fees_flat,
-          sales_disposition_pct: loan.sales_disposition_pct,
-          num_partners: loan.num_partners,
-          program_id: loan.program_id,
+          id: loanData.id,
+          purchase_price: loanData.purchase_price,
+          rehab_budget: loanData.rehab_budget,
+          after_repair_value: loanData.after_repair_value,
+          arv: loanData.arv,
+          credit_score: loanData.credit_score,
+          experience_deals_24mo: loanData.experience_deals_24mo,
+          legal_status: loanData.legal_status,
+          property_type: loanData.property_type,
+          flood_zone: loanData.flood_zone,
+          is_in_flood_zone: loanData.is_in_flood_zone,
+          rural_status: loanData.rural_status,
+          holding_period_months: loanData.holding_period_months,
+          loan_term_months: loanData.loan_term_months,
+          requested_loan_amount: loanData.requested_loan_amount,
+          loan_amount: loanData.loan_amount,
+          heated_sqft: loanData.heated_sqft,
+          mobilization_draw: loanData.mobilization_draw,
+          annual_property_tax: loanData.annual_property_tax,
+          annual_insurance: loanData.annual_insurance,
+          monthly_utilities: loanData.monthly_utilities,
+          monthly_hoa: loanData.monthly_hoa,
+          title_closing_escrow: loanData.title_closing_escrow,
+          lender_fees_flat: loanData.lender_fees_flat,
+          sales_disposition_pct: loanData.sales_disposition_pct,
+          num_partners: loanData.num_partners,
+          program_id: loanData.program_id,
         }}
         underwritingVersions={underwritingVersions}
       />

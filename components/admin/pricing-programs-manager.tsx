@@ -202,7 +202,8 @@ function EditProgramDialog({ program }: { program: PricingProgram }) {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.rpc("create_pricing_version", {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("create_pricing_version", {
         p_program_id: program.program_id,
         p_changes: {
           interest_rate: parseFloat(form.interest_rate),
