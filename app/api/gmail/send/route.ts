@@ -67,6 +67,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate required fields
+  if (!email.to_email || !email.subject) {
+    return NextResponse.json(
+      { error: "Email record is missing required fields (to_email, subject)." },
+      { status: 400 }
+    );
+  }
+
   try {
     // Get a valid Gmail access token (refreshes if needed)
     const { accessToken, email: gmailEmail } = await getValidGmailToken(
