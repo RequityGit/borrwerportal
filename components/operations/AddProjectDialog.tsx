@@ -25,25 +25,15 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { PlusCircle, Loader2 } from "lucide-react";
 import type { TeamMember } from "./OperationsView";
+import {
+  OPS_PROJECT_STATUSES,
+  OPS_PROJECT_PRIORITIES,
+  OPS_PROJECT_CATEGORIES,
+} from "@/lib/constants/db-enums";
 
-const STATUSES = ["Not Started", "Planning", "In Progress", "Blocked", "On Hold", "Complete"];
-const PRIORITIES = ["Critical", "High", "Medium", "Low"];
-
-const CATEGORIES = [
-  "Engineering",
-  "Marketing",
-  "Finance",
-  "Operations",
-  "Compliance",
-  "Legal",
-  "Sales",
-  "HR",
-  "Underwriting",
-  "Servicing",
-  "Capital Markets",
-  "IT",
-  "General",
-];
+const STATUSES = OPS_PROJECT_STATUSES;
+const PRIORITIES = OPS_PROJECT_PRIORITIES;
+const CATEGORIES = OPS_PROJECT_CATEGORIES;
 
 const INITIAL_FORM = {
   project_name: "",
