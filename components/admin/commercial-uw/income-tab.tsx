@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Building2 } from "lucide-react";
+import { Plus, Trash2, Building2, Upload } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import type {
   CommercialPropertyType,
@@ -28,6 +28,10 @@ import {
   isLeaseBased,
   isOccupancyBased,
 } from "@/lib/commercial-uw/types";
+import { UploadRentRollDialog } from "./upload-rent-roll-dialog";
+import type { RentRollImportMetadata } from "./upload-rent-roll-dialog";
+import { RentRollVersionHistory } from "./rent-roll-version-history";
+import type { UploadVersion } from "./rent-roll-version-history";
 
 interface Props {
   propertyType: CommercialPropertyType;
@@ -47,6 +51,9 @@ interface Props {
   ancillaryRows: AncillaryRow[];
   setAncillaryRows: (v: AncillaryRow[]) => void;
   gpi: { current: number; stabilized: number };
+  onRentRollImport: (rows: RentRollRow[], metadata: RentRollImportMetadata) => void;
+  rentRollVersions: UploadVersion[];
+  onRestoreVersion: (rows: RentRollRow[]) => void;
 }
 
 function emptyRentRow(sortOrder: number): RentRollRow {
@@ -116,7 +123,11 @@ export function IncomeTab({
   ancillaryRows,
   setAncillaryRows,
   gpi,
+  onRentRollImport,
+  rentRollVersions,
+  onRestoreVersion,
 }: Props) {
+  const [uploadOpen, setUploadOpen] = useState(false);
   const updateRentRow = useCallback(
     (idx: number, field: keyof RentRollRow, value: unknown) => {
       const rows = [...rentRoll];
@@ -228,16 +239,26 @@ export function IncomeTab({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Rent Roll</CardTitle>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setRentRoll([...rentRoll, emptyRentRow(rentRoll.length)])
-                }
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Add Unit
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setUploadOpen(true)}
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Upload Rent Roll
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setRentRoll([...rentRoll, emptyRentRow(rentRoll.length)])
+                  }
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Unit
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -384,6 +405,21 @@ export function IncomeTab({
           </CardContent>
         </Card>
       )}
+
+      {/* Rent Roll Version History */}
+      {isLeaseBased(propertyType) && rentRollVersions.length > 0 && (
+        <RentRollVersionHistory
+          versions={rentRollVersions}
+          onRestore={onRestoreVersion}
+        />
+      )}
+
+      {/* Upload Rent Roll Dialog */}
+      <UploadRentRollDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        onImport={onRentRollImport}
+      />
 
       {/* Occupancy-Based Income */}
       {isOccupancyBased(propertyType) && (

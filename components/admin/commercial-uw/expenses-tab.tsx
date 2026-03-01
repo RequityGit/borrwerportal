@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import type {
   T12Data,
@@ -12,6 +15,8 @@ import type {
   CommercialPropertyType,
 } from "@/lib/commercial-uw/types";
 import { EXPENSE_CATEGORY_LABELS, EXPENSE_CATEGORIES } from "@/lib/commercial-uw/types";
+import { UploadT12Dialog } from "./upload-t12-dialog";
+import type { T12ImportMetadata } from "./upload-t12-dialog";
 
 interface Props {
   t12: T12Data | null;
@@ -25,6 +30,7 @@ interface Props {
   relevantDefaults: ExpenseDefault[];
   basisCount: number;
   propertyType: CommercialPropertyType;
+  onT12Import: (data: T12Data, metadata: T12ImportMetadata) => void;
 }
 
 export function ExpensesTab({
@@ -39,7 +45,9 @@ export function ExpensesTab({
   relevantDefaults,
   basisCount,
   propertyType,
+  onT12Import,
 }: Props) {
+  const [t12UploadOpen, setT12UploadOpen] = useState(false);
   const updateT12 = (field: keyof T12Data, value: number) => {
     const current = t12 ?? {
       gpi: 0, vacancy_pct: 0, bad_debt_pct: 0, mgmt_fee: 0, taxes: 0,
@@ -111,7 +119,17 @@ export function ExpensesTab({
       {/* Expense Input Table */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Year 1 Expense Overrides</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Year 1 Expense Overrides</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setT12UploadOpen(true)}
+            >
+              <Upload className="h-3 w-3 mr-1" />
+              Upload T12
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -308,6 +326,13 @@ export function ExpensesTab({
           </div>
         </CardContent>
       </Card>
+
+      {/* Upload T12 Dialog */}
+      <UploadT12Dialog
+        open={t12UploadOpen}
+        onOpenChange={setT12UploadOpen}
+        onImport={onT12Import}
+      />
     </div>
   );
 }

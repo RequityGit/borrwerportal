@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import type { Database } from "@/lib/supabase/types";
+import type { Database, Json } from "@/lib/supabase/types";
 
 type RentRollInsert = Database["public"]["Tables"]["commercial_rent_roll"]["Insert"];
 type OccupancyInsert = Database["public"]["Tables"]["commercial_occupancy_income"]["Insert"];
@@ -209,6 +209,43 @@ export async function saveProFormaYears(
   } catch (err) {
     console.error("Error saving proforma years:", err);
     return { error: "Failed to save proforma years" };
+  }
+}
+
+export async function saveUploadMapping(
+  uwId: string,
+  uploadType: string,
+  originalFilename: string,
+  columnMapping: Record<string, string>,
+  rowCount: number,
+  parsedData: Record<string, unknown>[]
+) {
+  const user = await requireAdmin();
+  const admin = createAdminClient();
+
+  try {
+    const { data, error } = await admin
+      .from("commercial_upload_mappings")
+      .insert({
+        underwriting_id: uwId,
+        upload_type: uploadType,
+        original_filename: originalFilename,
+        column_mapping: columnMapping as unknown as Json,
+        row_count: rowCount,
+        parsed_data: parsedData as unknown as Json,
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Error saving upload mapping:", error);
+      return { error: error.message };
+    }
+    return { success: true, id: data.id };
+  } catch (err) {
+    console.error("Error saving upload mapping:", err);
+    return { error: "Failed to save upload mapping" };
   }
 }
 

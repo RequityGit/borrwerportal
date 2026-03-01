@@ -37,14 +37,15 @@ export default async function CommercialUWPage({ params }: PageProps) {
     .eq("loan_id", loanId)
     .single();
 
-  // Fetch rent roll, occupancy, ancillary, proforma if UW exists
+  // Fetch rent roll, occupancy, ancillary, proforma, upload mappings if UW exists
   let rentRoll: unknown[] = [];
   let occupancyRows: unknown[] = [];
   let ancillaryRows: unknown[] = [];
   let proformaYears: unknown[] = [];
+  let uploadMappings: unknown[] = [];
 
   if (uw) {
-    const [rrResult, occResult, ancResult, pfResult] = await Promise.all([
+    const [rrResult, occResult, ancResult, pfResult, umResult] = await Promise.all([
       supabase
         .from("commercial_rent_roll")
         .select("*")
@@ -65,11 +66,17 @@ export default async function CommercialUWPage({ params }: PageProps) {
         .select("*")
         .eq("underwriting_id", uw.id)
         .order("year"),
+      supabase
+        .from("commercial_upload_mappings")
+        .select("id, upload_type, original_filename, column_mapping, row_count, parsed_data, created_at")
+        .eq("underwriting_id", uw.id)
+        .order("created_at", { ascending: false }),
     ]);
     rentRoll = rrResult.data ?? [];
     occupancyRows = occResult.data ?? [];
     ancillaryRows = ancResult.data ?? [];
     proformaYears = pfResult.data ?? [];
+    uploadMappings = umResult.data ?? [];
   }
 
   // Fetch expense defaults
@@ -113,6 +120,7 @@ export default async function CommercialUWPage({ params }: PageProps) {
         existingOccupancy={occupancyRows}
         existingAncillary={ancillaryRows}
         existingProforma={proformaYears}
+        existingUploadMappings={uploadMappings}
         expenseDefaults={expenseDefaults ?? []}
       />
     </div>
