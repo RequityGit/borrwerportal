@@ -1349,6 +1349,151 @@ export type Database = {
           },
         ]
       }
+      crm_emails: {
+        Row: {
+          attachments: Json | null
+          bcc_emails: string[] | null
+          body_html: string | null
+          body_text: string | null
+          cc_emails: string[] | null
+          created_at: string
+          delivered_at: string | null
+          email_template_id: string | null
+          from_email: string
+          id: string
+          linked_borrower_id: string | null
+          linked_contact_id: string | null
+          linked_investor_id: string | null
+          linked_loan_id: string | null
+          opened_at: string | null
+          postmark_error: string | null
+          postmark_message_id: string | null
+          postmark_status: string | null
+          sent_by: string | null
+          sent_by_name: string | null
+          subject: string
+          template_data: Json | null
+          to_email: string
+          to_name: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          bcc_emails?: string[] | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_emails?: string[] | null
+          created_at?: string
+          delivered_at?: string | null
+          email_template_id?: string | null
+          from_email?: string
+          id?: string
+          linked_borrower_id?: string | null
+          linked_contact_id?: string | null
+          linked_investor_id?: string | null
+          linked_loan_id?: string | null
+          opened_at?: string | null
+          postmark_error?: string | null
+          postmark_message_id?: string | null
+          postmark_status?: string | null
+          sent_by?: string | null
+          sent_by_name?: string | null
+          subject: string
+          template_data?: Json | null
+          to_email: string
+          to_name?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          bcc_emails?: string[] | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_emails?: string[] | null
+          created_at?: string
+          delivered_at?: string | null
+          email_template_id?: string | null
+          from_email?: string
+          id?: string
+          linked_borrower_id?: string | null
+          linked_contact_id?: string | null
+          linked_investor_id?: string | null
+          linked_loan_id?: string | null
+          opened_at?: string | null
+          postmark_error?: string | null
+          postmark_message_id?: string | null
+          postmark_status?: string | null
+          sent_by?: string | null
+          sent_by_name?: string | null
+          subject?: string
+          template_data?: Json | null
+          to_email?: string
+          to_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_emails_email_template_id_fkey"
+            columns: ["email_template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_borrower_id_fkey"
+            columns: ["linked_borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_borrower_id_fkey"
+            columns: ["linked_borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers_portal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_borrower_id_fkey"
+            columns: ["linked_borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_contact_id_fkey"
+            columns: ["linked_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_contact_id_fkey"
+            columns: ["linked_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_investor_id_fkey"
+            columns: ["linked_investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_loan_id_fkey"
+            columns: ["linked_loan_id"]
+            isOneToOne: false
+            referencedRelation: "loan_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_emails_linked_loan_id_fkey"
+            columns: ["linked_loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distribution_line_items: {
         Row: {
           amount: number
@@ -4295,6 +4440,8 @@ export type Database = {
           disclaimer_section_heading: string | null
           extension_section_heading: string | null
           fees_section_heading: string | null
+          field_labels: Json | null
+          field_visibility: Json | null
           footer_rich_text: string | null
           guarantor_custom_text: string | null
           guarantor_section_heading: string | null
@@ -4345,6 +4492,8 @@ export type Database = {
           disclaimer_section_heading?: string | null
           extension_section_heading?: string | null
           fees_section_heading?: string | null
+          field_labels?: Json | null
+          field_visibility?: Json | null
           footer_rich_text?: string | null
           guarantor_custom_text?: string | null
           guarantor_section_heading?: string | null
@@ -4395,6 +4544,8 @@ export type Database = {
           disclaimer_section_heading?: string | null
           extension_section_heading?: string | null
           fees_section_heading?: string | null
+          field_labels?: Json | null
+          field_visibility?: Json | null
           footer_rich_text?: string | null
           guarantor_custom_text?: string | null
           guarantor_section_heading?: string | null
@@ -5424,3 +5575,4 @@ export interface CommentMentionRow {
   condition_id: string | null;
   notification_sent: boolean;
 }
+
