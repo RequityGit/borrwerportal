@@ -26,9 +26,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { PlusCircle, Loader2 } from "lucide-react";
 import type { OpsProject } from "./ProjectCard";
 import type { TeamMember } from "./OperationsView";
+import {
+  OPS_TASK_STATUSES,
+  OPS_TASK_PRIORITIES,
+} from "@/lib/constants/db-enums";
 
-const STATUSES = ["To Do", "In Progress", "In Review", "Blocked", "Complete"];
-const PRIORITIES = ["Critical", "High", "Medium", "Low"];
+const STATUSES = OPS_TASK_STATUSES;
+const PRIORITIES = OPS_TASK_PRIORITIES;
 const RECURRENCE_PATTERNS = [
   { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
