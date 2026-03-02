@@ -126,7 +126,7 @@ export function MessageInput({
     const { error } = await supabase.from("chat_messages" as never).insert({
       channel_id: channelId,
       sender_id: userId,
-      message_type: "text" as const,
+      message_type: "text",
       content: trimmed,
       parent_message_id: parentMessageId,
       linked_entities: linkedEntities.length > 0 ? linkedEntities : [],
