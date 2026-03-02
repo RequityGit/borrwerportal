@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { ChatSidebar } from "@/components/chat/ChatSidebar";
-import { ChannelView } from "@/components/chat/ChannelView";
+import { ChatThemeProvider } from "@/contexts/chat-theme-context";
+import { ChatSidebarV2 } from "@/components/chat/ChatSidebarV2";
+import { ChannelViewV2 } from "@/components/chat/ChannelViewV2";
 import { ChannelCreateModal } from "@/components/chat/ChannelCreateModal";
 import { useChat } from "@/hooks/useChat";
 import { usePresence } from "@/hooks/usePresence";
@@ -16,7 +17,7 @@ interface UserProfile {
   avatar_url: string | null;
 }
 
-export default function ChatPage() {
+function ChatPageInner() {
   const [userId, setUserId] = useState<string | undefined>();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -68,6 +69,7 @@ export default function ChatPage() {
     channels,
     groups,
     loading: channelsLoading,
+    totalUnread,
     activeChannelId,
     setActiveChannelId,
     searchQuery,
@@ -99,7 +101,7 @@ export default function ChatPage() {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         const input = document.querySelector(
-          '[placeholder="Search channels..."]'
+          '[placeholder="Search..."]'
         ) as HTMLInputElement;
         input?.focus();
       }
@@ -110,20 +112,49 @@ export default function ChatPage() {
 
   if (!userId) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#0A1628]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#C5975B]" />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          background: "#0C0C0C",
+        }}
+      >
+        <Loader2
+          size={32}
+          color="#606060"
+          style={{ animation: "spin 1s linear infinite" }}
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -m-6 bg-[#0A1628]">
-      {/* Chat Sidebar */}
-      <ChatSidebar
+    <div
+      style={{
+        display: "flex",
+        height: "calc(100vh - 64px)",
+        margin: "-24px",
+        overflow: "hidden",
+      }}
+    >
+      {/* Chat animations CSS */}
+      <style>{`
+        @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes msgIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes dotBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+
+      <ChatSidebarV2
         groups={groups}
+        channels={channels}
         activeChannelId={activeChannelId}
         searchQuery={searchQuery}
         loading={channelsLoading}
+        totalUnread={totalUnread}
         onSelectChannel={setActiveChannelId}
         onSearchChange={setSearchQuery}
         onNewChannel={() => setShowCreateModal(true)}
@@ -131,28 +162,16 @@ export default function ChatPage() {
         getPresenceStatus={getStatus}
       />
 
-      {/* Channel content */}
+      {/* Channel content or empty state */}
       {selectedChannel ? (
-        <ChannelView
+        <ChannelViewV2
           channel={selectedChannel}
           userId={userId}
           isAdmin={isAdmin}
           getPresenceStatus={getStatus}
         />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#0F2140]">
-          <div className="w-16 h-16 rounded-2xl bg-[rgba(197,151,91,0.08)] flex items-center justify-center mb-4">
-            <MessageSquare className="h-8 w-8 text-[#C5975B]" />
-          </div>
-          <h3 className="font-display text-lg font-medium text-[#F0EDE6]">
-            Requity Command Center
-          </h3>
-          <p className="text-sm mt-1 text-[#8A8680]">
-            {channelsLoading
-              ? "Loading channels..."
-              : "Select a channel to start chatting"}
-          </p>
-        </div>
+        <EmptyState loading={channelsLoading} />
       )}
 
       {/* Create channel modal */}
@@ -166,5 +185,62 @@ export default function ChatPage() {
         }}
       />
     </div>
+  );
+}
+
+function EmptyState({ loading }: { loading: boolean }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#0C0C0C",
+      }}
+    >
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 16,
+          background: "rgba(240,240,240,0.06)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 16,
+        }}
+      >
+        <MessageSquare size={32} strokeWidth={1.5} color="#606060" />
+      </div>
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 600,
+          color: "#F0F0F0",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        Requity Messages
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          color: "#606060",
+          marginTop: 4,
+        }}
+      >
+        {loading ? "Loading channels..." : "Select a channel to start chatting"}
+      </div>
+    </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <ChatThemeProvider>
+      <ChatPageInner />
+    </ChatThemeProvider>
   );
 }
