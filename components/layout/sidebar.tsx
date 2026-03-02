@@ -23,6 +23,7 @@ import {
   Banknote,
   Cog,
   BookOpen,
+  Calculator,
 } from "lucide-react";
 import { useState } from "react";
 import { useViewAs } from "@/contexts/view-as-context";
@@ -67,6 +68,12 @@ const adminNav: NavItem[] = [
     href: "/admin/originations",
     icon: Briefcase,
     activePaths: ["/admin/loans", "/admin/conditions", "/admin/pricing"],
+  },
+  {
+    label: "DSCR Pricing",
+    href: "/admin/dscr",
+    icon: Calculator,
+    activePaths: ["/admin/dscr"],
   },
   { label: "Servicing", href: "/admin/servicing", icon: Banknote },
   { label: "Investments", href: "/admin/funds", icon: Landmark },
