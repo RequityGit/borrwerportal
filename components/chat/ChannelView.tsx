@@ -53,7 +53,7 @@ export function ChannelView({
     const fetchMembers = async () => {
       const supabase = createClient();
       const { data } = await supabase
-        .from("chat_channel_members")
+        .from("chat_channel_members" as never)
         .select("user_id, profiles:user_id(id, full_name, avatar_url)")
         .eq("channel_id", channel.id)
         .is("left_at", null)
@@ -112,7 +112,9 @@ export function ChannelView({
           channel={channel}
           members={members}
           isContextPanelOpen={isContextPanelOpen}
-          onToggleContextPanel={() => setIsContextPanelOpen(!isContextPanelOpen)}
+          onToggleContextPanel={() =>
+            setIsContextPanelOpen(!isContextPanelOpen)
+          }
           onSettings={() => setIsSettingsOpen(true)}
           onSearch={() => setIsSearchOpen(true)}
           activeTab={activeTab}
@@ -127,6 +129,7 @@ export function ChannelView({
               hasMore={hasMore}
               onLoadMore={loadMore}
               currentUserId={userId}
+              channelId={channel.id}
               getPresenceStatus={getPresenceStatus}
               onThreadClick={setThreadMessageId}
             />
@@ -148,7 +151,6 @@ export function ChannelView({
             channelId={channel.id}
             onClose={() => setIsSearchOpen(false)}
             onNavigateToMessage={() => {
-              // TODO: Scroll to message
               setIsSearchOpen(false);
             }}
           />

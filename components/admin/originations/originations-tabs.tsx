@@ -7,6 +7,7 @@ import { ConditionsDashboard } from "@/components/admin/conditions-dashboard";
 import { PricingProgramsManager } from "@/components/admin/pricing-programs-manager";
 import { OpportunityKanban } from "@/components/admin/originations/opportunity-kanban";
 import { OpportunityListView } from "@/components/admin/originations/opportunity-list-view";
+import { DscrPricingManager } from "@/components/admin/dscr-pricing-manager";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -14,6 +15,7 @@ import {
   ClipboardList,
   Calculator,
   Briefcase,
+  Building2,
   LayoutGrid,
   List,
 } from "lucide-react";
@@ -28,10 +30,16 @@ interface OriginationsTabsProps {
   currentUserId: string;
   // Conditions tab
   conditions: any[];
-  // Pricing tab
+  // RTL Pricing tab
   programs: any[];
   adjusters: any[];
   versions: any[];
+  // DSCR Pricing tab
+  dscrLenders: any[];
+  dscrProducts: any[];
+  dscrAdjustments: any[];
+  dscrVersions: any[];
+  dscrUploads: any[];
   // Counts for badges
   pipelineCount: number;
   pendingConditionsCount: number;
@@ -48,6 +56,11 @@ export function OriginationsTabs({
   programs,
   adjusters,
   versions,
+  dscrLenders,
+  dscrProducts,
+  dscrAdjustments,
+  dscrVersions,
+  dscrUploads,
   pipelineCount,
   pendingConditionsCount,
   opportunityRows,
@@ -83,7 +96,11 @@ export function OriginationsTabs({
         </TabsTrigger>
         <TabsTrigger value="pricing" className="gap-1.5">
           <Calculator className="h-3.5 w-3.5" />
-          Pricing
+          RTL Pricing
+        </TabsTrigger>
+        <TabsTrigger value="dscr-pricing" className="gap-1.5">
+          <Building2 className="h-3.5 w-3.5" />
+          DSCR Pricing
         </TabsTrigger>
       </TabsList>
 
@@ -152,6 +169,32 @@ export function OriginationsTabs({
             programs={programs}
             adjusters={adjusters}
             versions={versions}
+          />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="dscr-pricing" className="mt-4">
+        <div className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Link href="/admin/dscr/rate-sheets">
+              <Button variant="outline" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                Rate Sheets
+              </Button>
+            </Link>
+            <Link href="/admin/dscr/price">
+              <Button variant="outline" className="gap-2">
+                <Calculator className="h-4 w-4" />
+                Deal Calculator
+              </Button>
+            </Link>
+          </div>
+          <DscrPricingManager
+            lenders={dscrLenders}
+            products={dscrProducts}
+            adjustments={dscrAdjustments}
+            versions={dscrVersions}
+            uploads={dscrUploads}
           />
         </div>
       </TabsContent>

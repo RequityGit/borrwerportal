@@ -6,7 +6,7 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { OriginationsTabs } from "@/components/admin/originations/originations-tabs";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, ClipboardList, Calculator, Briefcase, Plus } from "lucide-react";
+import { Home, ClipboardList, Calculator, Briefcase, Plus, Building2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +57,7 @@ export default async function AdminOriginationsPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  // Pricing data — tables may not exist yet
+  // RTL Pricing data — tables may not exist yet
   let programsData: any[] = [];
   let adjustersData: any[] = [];
   let versionsData: any[] = [];
@@ -94,7 +94,57 @@ export default async function AdminOriginationsPage() {
     /* table may not exist */
   }
 
-  // Condition counts
+  // DSCR Pricing data — tables may not exist yet
+  let dscrLendersData: any[] = [];
+  let dscrProductsData: any[] = [];
+  let dscrAdjustmentsData: any[] = [];
+  let dscrVersionsData: any[] = [];
+  let dscrUploadsData: any[] = [];
+
+  try {
+    const { data } = await (supabase as any)
+      .from("dscr_lenders")
+      .select("*")
+      .order("name");
+    dscrLendersData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  try {
+    const { data } = await (supabase as any)
+      .from("dscr_lender_products")
+      .select("*, dscr_lenders(name, short_name)")
+      .order("product_name");
+    dscrProductsData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  try {
+    const { data } = await (supabase as any)
+      .from("dscr_price_adjustments")
+      .select("*")
+      .order("category")
+      .order("sort_order");
+    dscrAdjustmentsData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  try {
+    const { data } = await (supabase as any)
+      .from("dscr_pricing_versions")
+      .select("*")
+      .order("changed_at", { ascending: false })
+      .limit(30);
+    dscrVersionsData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  try {
+    const { data } = await (supabase as any)
+      .from("dscr_rate_sheet_uploads")
+      .select("*, dscr_lenders(name, short_name), dscr_lender_products(product_name)")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    dscrUploadsData = data ?? [];
+  } catch { /* table may not exist */ }
+
+  // Condition counts — separate query so it won't break if the table doesn't exist yet
   let conditionsResult: { data: any[] | null } = { data: [] };
   try {
     conditionsResult = await supabase
@@ -291,6 +341,7 @@ export default async function AdminOriginationsPage() {
     (sum: number, o: any) => sum + (o.proposed_loan_amount || 0),
     0
   );
+  const activeDscrProducts = dscrProductsData.filter((p: any) => p.is_active).length;
 
   return (
     <div className="space-y-6">
@@ -325,9 +376,14 @@ export default async function AdminOriginationsPage() {
           icon={<ClipboardList className="h-5 w-5" />}
         />
         <KpiCard
-          title="Active Programs"
+          title="RTL Programs"
           value={activePrograms}
           icon={<Calculator className="h-5 w-5" />}
+        />
+        <KpiCard
+          title="DSCR Products"
+          value={activeDscrProducts}
+          icon={<Building2 className="h-5 w-5" />}
         />
       </div>
 
@@ -340,6 +396,11 @@ export default async function AdminOriginationsPage() {
         programs={programs}
         adjusters={adjusters}
         versions={versions}
+        dscrLenders={dscrLendersData}
+        dscrProducts={dscrProductsData}
+        dscrAdjustments={dscrAdjustmentsData}
+        dscrVersions={dscrVersionsData}
+        dscrUploads={dscrUploadsData}
         pipelineCount={pipelineCount}
         pendingConditionsCount={pendingConditionsCount}
         opportunityRows={opportunityRows}
