@@ -19,16 +19,29 @@ export default async function CommercialUWPage({ params }: PageProps) {
 
   const { id: loanId } = await params;
 
-  // Fetch loan
-  const { data: loan } = await supabase
+  // Fetch loan — query without FK join to avoid silent failures
+  const { data: loan, error: loanError } = await supabase
     .from("loans")
-    .select(
-      "id, loan_number, property_address, property_type, type, purchase_price, loan_amount, borrower:borrowers!loans_borrower_id_fkey(first_name, last_name)"
-    )
+    .select("id, loan_number, property_address, property_type, type, purchase_price, loan_amount, borrower_id")
     .eq("id", loanId)
     .single();
 
+  if (loanError) {
+    console.error("Commercial UW loan query error:", loanError.message, loanError.code);
+  }
+
   if (!loan) notFound();
+
+  // Fetch borrower separately
+  let borrowerJoin: { first_name: string | null; last_name: string | null } | null = null;
+  if (loan.borrower_id) {
+    const { data } = await supabase
+      .from("borrowers")
+      .select("first_name, last_name")
+      .eq("id", loan.borrower_id)
+      .maybeSingle();
+    borrowerJoin = data;
+  }
 
   // Fetch existing underwriting (if any)
   const { data: uw } = await supabase
@@ -148,9 +161,8 @@ export default async function CommercialUWPage({ params }: PageProps) {
     .select("*")
     .order("property_type");
 
-  const borrowerRaw = (loan as Record<string, unknown>).borrower as Record<string, string> | null;
-  const borrowerName = borrowerRaw
-    ? `${borrowerRaw.first_name ?? ""} ${borrowerRaw.last_name ?? ""}`.trim() || "—"
+  const borrowerName = borrowerJoin
+    ? `${borrowerJoin.first_name ?? ""} ${borrowerJoin.last_name ?? ""}`.trim() || "—"
     : "—";
 
   return (

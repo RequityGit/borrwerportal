@@ -43,13 +43,30 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  const { data: loan } = await supabase
+  // Query loan and borrower separately to avoid FK join errors that silently
+  // return null data and trigger a false 404.
+  const { data: loan, error: loanError } = await supabase
     .from("loans")
-    .select(`*, borrower:borrowers!loans_borrower_id_fkey(first_name, last_name, email)`)
+    .select("*")
     .eq("id", id)
     .single();
 
+  if (loanError) {
+    console.error("Loan query error:", loanError.message, loanError.code);
+  }
+
   if (!loan) notFound();
+
+  // Fetch borrower separately — tolerates missing FK or RLS issues
+  let borrowerData: { first_name: string | null; last_name: string | null; email: string | null } | null = null;
+  if (loan.borrower_id) {
+    const { data: borrower } = await supabase
+      .from("borrowers")
+      .select("first_name, last_name, email")
+      .eq("id", loan.borrower_id)
+      .maybeSingle();
+    borrowerData = borrower;
+  }
 
   // Cast to any — some column references may be stale after schema migrations
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,11 +223,10 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
     attachments: e.attachments,
   }));
 
-  const borrowerRaw = (loanData as any).borrower;
-  const borrowerName = borrowerRaw
-    ? `${borrowerRaw.first_name ?? ""} ${borrowerRaw.last_name ?? ""}`.trim() || "—"
+  const borrowerName = borrowerData
+    ? `${borrowerData.first_name ?? ""} ${borrowerData.last_name ?? ""}`.trim() || "—"
     : "—";
-  const borrowerEmail = borrowerRaw?.email ?? undefined;
+  const borrowerEmail = borrowerData?.email ?? undefined;
   const originatorName = (loanData.originator_id && teamProfiles[loanData.originator_id]) ?? loanData.originator ?? "—";
   const processorName = (loanData.processor_id && teamProfiles[loanData.processor_id]) ?? "—";
   const underwriterName = (loanData.underwriter_id && teamProfiles[loanData.underwriter_id]) ?? "—";
@@ -265,7 +281,7 @@ export default async function AdminLoanDetailPage({ params }: PageProps) {
               <GenerateTermSheetButton
                 loanId={loanData.id}
                 loanNumber={loanData.loan_number}
-                borrowerLastName={borrowerRaw?.last_name}
+                borrowerLastName={borrowerData?.last_name ?? undefined}
               />
             </div>
           </div>

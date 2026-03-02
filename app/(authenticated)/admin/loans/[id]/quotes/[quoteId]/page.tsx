@@ -39,9 +39,7 @@ export default async function QuoteDetailPage({ params }: PageProps) {
         .single(),
       supabase
         .from("loans")
-        .select(
-          "id, loan_number, property_address, borrower:borrowers!loans_borrower_id_fkey(first_name, last_name)"
-        )
+        .select("id, loan_number, property_address, borrower_id")
         .eq("id", loanId)
         .single(),
       supabase
@@ -66,14 +64,23 @@ export default async function QuoteDetailPage({ params }: PageProps) {
     name: c.name,
   }));
 
+  // Fetch borrower separately — avoids FK join failures
+  let borrowerName = "—";
+  if (loan?.borrower_id) {
+    const { data: borrower } = await supabase
+      .from("borrowers")
+      .select("first_name, last_name")
+      .eq("id", loan.borrower_id)
+      .maybeSingle();
+    if (borrower) {
+      borrowerName = `${borrower.first_name ?? ""} ${borrower.last_name ?? ""}`.trim() || "—";
+    }
+  }
+
   // Get company name for the quote's lender
   const lenderCompanyName = quote.lender_company_id
     ? companies.find((c: { id: string; name: string }) => c.id === quote.lender_company_id)?.name ?? "Unknown"
     : null;
-
-  const borrowerName = loan?.borrower
-    ? `${loan.borrower.first_name ?? ""} ${loan.borrower.last_name ?? ""}`.trim() || "—"
-    : "—";
 
   // Requity fee income calculation
   const requityFeeIncome =
