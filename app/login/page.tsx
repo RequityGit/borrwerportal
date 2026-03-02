@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Briefcase, Mail, Loader2, Chrome } from "lucide-react";
+import { Mail, Loader2, Chrome } from "lucide-react";
+import { RequityLogo } from "@/components/layout/requity-logo";
 
 function getSupabase() {
   return createClient();
@@ -82,7 +83,7 @@ export default function LoginPage() {
           {/* Logo / Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1a2b4a] mb-4">
-              <Briefcase className="h-6 w-6 text-teal-400" />
+              <RequityLogo className="h-6 w-6 text-teal-400" />
             </div>
             <h1 className="text-2xl font-bold text-[#1a2b4a]">
               Requity Group

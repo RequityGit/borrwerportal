@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useViewAs } from "@/contexts/view-as-context";
+import { RequityLogo } from "@/components/layout/requity-logo";
 
 interface NavItem {
   label: string;
@@ -115,7 +116,7 @@ export function Sidebar({ role, isSuperAdmin }: { role: string; isSuperAdmin?: b
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         {!collapsed && (
           <Link href={`/${role}/dashboard`} className="flex items-center gap-2">
-            <Briefcase className="h-6 w-6 text-teal-400" />
+            <RequityLogo className="h-6 w-6 text-teal-400" />
             <span className="font-bold text-lg">Requity</span>
           </Link>
         )}
