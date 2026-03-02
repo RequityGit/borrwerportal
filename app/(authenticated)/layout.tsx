@@ -8,6 +8,7 @@ import { ViewAsProvider } from "@/contexts/view-as-context";
 import { ImpersonationProvider } from "@/components/layout/impersonation-context";
 import { ImpersonationBanner } from "@/components/layout/impersonation-banner";
 import { getImpersonationState } from "@/lib/impersonation";
+import { ActivityTrackerProvider } from "@/components/tracking/ActivityTracker";
 
 // Never statically generate authenticated pages
 export const dynamic = "force-dynamic";
@@ -91,7 +92,9 @@ export default async function AuthenticatedLayout({
                 isSuperAdmin={isSuperAdmin}
               />
               <main className="flex-1 overflow-y-auto bg-slate-50 p-6">
-                {children}
+                <ActivityTrackerProvider role={effectiveRole}>
+                  {children}
+                </ActivityTrackerProvider>
               </main>
             </div>
           </div>

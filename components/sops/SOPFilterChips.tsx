@@ -1,0 +1,45 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+
+interface SOPFilterChipsProps {
+  departments: string[];
+  activeDepartment: string;
+  onSelect: (dept: string) => void;
+}
+
+export function SOPFilterChips({
+  departments,
+  activeDepartment,
+  onSelect,
+}: SOPFilterChipsProps) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => onSelect("")}
+        className={cn(
+          "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+          !activeDepartment
+            ? "border-gold bg-gold/15 text-gold"
+            : "border-navy-light bg-navy-mid text-[#C4C0B8] hover:border-gold/30 hover:text-[#FAFAF8]"
+        )}
+      >
+        All
+      </button>
+      {departments.map((dept) => (
+        <button
+          key={dept}
+          onClick={() => onSelect(dept)}
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+            activeDepartment === dept
+              ? "border-gold bg-gold/15 text-gold"
+              : "border-navy-light bg-navy-mid text-[#C4C0B8] hover:border-gold/30 hover:text-[#FAFAF8]"
+          )}
+        >
+          {dept}
+        </button>
+      ))}
+    </div>
+  );
+}
