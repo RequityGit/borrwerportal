@@ -122,7 +122,14 @@ export function MessageInput({
       }
     }
 
-    const { error } = await supabase.from("chat_messages" as never).insert({
+    // Extract user mentions for chat_mentions table
+    const mentionUserIds: string[] = [];
+    let isEveryoneMention = false;
+    if (trimmed.includes("@everyone")) {
+      isEveryoneMention = true;
+    }
+
+    const { error } = await supabase.from("chat_messages").insert({
       channel_id: channelId,
       sender_id: userId,
       message_type: "text" as const,
@@ -131,7 +138,7 @@ export function MessageInput({
       linked_entities: linkedEntities.length > 0 ? linkedEntities : [],
       attachments: [],
       reactions: {},
-    } as never);
+    });
 
     if (error) {
       console.error("Error sending message:", error);
