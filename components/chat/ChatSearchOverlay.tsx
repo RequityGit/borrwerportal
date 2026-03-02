@@ -55,7 +55,7 @@ export function ChatSearchOverlay({
         .join(" & ");
 
       const { data } = await supabase
-        .from("chat_messages" as never)
+        .from("chat_messages")
         .select(
           "*, sender:profiles!chat_messages_sender_id_fkey(id, full_name, avatar_url, email)"
         )
