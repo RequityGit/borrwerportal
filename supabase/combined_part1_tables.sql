@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS loan_events (
     created_at       timestamptz NOT NULL DEFAULT now()
 );
 
+-- Ensure all columns exist (handles case where table was partially created before)
+ALTER TABLE loan_events ADD COLUMN IF NOT EXISTS reference_id uuid;
+ALTER TABLE loan_events ADD COLUMN IF NOT EXISTS note text;
+ALTER TABLE loan_events ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE loan_events ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_loan_events_loan_date ON loan_events(loan_id, event_date);
 CREATE INDEX IF NOT EXISTS idx_loan_events_type ON loan_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_loan_events_reference ON loan_events(reference_id) WHERE reference_id IS NOT NULL;
@@ -79,6 +85,11 @@ CREATE TABLE IF NOT EXISTS billing_cycles (
     notes          text
 );
 
+-- Ensure all columns exist
+ALTER TABLE billing_cycles ADD COLUMN IF NOT EXISTS submitted_at timestamptz;
+ALTER TABLE billing_cycles ADD COLUMN IF NOT EXISTS nacha_file_path text;
+ALTER TABLE billing_cycles ADD COLUMN IF NOT EXISTS notes text;
+
 CREATE INDEX IF NOT EXISTS idx_billing_cycles_month ON billing_cycles(billing_month);
 CREATE INDEX IF NOT EXISTS idx_billing_cycles_status ON billing_cycles(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_billing_cycles_unique_month ON billing_cycles(billing_month);
@@ -103,6 +114,12 @@ CREATE TABLE IF NOT EXISTS billing_line_items (
     status                   billing_line_item_status NOT NULL DEFAULT 'pending',
     calculation_detail       jsonb NOT NULL DEFAULT '{}'::jsonb
 );
+
+-- Ensure all columns exist
+ALTER TABLE billing_line_items ADD COLUMN IF NOT EXISTS draw_proration_adjustment numeric(15,2) DEFAULT 0;
+ALTER TABLE billing_line_items ADD COLUMN IF NOT EXISTS late_fee numeric(15,2) DEFAULT 0;
+ALTER TABLE billing_line_items ADD COLUMN IF NOT EXISTS other_fees numeric(15,2) DEFAULT 0;
+ALTER TABLE billing_line_items ADD COLUMN IF NOT EXISTS calculation_detail jsonb DEFAULT '{}'::jsonb;
 
 CREATE INDEX IF NOT EXISTS idx_billing_items_loan_date ON billing_line_items(loan_id, billing_date);
 CREATE INDEX IF NOT EXISTS idx_billing_items_cycle_status ON billing_line_items(billing_cycle_id, status);
@@ -216,6 +233,15 @@ CREATE TABLE IF NOT EXISTS delinquency_records (
     updated_at               timestamptz NOT NULL DEFAULT now()
 );
 
+-- Ensure all columns exist
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS oldest_unpaid_billing_date date;
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS late_fee_assessed boolean DEFAULT false;
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS late_fee_amount numeric(15,2) DEFAULT 0;
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS last_payment_date date;
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS last_payment_amount numeric(15,2);
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE delinquency_records ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_delinquency_unique_loan ON delinquency_records(loan_id);
 CREATE INDEX IF NOT EXISTS idx_delinquency_status ON delinquency_records(delinquency_status);
 ALTER TABLE delinquency_records ENABLE ROW LEVEL SECURITY;
@@ -240,6 +266,13 @@ CREATE TABLE IF NOT EXISTS borrower_ach_info (
     verified_at         timestamptz,
     created_at          timestamptz NOT NULL DEFAULT now()
 );
+
+-- Ensure all columns exist
+ALTER TABLE borrower_ach_info ADD COLUMN IF NOT EXISTS account_type ach_account_type DEFAULT 'checking';
+ALTER TABLE borrower_ach_info ADD COLUMN IF NOT EXISTS account_holder_name text DEFAULT 'Unknown';
+ALTER TABLE borrower_ach_info ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+ALTER TABLE borrower_ach_info ADD COLUMN IF NOT EXISTS verified_at timestamptz;
+ALTER TABLE borrower_ach_info ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_borrower_ach_loan ON borrower_ach_info(loan_id);
 CREATE INDEX IF NOT EXISTS idx_borrower_ach_active ON borrower_ach_info(loan_id) WHERE is_active = true;
