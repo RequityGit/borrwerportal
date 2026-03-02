@@ -14,8 +14,9 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useToast } from "@/components/ui/use-toast";
 import { PhoneVerifyDialog } from "@/components/investor/phone-verify-dialog";
-import { Save, Loader2, User, Building2, ShieldCheck } from "lucide-react";
+import { Save, Loader2, Building2, ShieldCheck } from "lucide-react";
 import { resilientProfileUpdate } from "@/lib/supabase/resilient-profile-update";
+import { ProfilePhotoUpload } from "@/components/shared/profile-photo-upload";
 
 type ProfileData = {
   id: string;
@@ -23,6 +24,7 @@ type ProfileData = {
   email: string;
   phone: string | null;
   company_name: string | null;
+  avatar_url: string | null;
 };
 
 type CommitmentData = {
@@ -50,6 +52,7 @@ export default function InvestorAccountPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // OTP verification state
   const [showOtpDialog, setShowOtpDialog] = useState(false);
@@ -85,7 +88,9 @@ export default function InvestorAccountPage() {
             email: pd.email,
             phone: pd.phone,
             company_name: pd.company_name ?? null,
+            avatar_url: pd.avatar_url ?? null,
           });
+          setAvatarUrl(pd.avatar_url ?? null);
           setFullName(pd.full_name ?? "");
           setEmail(pd.email ?? "");
           setPhone(pd.phone ?? "");
@@ -220,11 +225,21 @@ export default function InvestorAccountPage() {
         {/* Profile Form */}
         <Card>
           <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-[#1a2b4a]" />
-              <CardTitle className="text-lg font-semibold text-[#1a2b4a]">
-                Personal Information
-              </CardTitle>
+            <div className="flex items-start gap-5">
+              <ProfilePhotoUpload
+                userId={userId}
+                avatarUrl={avatarUrl}
+                fullName={fullName}
+                onAvatarChange={setAvatarUrl}
+              />
+              <div className="pt-2">
+                <CardTitle className="text-lg font-semibold text-[#1a2b4a]">
+                  Personal Information
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Update your personal details and profile photo
+                </p>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

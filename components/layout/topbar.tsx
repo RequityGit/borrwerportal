@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -27,9 +28,10 @@ interface TopbarProps {
   allowedRoles: string[];
   userId: string;
   isSuperAdmin?: boolean;
+  avatarUrl?: string | null;
 }
 
-export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdmin }: TopbarProps) {
+export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdmin, avatarUrl }: TopbarProps) {
   const router = useRouter();
   const supabase = createClient();
   const { isImpersonating, targetRole, targetUserName } = useImpersonation();
@@ -93,16 +95,27 @@ export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdm
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:bg-slate-100 rounded-md px-3 py-2 transition-colors">
-                <div className="h-8 w-8 rounded-full bg-[#1a2b4a] flex items-center justify-center text-white text-sm font-medium">
-                  {userName
-                    ? userName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)
-                    : "U"}
-                </div>
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={userName || "Profile"}
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 rounded-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-[#1a2b4a] flex items-center justify-center text-white text-sm font-medium">
+                    {userName
+                      ? userName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : "U"}
+                  </div>
+                )}
                 <span className="text-sm font-medium hidden md:inline">
                   {userName || email}
                 </span>

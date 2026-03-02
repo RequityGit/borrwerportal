@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Save, User } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import type { Profile } from "@/lib/supabase/types";
 import { resilientProfileUpdate } from "@/lib/supabase/resilient-profile-update";
+import { ProfilePhotoUpload } from "@/components/shared/profile-photo-upload";
 
 export default function AdminAccountPage() {
   const { toast } = useToast();
@@ -26,6 +27,7 @@ export default function AdminAccountPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -55,6 +57,7 @@ export default function AdminAccountPage() {
         setEmail(data.email ?? "");
         setPhone(data.phone ?? "");
         setCompany(data.company_name ?? "");
+        setAvatarUrl(data.avatar_url ?? null);
       }
     } finally {
       setLoading(false);
@@ -137,14 +140,17 @@ export default function AdminAccountPage() {
     <AccountSettingsTabs userId={userId}>
       <Card className="max-w-2xl">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#1a2b4a] flex items-center justify-center">
-              <User className="h-5 w-5 text-white" />
-            </div>
-            <div>
+          <div className="flex items-start gap-5">
+            <ProfilePhotoUpload
+              userId={userId}
+              avatarUrl={avatarUrl}
+              fullName={fullName}
+              onAvatarChange={setAvatarUrl}
+            />
+            <div className="pt-2">
               <CardTitle className="text-base">Profile Information</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Update your personal details below
+                Update your personal details and profile photo
               </p>
             </div>
           </div>
