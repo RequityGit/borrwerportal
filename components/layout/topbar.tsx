@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, ShieldCheck, User, Eye } from "lucide-react";
+import { LogOut, ShieldCheck, User, Eye, BookOpen } from "lucide-react";
 import { RoleSwitcher } from "./role-switcher";
 import { ViewAsBanner } from "./view-as-banner";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -118,6 +118,13 @@ export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdm
               <DropdownMenuSeparator />
               {!isImpersonating && (
                 <>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/sops")}
+                    className="cursor-pointer"
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Knowledge Base
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => router.push(`/${role}/account`)}
                     className="cursor-pointer"
