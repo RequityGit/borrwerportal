@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useChatTheme } from "@/contexts/chat-theme-context";
 import { ChatAvatarV2, StatusDot, UnreadBadge } from "./ChatPrimitives";
 import { BADGE_COLOR } from "@/lib/chat-theme";
@@ -12,7 +12,6 @@ import type {
   ChatChannelType,
 } from "@/lib/chat-types";
 import {
-  Search,
   Edit3,
   Pin,
   Clock,
@@ -22,6 +21,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { ChatterMultiSearch, type SearchSelection } from "./ChatterMultiSearch";
 
 // ─── Filter Tabs ──────────────────────────────────────────────────────────────
 const FILTER_TABS = [
@@ -44,6 +44,7 @@ interface ChatSidebarV2Props {
   onSelectChannel: (channelId: string) => void;
   onSearchChange: (query: string) => void;
   onNewChannel: () => void;
+  onStartConversation?: (selections: SearchSelection[]) => void;
   onArchiveChannel?: (channelId: string) => void;
   onUnarchiveChannel?: (channelId: string) => void;
   currentUser?: {
@@ -65,6 +66,7 @@ export function ChatSidebarV2({
   onSelectChannel,
   onSearchChange,
   onNewChannel,
+  onStartConversation,
   onArchiveChannel,
   onUnarchiveChannel,
   currentUser,
@@ -74,7 +76,6 @@ export function ChatSidebarV2({
   const [activeFilter, setActiveFilter] = useState("all");
   const [hoveredChannel, setHoveredChannel] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   // Filter channels based on active filter
   const filteredChannels = channels.filter((c) => {
@@ -146,41 +147,13 @@ export function ChatSidebarV2({
           </div>
         </div>
 
-        {/* Search */}
-        <div style={{ position: "relative" }}>
-          <Search
-            size={14}
-            strokeWidth={2}
-            color={t.textTertiary}
-            style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}
-          />
-          <input
-            ref={searchRef}
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search..."
-            style={{
-              width: "100%",
-              padding: "8px 10px 8px 32px",
-              background: t.bgTertiary,
-              border: `1px solid ${t.borderLight}`,
-              borderRadius: 8,
-              color: t.text,
-              fontSize: 13,
-              fontFamily: "'Inter', sans-serif",
-              outline: "none",
-              transition: "all 0.2s",
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = t.borderFocus;
-              e.target.style.background = mode === "dark" ? "#222" : "#FFF";
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = t.borderLight;
-              e.target.style.background = t.bgTertiary;
-            }}
-          />
-        </div>
+        {/* Multi-Select Search */}
+        <ChatterMultiSearch
+          onStartConversation={onStartConversation || (() => {})}
+          onSearchChange={onSearchChange}
+          searchQuery={searchQuery}
+          currentUserId={currentUser?.id}
+        />
 
         {/* Filter Tabs */}
         <div style={{ display: "flex", gap: 1, background: t.bgTertiary, borderRadius: 8, padding: 2 }}>
