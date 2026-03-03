@@ -24,7 +24,7 @@ export default async function NewDealPage() {
   const [entitiesResult, borrowersResult] = await Promise.all([
     admin
       .from("borrower_entities")
-      .select("id, entity_name, entity_type")
+      .select("id, entity_name, entity_type, borrower_id")
       .order("entity_name"),
     admin
       .from("borrowers")
@@ -52,6 +52,7 @@ export default async function NewDealPage() {
     id: e.id,
     entity_name: e.entity_name,
     entity_type: e.entity_type,
+    borrower_id: e.borrower_id,
   }));
 
   const borrowers = (borrowersResult.data || []).map((b: any) => {

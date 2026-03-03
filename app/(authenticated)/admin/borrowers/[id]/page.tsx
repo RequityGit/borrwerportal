@@ -13,7 +13,9 @@ import {
   CreditCard,
   Shield,
   Hash,
+  ArrowUpRight,
 } from "lucide-react";
+import Link from "next/link";
 import { BorrowerEntityList } from "@/components/admin/borrower-entity-list";
 import { BorrowerEditDialog } from "@/components/admin/borrower-edit-dialog";
 import { BorrowerLoanTable } from "@/components/admin/borrower-loan-table";
@@ -236,6 +238,14 @@ export default async function AdminBorrowerDetailPage({ params }: PageProps) {
         </TabsList>
 
         <TabsContent value="entities" className="mt-4">
+          <div className="flex justify-end mb-2">
+            <Link
+              href="/admin/borrowers/entities"
+              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 underline-offset-4 hover:underline"
+            >
+              View all entities <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
           <BorrowerEntityList
             borrowerId={borrower.id}
             entities={entities}
