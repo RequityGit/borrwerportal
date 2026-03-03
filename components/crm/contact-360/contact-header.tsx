@@ -18,6 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { RelationshipBadge } from "./shared";
+import { EmailComposeSheet } from "@/components/crm/email-compose-sheet";
 import type { ContactData, CompanyData } from "./types";
 
 interface QuickAction {
@@ -42,6 +43,8 @@ interface ContactHeaderProps {
   fullName: string;
   activeRelationships: string[];
   company: CompanyData | null;
+  currentUserId: string;
+  currentUserName: string;
 }
 
 export function ContactHeader({
@@ -49,10 +52,13 @@ export function ContactHeader({
   fullName,
   activeRelationships,
   company,
+  currentUserId,
+  currentUserName,
 }: ContactHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [logging, setLogging] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const visibleActions = QUICK_ACTIONS.filter((action) => {
     if (action.showWhen === "always") return true;
@@ -89,15 +95,27 @@ export function ContactHeader({
 
   function handleAction(actionId: string) {
     switch (actionId) {
+      case "send_email":
+        setEmailOpen(true);
+        break;
       case "log_call":
         handleLogCall();
         break;
-      case "add_note":
-        // Scroll to notes tab
+      case "add_note": {
         const params = new URLSearchParams(window.location.search);
         params.set("tab", "notes");
         router.replace(`?${params.toString()}`, { scroll: false });
         break;
+      }
+      case "start_loan": {
+        const loanParams = new URLSearchParams();
+        loanParams.set("new_loan", "true");
+        if (contact.borrower_id) {
+          loanParams.set("borrower_id", contact.borrower_id);
+        }
+        router.push(`/admin/loans?${loanParams.toString()}`);
+        break;
+      }
       default:
         toast({ title: `Action: ${actionId}`, description: "Coming soon" });
     }
@@ -183,6 +201,16 @@ export function ContactHeader({
           </div>
         </div>
       </div>
+
+      <EmailComposeSheet
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        toEmail={contact.email || ""}
+        toName={fullName}
+        linkedContactId={contact.id}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+      />
     </div>
   );
 }
