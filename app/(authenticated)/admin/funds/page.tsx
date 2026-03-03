@@ -30,7 +30,7 @@ function getInvestorName(
 }
 
 export default async function AdminFundsPage() {
-  const supabase = await createClient();
+  const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,18 +42,29 @@ export default async function AdminFundsPage() {
       supabase
         .from("funds")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false }),
       supabase
         .from("capital_calls")
         .select(
-          "*, funds(name), investors(user_id, crm_contacts(name, first_name, last_name)), investor_commitments(commitment_amount)"
+          "*, funds!capital_calls_fund_id_fkey(name), investors!capital_calls_investor_id_fkey(user_id, crm_contacts(name, first_name, last_name)), investor_commitments!capital_calls_commitment_id_fkey(commitment_amount)"
         )
         .order("due_date", { ascending: false }),
       supabase
         .from("distributions")
-        .select("*, funds(name), investors(user_id, crm_contacts(name, first_name, last_name))")
+        .select("*, funds!distributions_fund_id_fkey(name), investors!distributions_investor_id_fkey(user_id, crm_contacts(name, first_name, last_name))")
         .order("distribution_date", { ascending: false }),
     ]);
+
+  if (fundsResult.error) {
+    console.error("Error fetching funds:", fundsResult.error);
+  }
+  if (contributionsResult.error) {
+    console.error("Error fetching contributions:", contributionsResult.error);
+  }
+  if (distributionsResult.error) {
+    console.error("Error fetching distributions:", distributionsResult.error);
+  }
 
   const funds = fundsResult.data ?? [];
   const contributions = contributionsResult.data ?? [];
