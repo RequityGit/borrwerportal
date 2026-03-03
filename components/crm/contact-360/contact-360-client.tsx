@@ -26,6 +26,8 @@ import type {
   EmailData,
   LoanData,
   InvestorCommitmentData,
+  BorrowerEntityData,
+  InvestingEntityData,
   TeamMember,
   CompanyData,
 } from "./types";
@@ -83,6 +85,8 @@ interface Contact360ClientProps {
   emails: EmailData[];
   loans: LoanData[];
   investorCommitments: InvestorCommitmentData[];
+  borrowerEntities: BorrowerEntityData[];
+  investingEntities: InvestingEntityData[];
   teamMembers: TeamMember[];
   company: CompanyData | null;
   currentUserId: string;
@@ -99,6 +103,8 @@ export function Contact360Client({
   emails,
   loans,
   investorCommitments,
+  borrowerEntities,
+  investingEntities,
   teamMembers,
   company,
   currentUserId,
@@ -261,7 +267,10 @@ export function Contact360Client({
                 activeRelationships={activeRelationships}
                 loans={loans}
                 investorCommitments={investorCommitments}
+                borrowerEntities={borrowerEntities}
+                investingEntities={investingEntities}
                 activities={activities}
+                company={company}
               />
             </TabsContent>
 

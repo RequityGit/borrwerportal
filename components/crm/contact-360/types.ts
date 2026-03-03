@@ -82,7 +82,12 @@ export interface LoanData {
   id: string;
   loan_number: string | null;
   property_address: string | null;
+  property_type: string | null;
+  property_city: string | null;
+  property_state: string | null;
+  property_zip: string | null;
   type: string | null;
+  purpose: string | null;
   loan_amount: number | null;
   interest_rate: number | null;
   ltv: number | null;
@@ -90,6 +95,28 @@ export interface LoanData {
   stage: string | null;
   stage_updated_at: string | null;
   created_at: string;
+}
+
+export interface BorrowerEntityData {
+  id: string;
+  entity_name: string;
+  entity_type: string;
+  state_of_formation: string | null;
+  address_line1: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+}
+
+export interface InvestingEntityData {
+  id: string;
+  entity_name: string;
+  entity_type: string;
+  state_of_formation: string | null;
+  address_line1: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
 }
 
 export interface InvestorCommitmentData {

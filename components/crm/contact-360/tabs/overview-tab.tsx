@@ -10,6 +10,11 @@ import {
   Users,
   Activity,
   UserPlus,
+  Building,
+  Building2,
+  MapPin,
+  Home,
+  ChevronRight,
 } from "lucide-react";
 import { StagePill, EmptyState, MonoValue, TimelineEvent } from "../shared";
 import { formatCurrency } from "@/lib/format";
@@ -17,7 +22,10 @@ import type {
   ContactData,
   LoanData,
   InvestorCommitmentData,
+  BorrowerEntityData,
+  InvestingEntityData,
   ActivityData,
+  CompanyData,
 } from "../types";
 import Link from "next/link";
 
@@ -72,27 +80,43 @@ function ActiveLoansCard({ loans }: { loans: LoanData[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {activeLoans.slice(0, 3).map((loan) => (
-          <Link
-            key={loan.id}
-            href={`/admin/loans/${loan.id}`}
-            className="block rounded-lg border border-[#E5E5E7] p-3 hover:bg-[#F7F7F8] transition-colors"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-medium text-[#1A1A1A] truncate">
-                {loan.property_address || "No address"}
-              </p>
-              {loan.stage && <StagePill stage={loan.stage} />}
-            </div>
-            <div className="flex items-center gap-4 text-xs text-[#6B6B6B]">
-              <MonoValue>{formatCurrency(loan.loan_amount)}</MonoValue>
-              {loan.interest_rate != null && (
-                <MonoValue>{loan.interest_rate}%</MonoValue>
-              )}
-              {loan.ltv != null && <MonoValue>{loan.ltv}% LTV</MonoValue>}
-            </div>
-          </Link>
-        ))}
+        {activeLoans.slice(0, 3).map((loan) => {
+          const loanTypeLabel = loan.type
+            ? loan.type.toUpperCase()
+            : null;
+          const purposeLabel = loan.purpose
+            ? loan.purpose.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+            : null;
+          return (
+            <Link
+              key={loan.id}
+              href={`/admin/loans/${loan.id}`}
+              className="block rounded-lg border border-[#E5E5E7] p-3 hover:bg-[#F7F7F8] transition-colors"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-[#1A1A1A] truncate">
+                  {loan.property_address || "No address"}
+                </p>
+                {loan.stage && <StagePill stage={loan.stage} />}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-[#6B6B6B] flex-wrap">
+                <MonoValue>{formatCurrency(loan.loan_amount)}</MonoValue>
+                {loan.interest_rate != null && (
+                  <MonoValue>{loan.interest_rate}%</MonoValue>
+                )}
+                {loan.ltv != null && <MonoValue>{loan.ltv}% LTV</MonoValue>}
+                {loanTypeLabel && (
+                  <span className="bg-[#F7F7F8] text-[#6B6B6B] px-1.5 py-0.5 rounded text-[10px] font-medium">
+                    {loanTypeLabel}
+                  </span>
+                )}
+                {purposeLabel && (
+                  <span className="text-[#9A9A9A]">{purposeLabel}</span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
         {activeLoans.length > 3 && (
           <p className="text-xs text-[#6B6B6B] text-center">
             +{activeLoans.length - 3} more loans
@@ -300,13 +324,197 @@ function RecentActivityCard({ activities }: { activities: ActivityData[] }) {
   );
 }
 
+// ---------- Associated Entities Card ----------
+function AssociatedEntitiesCard({
+  borrowerEntities,
+  investingEntities,
+  company,
+}: {
+  borrowerEntities: BorrowerEntityData[];
+  investingEntities: InvestingEntityData[];
+  company: CompanyData | null;
+}) {
+  const allEntities = [
+    ...borrowerEntities.map((e) => ({ ...e, category: "Borrower Entity" as const })),
+    ...investingEntities.map((e) => ({ ...e, category: "Investing Entity" as const })),
+  ];
+
+  if (allEntities.length === 0 && !company) return null;
+
+  return (
+    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+          <Building className="h-4 w-4" strokeWidth={1.5} />
+          Associated Entities
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {company && (
+          <Link
+            href={`/admin/crm/companies/${company.id}`}
+            className="flex items-center gap-3 rounded-lg border border-[#E5E5E7] p-3 hover:bg-[#F7F7F8] transition-colors"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFF6FF] shrink-0">
+              <Building2 className="h-4 w-4 text-[#2563EB]" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#1A1A1A] truncate">{company.name}</p>
+              <p className="text-xs text-[#6B6B6B]">
+                {company.company_type
+                  ? company.company_type.charAt(0).toUpperCase() + company.company_type.slice(1)
+                  : "Company"}
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-[#9A9A9A] shrink-0" strokeWidth={1.5} />
+          </Link>
+        )}
+
+        {allEntities.map((entity) => {
+          const location = [entity.city, entity.state].filter(Boolean).join(", ");
+          return (
+            <div
+              key={entity.id}
+              className="flex items-center gap-3 rounded-lg border border-[#E5E5E7] p-3"
+            >
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${
+                  entity.category === "Borrower Entity"
+                    ? "bg-[#ECFDF3]"
+                    : "bg-[#F5F3FF]"
+                }`}
+              >
+                <Building
+                  className={`h-4 w-4 ${
+                    entity.category === "Borrower Entity"
+                      ? "text-[#16A34A]"
+                      : "text-[#7C3AED]"
+                  }`}
+                  strokeWidth={1.5}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#1A1A1A] truncate">
+                  {entity.entity_name}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-[#6B6B6B]">
+                  <span>{entity.entity_type}</span>
+                  {entity.state_of_formation && (
+                    <>
+                      <span className="text-[#E5E5E7]">&middot;</span>
+                      <span>{entity.state_of_formation}</span>
+                    </>
+                  )}
+                  {location && (
+                    <>
+                      <span className="text-[#E5E5E7]">&middot;</span>
+                      <span>{location}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <span
+                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                  entity.category === "Borrower Entity"
+                    ? "bg-[#ECFDF3] text-[#16A34A]"
+                    : "bg-[#F5F3FF] text-[#7C3AED]"
+                }`}
+              >
+                {entity.category === "Borrower Entity" ? "Borrower" : "Investor"}
+              </span>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------- Associated Properties Card ----------
+function AssociatedPropertiesCard({ loans }: { loans: LoanData[] }) {
+  // Extract unique properties from loans
+  const properties = loans
+    .filter((l) => l.property_address || l.property_city)
+    .map((l) => ({
+      loanId: l.id,
+      loanNumber: l.loan_number,
+      address: l.property_address,
+      city: l.property_city,
+      state: l.property_state,
+      zip: l.property_zip,
+      propertyType: l.property_type,
+      stage: l.stage,
+      loanAmount: l.loan_amount,
+    }));
+
+  if (properties.length === 0) return null;
+
+  const formatPropertyType = (type: string | null) => {
+    if (!type) return null;
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  return (
+    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+          <Home className="h-4 w-4" strokeWidth={1.5} />
+          Associated Properties ({properties.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {properties.map((prop) => (
+          <Link
+            key={prop.loanId}
+            href={`/admin/loans/${prop.loanId}`}
+            className="flex items-center gap-3 rounded-lg border border-[#E5E5E7] p-3 hover:bg-[#F7F7F8] transition-colors"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF7ED] shrink-0">
+              <MapPin className="h-4 w-4 text-[#C2410C]" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#1A1A1A] truncate">
+                {prop.address || "No address"}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-[#6B6B6B]">
+                {(prop.city || prop.state) && (
+                  <span>
+                    {[prop.city, prop.state].filter(Boolean).join(", ")}
+                    {prop.zip ? ` ${prop.zip}` : ""}
+                  </span>
+                )}
+                {prop.propertyType && (
+                  <>
+                    <span className="text-[#E5E5E7]">&middot;</span>
+                    <span>{formatPropertyType(prop.propertyType)}</span>
+                  </>
+                )}
+                {prop.loanAmount != null && (
+                  <>
+                    <span className="text-[#E5E5E7]">&middot;</span>
+                    <MonoValue>{formatCurrency(prop.loanAmount)}</MonoValue>
+                  </>
+                )}
+              </div>
+            </div>
+            {prop.stage && <StagePill stage={prop.stage} />}
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ---------- Overview Tab ----------
 interface OverviewTabProps {
   contact: ContactData;
   activeRelationships: string[];
   loans: LoanData[];
   investorCommitments: InvestorCommitmentData[];
+  borrowerEntities: BorrowerEntityData[];
+  investingEntities: InvestingEntityData[];
   activities: ActivityData[];
+  company: CompanyData | null;
 }
 
 export function OverviewTab({
@@ -314,13 +522,19 @@ export function OverviewTab({
   activeRelationships,
   loans,
   investorCommitments,
+  borrowerEntities,
+  investingEntities,
   activities,
+  company,
 }: OverviewTabProps) {
   const showLoans = activeRelationships.includes("borrower");
   const showInvestments = activeRelationships.includes("investor");
   const showServicing = activeRelationships.includes("lender");
   const showReferrals = activeRelationships.includes("broker");
   const hasRelationships = activeRelationships.length > 0;
+
+  const hasEntities =
+    borrowerEntities.length > 0 || investingEntities.length > 0 || !!company;
 
   return (
     <div className="space-y-4">
@@ -346,7 +560,22 @@ export function OverviewTab({
         </Card>
       )}
 
+      {/* Associated Entities (company + borrower/investor entities) */}
+      {hasEntities && (
+        <AssociatedEntitiesCard
+          borrowerEntities={borrowerEntities}
+          investingEntities={investingEntities}
+          company={company}
+        />
+      )}
+
       {showLoans && <ActiveLoansCard loans={loans} />}
+
+      {/* Associated Properties from deals */}
+      {showLoans && loans.length > 0 && (
+        <AssociatedPropertiesCard loans={loans} />
+      )}
+
       {showInvestments && (
         <InvestmentSummaryCard commitments={investorCommitments} />
       )}

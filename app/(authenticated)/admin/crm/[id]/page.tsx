@@ -12,6 +12,8 @@ import type {
   InvestorCommitmentData,
   TeamMember,
   CompanyData,
+  BorrowerEntityData,
+  InvestingEntityData,
 } from "@/components/crm/contact-360/types";
 
 interface PageProps {
@@ -161,24 +163,36 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
 
   // Fetch linked borrower loans if borrower relationship exists
   let borrowerLoans: LoanData[] = [];
+  let borrowerEntities: BorrowerEntityData[] = [];
   if (
     activeRelTypes.includes("borrower") &&
     contact.borrower_id
   ) {
-    const { data: loansData } = await admin
-      .from("loans")
-      .select(
-        "id, loan_number, property_address, type, loan_amount, interest_rate, ltv, loan_term_months, stage, stage_updated_at, created_at"
-      )
-      .eq("borrower_id", contact.borrower_id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
+    const [loansResult, entitiesResult] = await Promise.all([
+      admin
+        .from("loans")
+        .select(
+          "id, loan_number, property_address, property_type, property_city, property_state, property_zip, type, purpose, loan_amount, interest_rate, ltv, loan_term_months, stage, stage_updated_at, created_at"
+        )
+        .eq("borrower_id", contact.borrower_id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("borrower_entities")
+        .select("id, entity_name, entity_type, state_of_formation, address_line1, city, state, zip")
+        .eq("borrower_id", contact.borrower_id),
+    ]);
 
-    borrowerLoans = (loansData ?? []).map((l: Record<string, unknown>) => ({
+    borrowerLoans = (loansResult.data ?? []).map((l: Record<string, unknown>) => ({
       id: l.id as string,
       loan_number: l.loan_number as string | null,
       property_address: l.property_address as string | null,
+      property_type: l.property_type as string | null,
+      property_city: l.property_city as string | null,
+      property_state: l.property_state as string | null,
+      property_zip: l.property_zip as string | null,
       type: l.type as string | null,
+      purpose: l.purpose as string | null,
       loan_amount: l.loan_amount as number | null,
       interest_rate: l.interest_rate as number | null,
       ltv: l.ltv as number | null,
@@ -187,20 +201,38 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
       stage_updated_at: l.stage_updated_at as string | null,
       created_at: l.created_at as string,
     }));
+
+    borrowerEntities = (entitiesResult.data ?? []).map((e: Record<string, unknown>) => ({
+      id: e.id as string,
+      entity_name: e.entity_name as string,
+      entity_type: e.entity_type as string,
+      state_of_formation: e.state_of_formation as string | null,
+      address_line1: e.address_line1 as string | null,
+      city: e.city as string | null,
+      state: e.state as string | null,
+      zip: e.zip as string | null,
+    }));
   }
 
-  // Fetch investor commitments if investor relationship exists
+  // Fetch investor commitments and entities if investor relationship exists
   let investorCommitments: InvestorCommitmentData[] = [];
+  let investingEntities: InvestingEntityData[] = [];
   if (
     activeRelTypes.includes("investor") &&
     contact.linked_investor_id
   ) {
-    const { data: commitmentsData } = await admin
-      .from("investor_commitments")
-      .select("id, commitment_amount, funded_amount, unfunded_amount, status, funds(name)")
-      .eq("investor_id", contact.linked_investor_id);
+    const [commitmentsResult, investingEntitiesResult] = await Promise.all([
+      admin
+        .from("investor_commitments")
+        .select("id, commitment_amount, funded_amount, unfunded_amount, status, funds(name)")
+        .eq("investor_id", contact.linked_investor_id),
+      admin
+        .from("investing_entities")
+        .select("id, entity_name, entity_type, state_of_formation, address_line1, city, state, zip")
+        .eq("investor_id", contact.linked_investor_id),
+    ]);
 
-    investorCommitments = (commitmentsData ?? []).map(
+    investorCommitments = (commitmentsResult.data ?? []).map(
       (c: Record<string, unknown>) => ({
         id: c.id as string,
         fund_name:
@@ -210,6 +242,19 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
         funded_amount: c.funded_amount as number | null,
         unfunded_amount: c.unfunded_amount as number | null,
         status: c.status as string | null,
+      })
+    );
+
+    investingEntities = (investingEntitiesResult.data ?? []).map(
+      (e: Record<string, unknown>) => ({
+        id: e.id as string,
+        entity_name: e.entity_name as string,
+        entity_type: e.entity_type as string,
+        state_of_formation: e.state_of_formation as string | null,
+        address_line1: e.address_line1 as string | null,
+        city: e.city as string | null,
+        state: e.state as string | null,
+        zip: e.zip as string | null,
       })
     );
   }
@@ -270,6 +315,8 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
       emails={emails}
       loans={borrowerLoans}
       investorCommitments={investorCommitments}
+      borrowerEntities={borrowerEntities}
+      investingEntities={investingEntities}
       teamMembers={teamMembers}
       company={company}
       currentUserId={user.id}
