@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChatThemeProvider } from "@/contexts/chat-theme-context";
 import { ChatSidebarV2 } from "@/components/chat/ChatSidebarV2";
@@ -8,7 +8,8 @@ import { ChannelViewV2 } from "@/components/chat/ChannelViewV2";
 import { ChannelCreateModal } from "@/components/chat/ChannelCreateModal";
 import { useChat } from "@/hooks/useChat";
 import { usePresence } from "@/hooks/usePresence";
-import type { ChatChannelWithUnread } from "@/lib/chat-types";
+import type { ChatChannelWithUnread, ChatChannelType } from "@/lib/chat-types";
+import type { SearchSelection } from "@/components/chat/ChatterMultiSearch";
 import { useChatTheme } from "@/contexts/chat-theme-context";
 import { MessageSquare, Loader2 } from "lucide-react";
 
@@ -102,13 +103,178 @@ function ChatPageInner() {
     }
   }, [channels, activeChannelId, channelsLoading, setActiveChannelId]);
 
+  // Handle multi-select search: create a channel with selected members/deals
+  const handleStartConversation = useCallback(
+    async (selections: SearchSelection[]) => {
+      if (!userId) return;
+
+      const supabase = createClient();
+      const members = selections.filter(
+        (s): s is Extract<SearchSelection, { type: "member" }> =>
+          s.type === "member"
+      );
+      const deals = selections.filter(
+        (s): s is Extract<SearchSelection, { type: "deal" }> =>
+          s.type === "deal"
+      );
+
+      // Determine channel type and name
+      let channelType: ChatChannelType;
+      let channelName: string;
+      let linkedEntityType: string | null = null;
+      let linkedEntityId: string | null = null;
+
+      if (deals.length === 1 && members.length === 0) {
+        // Single deal -> deal_room
+        channelType = "deal_room";
+        const deal = deals[0].data;
+        channelName = deal.loan_number || "Deal Chat";
+        linkedEntityType = "loan";
+        linkedEntityId = deal.id;
+      } else if (deals.length === 0 && members.length === 1) {
+        // Single member -> direct message
+        channelType = "direct";
+        const member = members[0].data;
+        channelName = member.full_name || member.email || "DM";
+
+        // Check for existing DM with this user
+        const { data: existingChannels } = await supabase
+          .from("chat_channel_members")
+          .select("channel_id")
+          .eq("user_id", userId);
+
+        if (existingChannels) {
+          for (const ec of existingChannels as unknown as Array<{
+            channel_id: string;
+          }>) {
+            const { data: ch } = await supabase
+              .from("chat_channels")
+              .select("id, channel_type")
+              .eq("id", ec.channel_id)
+              .eq("channel_type", "direct")
+              .single();
+
+            if (ch) {
+              const { data: otherMember } = await supabase
+                .from("chat_channel_members")
+                .select("id")
+                .eq("channel_id", (ch as unknown as { id: string }).id)
+                .eq("user_id", member.id)
+                .single();
+
+              if (otherMember) {
+                // Existing DM found, navigate to it
+                setActiveChannelId((ch as unknown as { id: string }).id);
+                return;
+              }
+            }
+          }
+        }
+      } else if (deals.length > 0 && members.length > 0) {
+        // Mix of deals + members -> group with deal context
+        channelType = "group";
+        const dealLabels = deals.map(
+          (d) => d.data.loan_number || "Deal"
+        );
+        const memberLabels = members.map(
+          (m) => m.data.full_name?.split(" ")[0] || "?"
+        );
+        channelName = [...dealLabels, ...memberLabels].join(", ");
+        // Link to first deal
+        linkedEntityType = "loan";
+        linkedEntityId = deals[0].data.id;
+      } else if (members.length > 1) {
+        // Multiple members -> group
+        channelType = "group";
+        channelName = members
+          .map((m) => m.data.full_name?.split(" ")[0] || "?")
+          .join(", ");
+      } else {
+        // Multiple deals, no members -> group deal room
+        channelType = "group";
+        channelName = deals
+          .map((d) => d.data.loan_number || "Deal")
+          .join(", ");
+        linkedEntityType = "loan";
+        linkedEntityId = deals[0].data.id;
+      }
+
+      // Create the channel
+      const { data: channelData, error } = await supabase
+        .from("chat_channels")
+        .insert({
+          name: channelName,
+          channel_type: channelType,
+          is_private: true,
+          ...(linkedEntityType && linkedEntityId
+            ? {
+                linked_entity_type: linkedEntityType as "loan",
+                linked_entity_id: linkedEntityId,
+              }
+            : {}),
+        })
+        .select("id")
+        .single();
+
+      const channel = channelData as unknown as { id: string } | null;
+      if (error || !channel) {
+        console.error("Error creating channel from search:", error);
+        return;
+      }
+
+      // Add members
+      const memberInserts = [
+        {
+          channel_id: channel.id,
+          user_id: userId,
+          role: "owner" as const,
+        },
+        ...members.map((m) => ({
+          channel_id: channel.id,
+          user_id: m.data.id,
+          role: "member" as const,
+        })),
+      ];
+
+      await supabase.from("chat_channel_members").insert(memberInserts);
+
+      // If deals are linked, send a system message for context
+      if (deals.length > 0) {
+        const dealList = deals
+          .map(
+            (d) =>
+              `${d.data.loan_number || "Deal"}${
+                d.data.property_address ? ` (${d.data.property_address})` : ""
+              }`
+          )
+          .join(", ");
+
+        await supabase.from("chat_messages").insert({
+          channel_id: channel.id,
+          sender_id: null,
+          message_type: "system",
+          content: `Conversation started about: ${dealList}`,
+          linked_entities: deals.map((d) => ({
+            type: "loan",
+            id: d.data.id,
+            label: d.data.loan_number || "Deal",
+          })),
+        });
+      }
+
+      // Navigate to the new channel
+      setActiveChannelId(channel.id);
+    },
+    [userId, setActiveChannelId]
+  );
+
   // Global keyboard shortcut: Cmd+K for search
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         const input = document.querySelector(
-          '[placeholder="Search..."]'
+          '[placeholder="Search people & deals..."]'
         ) as HTMLInputElement;
         input?.focus();
       }
@@ -150,6 +316,7 @@ function ChatPageInner() {
         onSelectChannel={setActiveChannelId}
         onSearchChange={setSearchQuery}
         onNewChannel={() => setShowCreateModal(true)}
+        onStartConversation={handleStartConversation}
         onArchiveChannel={archiveChannel}
         onUnarchiveChannel={unarchiveChannel}
         currentUser={userProfile}
