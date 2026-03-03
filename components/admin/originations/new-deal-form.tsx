@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,15 +36,15 @@ import {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface NewDealFormProps {
-  entities: { id: string; entity_name: string; entity_type: string }[];
+  entities: { id: string; entity_name: string; entity_type: string; borrower_id: string }[];
   borrowers: { id: string; name: string; email: string }[];
   currentUserId: string;
 }
 
 const STEPS = [
   { label: "Property", icon: MapPin },
-  { label: "Entity", icon: Building2 },
   { label: "Borrowers", icon: Users },
+  { label: "Entity", icon: Building2 },
   { label: "Deal Terms", icon: DollarSign },
 ];
 
@@ -96,6 +96,13 @@ export function NewDealForm({
     proposed_ltv: "",
   });
 
+  // Filter entities to only those belonging to selected borrower(s)
+  const filteredEntities = useMemo(() => {
+    if (selectedBorrowers.length === 0) return [];
+    const borrowerIds = new Set(selectedBorrowers.map((b) => b.borrower_id));
+    return entities.filter((e) => borrowerIds.has(e.borrower_id));
+  }, [entities, selectedBorrowers]);
+
   function addBorrower() {
     if (!addingBorrower) return;
     if (selectedBorrowers.some((b) => b.borrower_id === addingBorrower)) return;
@@ -108,7 +115,19 @@ export function NewDealForm({
   }
 
   function removeBorrower(id: string) {
-    setSelectedBorrowers(selectedBorrowers.filter((b) => b.borrower_id !== id));
+    const newBorrowers = selectedBorrowers.filter((b) => b.borrower_id !== id);
+    setSelectedBorrowers(newBorrowers);
+
+    // Clear entity selection if it belonged to the removed borrower
+    if (selectedEntityId) {
+      const selectedEntity = entities.find((e) => e.id === selectedEntityId);
+      if (selectedEntity && selectedEntity.borrower_id === id) {
+        const remainingIds = new Set(newBorrowers.map((b) => b.borrower_id));
+        if (!remainingIds.has(selectedEntity.borrower_id)) {
+          setSelectedEntityId("");
+        }
+      }
+    }
   }
 
   async function handleSubmit() {
@@ -356,54 +375,8 @@ export function NewDealForm({
         </Card>
       )}
 
-      {/* Step 2: Entity */}
+      {/* Step 2: Borrowers */}
       {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Borrowing Entity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Select Entity</Label>
-              <Select
-                value={selectedEntityId}
-                onValueChange={setSelectedEntityId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Search entities..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {entities.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.entity_name} ({e.entity_type})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Select an existing entity or skip to create one later from the
-                deal detail page.
-              </p>
-            </div>
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(0)}>
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(2)}>
-                  Skip
-                </Button>
-                <Button onClick={() => setStep(2)}>
-                  Next <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 3: Borrowers */}
-      {step === 2 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Borrowers</CardTitle>
@@ -501,6 +474,77 @@ export function NewDealForm({
               </div>
             </div>
 
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep(0)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep(2)}>
+                  Skip
+                </Button>
+                <Button onClick={() => setStep(2)}>
+                  Next <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Entity */}
+      {step === 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Borrowing Entity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {selectedBorrowers.length === 0 ? (
+              <div className="text-center py-6">
+                <Building2 className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  Please select at least one borrower first to see their entities.
+                </p>
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Go to Borrowers
+                </Button>
+              </div>
+            ) : filteredEntities.length === 0 ? (
+              <div className="text-center py-6">
+                <Building2 className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  The selected borrower(s) have no entities yet. You can skip this step
+                  and add an entity later from the deal detail page.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Label>Select Entity</Label>
+                <Select
+                  value={selectedEntityId}
+                  onValueChange={setSelectedEntityId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Search entities..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredEntities.map((e) => {
+                      const owner = borrowers.find((b) => b.id === e.borrower_id);
+                      return (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.entity_name} ({e.entity_type})
+                          {selectedBorrowers.length > 1 && owner
+                            ? ` — ${owner.name}`
+                            : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Showing entities for the selected borrower(s). Skip to create one later.
+                </p>
+              </div>
+            )}
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(1)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
