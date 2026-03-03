@@ -53,7 +53,7 @@ function getInvestorName(
 }
 
 export default async function AdminFundDetailPage({ params }: PageProps) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -62,11 +62,16 @@ export default async function AdminFundDetailPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  const { data: fund } = await supabase
+  const { data: fund, error: fundError } = await supabase
     .from("funds")
     .select("*")
     .eq("id", id)
+    .is("deleted_at", null)
     .single();
+
+  if (fundError) {
+    console.error("Error fetching fund:", fundError);
+  }
 
   if (!fund) notFound();
 
@@ -78,17 +83,17 @@ export default async function AdminFundDetailPage({ params }: PageProps) {
   ] = await Promise.all([
     supabase
       .from("investor_commitments")
-      .select("*, investors(user_id, crm_contacts(name, first_name, last_name))")
+      .select("*, investors!investor_commitments_investor_id_fkey(user_id, crm_contacts(name, first_name, last_name))")
       .eq("fund_id", id)
       .order("commitment_date", { ascending: false }),
     supabase
       .from("capital_calls")
-      .select("*, investors(user_id, crm_contacts(name, first_name, last_name))")
+      .select("*, investors!capital_calls_investor_id_fkey(user_id, crm_contacts(name, first_name, last_name))")
       .eq("fund_id", id)
       .order("due_date", { ascending: false }),
     supabase
       .from("distributions")
-      .select("*, investors(user_id, crm_contacts(name, first_name, last_name))")
+      .select("*, investors!distributions_investor_id_fkey(user_id, crm_contacts(name, first_name, last_name))")
       .eq("fund_id", id)
       .order("distribution_date", { ascending: false }),
     supabase
@@ -97,6 +102,19 @@ export default async function AdminFundDetailPage({ params }: PageProps) {
       .eq("fund_id", id)
       .order("created_at", { ascending: false }),
   ]);
+
+  if (commitmentsResult.error) {
+    console.error("Error fetching commitments:", commitmentsResult.error);
+  }
+  if (contributionsResult.error) {
+    console.error("Error fetching contributions:", contributionsResult.error);
+  }
+  if (distributionsResult.error) {
+    console.error("Error fetching distributions:", distributionsResult.error);
+  }
+  if (documentsResult.error) {
+    console.error("Error fetching documents:", documentsResult.error);
+  }
 
   const commitments = commitmentsResult.data ?? [];
   const contributions = contributionsResult.data ?? [];
@@ -304,7 +322,7 @@ export default async function AdminFundDetailPage({ params }: PageProps) {
 
       <PageHeader
         title={fund.name}
-        description={`${(fund.fund_type ?? "investment").replace(/_/g, " ")} - Vintage ${fund.vintage_year || "N/A"}`}
+        description={`${(fund.fund_type ?? "investment").replace(/_/g, " ")} — Vintage ${fund.vintage_year ?? "N/A"}`}
       />
 
       {/* KPI Cards - Row 1: Fund overview */}
@@ -339,7 +357,7 @@ export default async function AdminFundDetailPage({ params }: PageProps) {
         />
         <KpiCard
           title="Status"
-          value={fund.status.replace(/_/g, " ")}
+          value={(fund.status ?? "unknown").replace(/_/g, " ")}
           description={
             fund.irr_target
               ? `IRR: ${formatPercent(fund.irr_target)}`
