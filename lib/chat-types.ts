@@ -18,7 +18,8 @@ export type ChatEntityType =
   | "borrower"
   | "borrower_entity"
   | "ops_project"
-  | "crm_contact";
+  | "crm_contact"
+  | "opportunity";
 
 export type ChatMemberRole = "owner" | "admin" | "member" | "guest" | "observer";
 

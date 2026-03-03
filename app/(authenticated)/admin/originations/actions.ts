@@ -675,7 +675,7 @@ async function ensureChatChannel(admin: any, opportunityId: string, name: string
     const { data: existing } = await admin
       .from("chat_channels")
       .select("id")
-      .eq("linked_entity_type", "loan")
+      .eq("linked_entity_type", "opportunity")
       .eq("linked_entity_id", opportunityId)
       .maybeSingle();
 
@@ -687,7 +687,7 @@ async function ensureChatChannel(admin: any, opportunityId: string, name: string
       .insert({
         name,
         channel_type: "deal_room",
-        linked_entity_type: "loan",
+        linked_entity_type: "opportunity",
         linked_entity_id: opportunityId,
         is_private: true,
         auto_created: true,
