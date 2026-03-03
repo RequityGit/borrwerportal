@@ -220,6 +220,8 @@ export function Contact360Client({
         fullName={fullName}
         activeRelationships={activeRelationships}
         company={company}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
       />
 
       {/* Relationship Stats Row */}
@@ -265,7 +267,7 @@ export function Contact360Client({
 
             {visibleTabs.some((t) => t.id === "loans") && (
               <TabsContent value="loans" className="mt-4">
-                <LoansTab loans={loans} contactId={contact.id} />
+                <LoansTab loans={loans} contactId={contact.id} borrowerId={contact.borrower_id} />
               </TabsContent>
             )}
 

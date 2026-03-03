@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { StagePill, EmptyState, MonoValue } from "../shared";
@@ -30,9 +30,11 @@ function DaysInStageBadge({ days }: { days: number }) {
 interface LoansTabProps {
   loans: LoanData[];
   contactId: string;
+  borrowerId?: string | null;
 }
 
-export function LoansTab({ loans, contactId }: LoansTabProps) {
+export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
+  const router = useRouter();
   const [showPast, setShowPast] = useState(false);
 
   const { activeLoans, pastLoans } = useMemo(() => {
@@ -64,6 +66,11 @@ export function LoansTab({ loans, contactId }: LoansTabProps) {
             variant="default"
             size="sm"
             className="gap-1.5 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+            onClick={() => {
+              const params = new URLSearchParams({ new_loan: "true" });
+              if (borrowerId) params.set("borrower_id", borrowerId);
+              router.push(`/admin/loans?${params.toString()}`);
+            }}
           >
             <DollarSign className="h-3.5 w-3.5" strokeWidth={1.5} />
             Start New Loan
