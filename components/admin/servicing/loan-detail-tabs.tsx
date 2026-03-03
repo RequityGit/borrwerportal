@@ -8,27 +8,31 @@ import {
   formatCurrencyDetailed,
   formatDate,
 } from "@/lib/format";
+import { PayoffStatementGenerator } from "@/components/admin/servicing/payoff-statement-generator";
 import {
   HardHat,
   CreditCard,
   ScrollText,
+  FileText,
 } from "lucide-react";
 import { BudgetDrawsTab } from "@/components/admin/budget-draws/budget-draws-tab";
 import type {
   ConstructionBudget,
   BudgetLineItem,
+  DrawRequest,
   DrawRequestLineItem,
   BudgetChangeRequest,
   BudgetChangeRequestLineItem,
   BudgetLineItemHistory,
 } from "@/components/admin/budget-draws/types";
-import type { DrawRequest } from "@/components/admin/budget-draws/types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface ServicingLoanDetailTabsProps {
   payments: any[];
   auditLog: any[];
+  loan: any;
+  payoffStatementCount: number;
   // New budget/draws data
   loanUuid: string | null;
   currentUserId: string;
@@ -45,6 +49,8 @@ interface ServicingLoanDetailTabsProps {
 export function ServicingLoanDetailTabs({
   payments,
   auditLog,
+  loan,
+  payoffStatementCount,
   loanUuid,
   currentUserId,
   constructionBudget,
@@ -76,6 +82,15 @@ export function ServicingLoanDetailTabs({
           <ScrollText className="h-3.5 w-3.5" />
           Audit Log
         </TabsTrigger>
+        <TabsTrigger value="payoff" className="gap-1.5">
+          <FileText className="h-3.5 w-3.5" />
+          Payoff
+          {payoffStatementCount > 0 && (
+            <span className="ml-1 rounded-full bg-slate-200 text-slate-700 text-[10px] font-semibold px-1.5 py-0.5">
+              {payoffStatementCount}
+            </span>
+          )}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="budget-draws" className="mt-4">
@@ -106,6 +121,10 @@ export function ServicingLoanDetailTabs({
 
       <TabsContent value="audit" className="mt-4">
         <AuditLogTab auditLog={auditLog} />
+      </TabsContent>
+
+      <TabsContent value="payoff" className="mt-4">
+        <PayoffStatementGenerator loanId={loan?.loan_id} loan={loan} />
       </TabsContent>
     </Tabs>
   );

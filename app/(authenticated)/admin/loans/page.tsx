@@ -5,9 +5,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoanListView } from "@/components/admin/loan-list-view";
 import { CreateLoanDialog } from "@/components/admin/create-loan-dialog";
 
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}
+
 export const dynamic = "force-dynamic";
 
-export default async function AdminLoansPage() {
+export default async function AdminLoansPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -129,6 +134,8 @@ export default async function AdminLoansPage() {
             teamMembers={teamMembers}
             borrowers={borrowers}
             currentUserId={user.id}
+            initialOpen={resolvedSearchParams.new_loan === "true"}
+            initialBorrowerId={resolvedSearchParams.borrower_id}
           />
         }
       />

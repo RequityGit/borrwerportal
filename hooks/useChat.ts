@@ -15,6 +15,7 @@ export function useChat(userId: string | undefined) {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const supabaseRef = useRef(createClient());
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch channels from the view
   const fetchChannels = useCallback(async () => {
@@ -36,6 +37,25 @@ export function useChat(userId: string | undefined) {
     setLoading(false);
   }, [userId]);
 
+  // Debounced version for realtime callbacks to prevent N+1 API calls
+  const debouncedFetchChannels = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      fetchChannels();
+    }, 300);
+  }, [fetchChannels]);
+
+  // Clean up debounce timer
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   // Initial fetch
   useEffect(() => {
     fetchChannels();
@@ -56,7 +76,7 @@ export function useChat(userId: string | undefined) {
           table: "chat_channel_members",
           filter: `user_id=eq.${userId}`,
         },
-        () => fetchChannels()
+        () => debouncedFetchChannels()
       )
       .on(
         "postgres_changes",
@@ -65,7 +85,7 @@ export function useChat(userId: string | undefined) {
           schema: "public",
           table: "chat_channels",
         },
-        () => fetchChannels()
+        () => debouncedFetchChannels()
       )
       .on(
         "postgres_changes",
@@ -74,29 +94,63 @@ export function useChat(userId: string | undefined) {
           schema: "public",
           table: "chat_messages",
         },
-        () => fetchChannels()
+        () => debouncedFetchChannels()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [userId, fetchChannels]);
+  }, [userId, debouncedFetchChannels]);
+
+  // Separate active and archived channels
+  const activeChannels = channels.filter((c) => !c.is_archived);
+  const archivedChannels = channels.filter((c) => c.is_archived);
 
   // Filter channels by search
   const filteredGroups = searchQuery.trim()
     ? groupChannels(
-        channels.filter((c) =>
+        activeChannels.filter((c) =>
           c.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
       )
-    : groups;
+    : groupChannels(activeChannels);
 
-  // Total unread across all channels
-  const totalUnread = channels.reduce((sum, c) => sum + (c.is_muted ? 0 : c.unread_count), 0);
+  // Total unread across active (non-archived) channels
+  const totalUnread = activeChannels.reduce((sum, c) => sum + (c.is_muted ? 0 : c.unread_count), 0);
+
+  // Archive / unarchive a channel
+  const archiveChannel = useCallback(
+    async (channelId: string) => {
+      const supabase = supabaseRef.current;
+      await supabase
+        .from("chat_channels")
+        .update({ is_archived: true })
+        .eq("id", channelId);
+      // If we just archived the active channel, deselect
+      if (activeChannelId === channelId) {
+        setActiveChannelId(null);
+      }
+      fetchChannels();
+    },
+    [activeChannelId, fetchChannels]
+  );
+
+  const unarchiveChannel = useCallback(
+    async (channelId: string) => {
+      const supabase = supabaseRef.current;
+      await supabase
+        .from("chat_channels")
+        .update({ is_archived: false })
+        .eq("id", channelId);
+      fetchChannels();
+    },
+    [fetchChannels]
+  );
 
   return {
-    channels,
+    channels: activeChannels,
+    archivedChannels,
     groups: filteredGroups,
     loading,
     totalUnread,
@@ -105,5 +159,7 @@ export function useChat(userId: string | undefined) {
     searchQuery,
     setSearchQuery,
     refetch: fetchChannels,
+    archiveChannel,
+    unarchiveChannel,
   };
 }

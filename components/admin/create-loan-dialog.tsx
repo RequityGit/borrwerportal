@@ -43,6 +43,10 @@ interface CreateLoanDialogProps {
   teamMembers: TeamMember[];
   borrowers: Borrower[];
   currentUserId: string;
+  /** Open the dialog on mount (e.g. from URL params) */
+  initialOpen?: boolean;
+  /** Pre-select a borrower by ID */
+  initialBorrowerId?: string;
 }
 
 const US_STATES = [
@@ -56,8 +60,10 @@ export function CreateLoanDialog({
   teamMembers,
   borrowers,
   currentUserId,
+  initialOpen = false,
+  initialBorrowerId,
 }: CreateLoanDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [loading, setLoading] = useState(false);
   const [borrowerSearch, setBorrowerSearch] = useState("");
   const [borrowerDropdownOpen, setBorrowerDropdownOpen] = useState(false);
@@ -139,7 +145,7 @@ export function CreateLoanDialog({
   }, []);
 
   const [form, setForm] = useState({
-    borrower_id: "",
+    borrower_id: initialBorrowerId || "",
     type: "",
     purpose: "",
     property_address: "",

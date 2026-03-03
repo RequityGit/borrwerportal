@@ -11,6 +11,7 @@ import {
   formatDate,
   formatPercent,
 } from "@/lib/format";
+import { ExportServicingButton } from "@/components/admin/servicing/export-servicing-button";
 import {
   DollarSign,
   Percent,
@@ -44,7 +45,7 @@ export default async function LoanDetailPage({
   const db = supabase as any;
 
   // Fetch loan detail and related data in parallel
-  const [loanResult, paymentsResult, auditResult, interestResult] =
+  const [loanResult, drawsResult, paymentsResult, budgetResult, auditResult, interestResult, payoffCountResult] =
     await Promise.all([
       db
         .from("servicing_loans")
@@ -52,10 +53,20 @@ export default async function LoanDetailPage({
         .eq("loan_id", loanId)
         .single(),
       db
+        .from("servicing_draws")
+        .select("*")
+        .eq("loan_id", loanId)
+        .order("draw_number"),
+      db
         .from("servicing_payments")
         .select("*")
         .eq("loan_id", loanId)
         .order("date", { ascending: false }),
+      db
+        .from("servicing_construction_budgets")
+        .select("*")
+        .eq("loan_id", loanId)
+        .order("line_item"),
       db
         .from("servicing_audit_log")
         .select("*")
@@ -65,6 +76,10 @@ export default async function LoanDetailPage({
         p_loan_id: loanId,
         p_billing_month: new Date().toISOString().slice(0, 8) + "01",
       }),
+      db
+        .from("payoff_statements")
+        .select("id", { count: "exact", head: true })
+        .eq("loan_id", loanId),
     ]);
 
   if (!loanResult.data) notFound();
@@ -73,6 +88,7 @@ export default async function LoanDetailPage({
   const payments = paymentsResult.data ?? [];
   const auditLog = auditResult.data ?? [];
   const monthlyInterest = interestResult.data?.total_interest ?? 0;
+  const payoffStatementCount = payoffCountResult.count ?? 0;
 
   // Look up the UUID loan from the pipeline by matching loan_number to servicing loan_id
   let loanUuid: string | null = null;
@@ -187,7 +203,12 @@ export default async function LoanDetailPage({
         <PageHeader
           title={`${loan.loan_id} — ${loan.entity_name ?? loan.borrower_name ?? "Unknown"}`}
           description={loan.property_address ?? undefined}
-          action={<StatusBadge status={loan.loan_status} className="text-sm px-3 py-1" />}
+          action={
+            <div className="flex items-center gap-2">
+              <ExportServicingButton loanId={loan.loan_id} />
+              <StatusBadge status={loan.loan_status} className="text-sm px-3 py-1" />
+            </div>
+          }
         />
       </div>
 
@@ -300,6 +321,8 @@ export default async function LoanDetailPage({
       <ServicingLoanDetailTabs
         payments={payments}
         auditLog={auditLog}
+        loan={loan}
+        payoffStatementCount={payoffStatementCount}
         loanUuid={loanUuid}
         currentUserId={user.id}
         constructionBudget={constructionBudgetData}
