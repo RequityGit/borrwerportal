@@ -35,7 +35,7 @@ const borrowerBottomNav: BottomNavItem[] = [
     activePaths: ["/borrower/loans"],
   },
   { label: "Documents", href: "/borrower/documents", icon: FileText },
-  { label: "Messages", href: "/chat", icon: MessageSquare },
+  { label: "Chatter", href: "/chat", icon: MessageSquare },
 ];
 
 const investorBottomNav: BottomNavItem[] = [
@@ -129,7 +129,7 @@ export function MobileBottomNav({
                   className="h-5 w-5"
                   strokeWidth={1.5}
                 />
-                {item.label === "Messages" && totalUnread > 0 && (
+                {item.label === "Chatter" && totalUnread > 0 && (
                   <span className="absolute -top-1.5 -right-2 h-4 min-w-[16px] px-0.5 flex items-center justify-center rounded-full bg-[#F0719B] text-white text-[9px] font-bold">
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </span>

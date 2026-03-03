@@ -222,7 +222,7 @@ export function MobileSidebar({
                 </span>
               )}
             </div>
-            <span>Messages</span>
+            <span>Chatter</span>
             {totalUnread > 0 && (
               <span className="ml-auto bg-[#F0719B] text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
                 {totalUnread > 99 ? "99+" : totalUnread}

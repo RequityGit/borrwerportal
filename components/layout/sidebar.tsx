@@ -187,7 +187,7 @@ export function Sidebar({ role, isSuperAdmin }: { role: string; isSuperAdmin?: b
               ? "bg-white/15 text-white"
               : "text-white/70 hover:bg-white/10 hover:text-white"
           )}
-          title={collapsed ? "Messages" : undefined}
+          title={collapsed ? "Chatter" : undefined}
         >
           <div className="relative flex-shrink-0">
             <MessageSquare className="h-5 w-5" />
@@ -197,7 +197,7 @@ export function Sidebar({ role, isSuperAdmin }: { role: string; isSuperAdmin?: b
               </span>
             )}
           </div>
-          {!collapsed && <span>Messages</span>}
+          {!collapsed && <span>Chatter</span>}
           {!collapsed && totalUnread > 0 && (
             <span className="ml-auto bg-[#F0719B] text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
               {totalUnread > 99 ? "99+" : totalUnread}

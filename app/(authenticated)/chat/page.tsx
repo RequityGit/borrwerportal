@@ -229,7 +229,7 @@ function EmptyState({ loading }: { loading: boolean }) {
           fontFamily: "'Inter', sans-serif",
         }}
       >
-        Requity Messages
+        Requity Chatter
       </div>
       <div
         style={{
