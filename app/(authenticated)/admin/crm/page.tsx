@@ -3,15 +3,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import {
-  CrmUnified,
+  CrmV2Page,
   type CrmContactRow,
-  type CompanyRowExtended,
-} from "@/components/crm/crm-unified";
+  type CompanyRowV2,
+} from "@/components/crm/crm-v2-page";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: { view?: string; company?: string };
+  searchParams: { view?: string; q?: string; rel?: string; stage?: string };
 }
 
 export default async function CrmPage({ searchParams }: PageProps) {
@@ -80,10 +80,13 @@ export default async function CrmPage({ searchParams }: PageProps) {
   );
 
   // Build profiles lookup for assigned_to names
-  const profileLookup: Record<string, string> = {};
+  const profileLookup: Record<string, { name: string; initials: string }> = {};
   (teamResult.data ?? []).forEach(
     (t: { id: string; full_name: string | null; email: string | null }) => {
-      profileLookup[t.id] = t.full_name || t.email || "Unknown";
+      const name = t.full_name || t.email || "Unknown";
+      const parts = name.trim().split(/\s+/);
+      const initials = parts.map((p: string) => p[0]).join("").toUpperCase().slice(0, 2);
+      profileLookup[t.id] = { name, initials };
     }
   );
 
@@ -132,7 +135,7 @@ export default async function CrmPage({ searchParams }: PageProps) {
       (filesPerCompany[f.company_id] ?? 0) + 1;
   });
 
-  // Build enriched contact rows
+  // Build enriched contact rows for v2
   const contactRows: CrmContactRow[] = contacts.map((c: any) => ({
     id: c.id,
     first_name: c.first_name,
@@ -146,18 +149,25 @@ export default async function CrmPage({ searchParams }: PageProps) {
     lifecycle_stage: c.lifecycle_stage,
     dnc: c.dnc ?? false,
     source: c.source,
+    assigned_to: c.assigned_to,
     assigned_to_name: c.assigned_to
-      ? profileLookup[c.assigned_to] || null
+      ? profileLookup[c.assigned_to]?.name || null
+      : null,
+    assigned_to_initials: c.assigned_to
+      ? profileLookup[c.assigned_to]?.initials || null
       : null,
     next_follow_up_date: c.next_follow_up_date,
     last_contacted_at: c.last_contacted_at,
     created_at: c.created_at,
     activity_count: activityCounts[c.id] ?? 0,
     relationships: relationshipsLookup[c.id] ?? [],
+    notes: c.notes,
+    city: c.city,
+    state: c.state,
   }));
 
-  // Build enriched company rows
-  const companyRows: CompanyRowExtended[] = companiesData.map((c: any) => ({
+  // Build enriched company rows for v2
+  const companyRows: CompanyRowV2[] = companiesData.map((c: any) => ({
     id: c.id,
     name: c.name,
     email: c.email,
@@ -167,19 +177,14 @@ export default async function CrmPage({ searchParams }: PageProps) {
     company_subtype: c.company_subtype,
     city: c.city,
     state: c.state,
-    address_line1: c.address_line1,
+    contact_count: contactsPerCompany[c.id] ?? 0,
+    file_count: filesPerCompany[c.id] ?? 0,
+    active_deals: 0,
     nda_created_date: c.nda_created_date,
     nda_expiration_date: c.nda_expiration_date,
     fee_agreement_on_file: c.fee_agreement_on_file,
     is_active: c.is_active,
     notes: c.notes,
-    contact_count: contactsPerCompany[c.id] ?? 0,
-    file_count: filesPerCompany[c.id] ?? 0,
-    active_deals: 0, // Placeholder for now
-    lender_programs: c.lender_programs,
-    asset_types: c.asset_types,
-    geographies: c.geographies,
-    company_capabilities: c.company_capabilities,
   }));
 
   return (
@@ -189,7 +194,7 @@ export default async function CrmPage({ searchParams }: PageProps) {
         description="Manage contacts, companies, and pipeline."
       />
 
-      <CrmUnified
+      <CrmV2Page
         contacts={contactRows}
         companies={companyRows}
         teamMembers={teamMembers}
