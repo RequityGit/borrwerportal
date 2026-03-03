@@ -1,14 +1,33 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/app/globals/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 
 export const metadata: Metadata = {
   title: "Requity Group Portal",
   description:
     "Unified portal for borrowers, investors, and administrators at Requity Group.",
+  manifest: "/manifest.json",
   icons: {
-    icon: "https://edhlkknvlczhbowasjna.supabase.co/storage/v1/object/public/brand-assets/Diamond%20Favicon%20White.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Requity Group",
+  },
+  applicationName: "Requity Group Portal",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1A1A1A",
 };
 
 export default function RootLayout({
@@ -28,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider>{children}</ThemeProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

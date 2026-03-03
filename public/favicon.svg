@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Requity Group favicon — Shield with stylized R -->
+  <!-- Background circle for clean icon shape -->
+  <rect width="512" height="512" rx="96" fill="#1a2b4a"/>
+  <!-- Shield / badge shape -->
+  <g transform="translate(56, 36)">
+    <path fill="#ffffff" opacity="0.1" d="M200,0 L400,100 L400,300 C400,350 333,400 200,400 C67,400 0,350 0,300 L0,100 Z"/>
+    <!-- Stylized R letter -->
+    <path fill="#ffffff" d="M120,80 L240,80 C288,80 320,108 320,148 C320,180 302,204 274,212 L330,330 L276,330 L226,218 L176,218 L176,330 L120,330 Z M176,132 L176,172 L230,172 C252,172 266,162 266,152 C266,142 252,132 230,132 Z"/>
+    <!-- Teal accent bar -->
+    <rect fill="#2b9e8f" x="100" y="352" width="200" height="14" rx="7"/>
+  </g>
+</svg>
