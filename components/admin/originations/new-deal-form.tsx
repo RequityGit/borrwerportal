@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { createOpportunityAction } from "@/app/(authenticated)/admin/originations/actions";
+import { addBorrowerAction } from "@/app/(authenticated)/admin/borrowers/new/actions";
 import {
   LOAN_DB_TYPES,
   LOAN_PURPOSES,
@@ -31,7 +45,12 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
+  ChevronsUpDown,
+  Search,
+  Plus,
+  Loader2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -83,6 +102,31 @@ export function NewDealForm({
   >([]);
   const [addingBorrower, setAddingBorrower] = useState("");
   const [addingRole, setAddingRole] = useState("primary");
+  const [borrowerSearch, setBorrowerSearch] = useState("");
+  const [borrowerPopoverOpen, setBorrowerPopoverOpen] = useState(false);
+  const [allBorrowers, setAllBorrowers] = useState(borrowers);
+
+  // Add borrower dialog state
+  const [addBorrowerDialogOpen, setAddBorrowerDialogOpen] = useState(false);
+  const [newBorrowerFirstName, setNewBorrowerFirstName] = useState("");
+  const [newBorrowerLastName, setNewBorrowerLastName] = useState("");
+  const [newBorrowerEmail, setNewBorrowerEmail] = useState("");
+  const [newBorrowerPhone, setNewBorrowerPhone] = useState("");
+  const [addingNewBorrower, setAddingNewBorrower] = useState(false);
+
+  // Filtered borrowers for the combobox search
+  const filteredBorrowers = useMemo(() => {
+    const available = allBorrowers.filter(
+      (b) => !selectedBorrowers.some((sb) => sb.borrower_id === b.id)
+    );
+    if (!borrowerSearch.trim()) return available;
+    const query = borrowerSearch.toLowerCase();
+    return available.filter(
+      (b) =>
+        b.name.toLowerCase().includes(query) ||
+        b.email.toLowerCase().includes(query)
+    );
+  }, [allBorrowers, selectedBorrowers, borrowerSearch]);
 
   // Terms state
   const [terms, setTerms] = useState({
@@ -128,6 +172,47 @@ export function NewDealForm({
         }
       }
     }
+  }
+
+  async function handleAddNewBorrower() {
+    if (!newBorrowerFirstName.trim() || !newBorrowerLastName.trim()) return;
+    setAddingNewBorrower(true);
+
+    const result = await addBorrowerAction({
+      first_name: newBorrowerFirstName.trim(),
+      last_name: newBorrowerLastName.trim(),
+      email: newBorrowerEmail.trim() || undefined,
+      phone: newBorrowerPhone.trim() || undefined,
+    });
+
+    if (result.error) {
+      toast({
+        title: "Error creating borrower",
+        description: result.error,
+        variant: "destructive",
+      });
+      setAddingNewBorrower(false);
+      return;
+    }
+
+    const fullName =
+      `${newBorrowerFirstName.trim()} ${newBorrowerLastName.trim()}`.trim();
+    const newBorrower = {
+      id: result.borrowerId!,
+      name: fullName,
+      email: newBorrowerEmail.trim(),
+    };
+
+    setAllBorrowers((prev) => [...prev, newBorrower]);
+    setAddingBorrower(newBorrower.id);
+    setAddBorrowerDialogOpen(false);
+    setNewBorrowerFirstName("");
+    setNewBorrowerLastName("");
+    setNewBorrowerEmail("");
+    setNewBorrowerPhone("");
+    setAddingNewBorrower(false);
+
+    toast({ title: `Borrower "${fullName}" created` });
   }
 
   async function handleSubmit() {
@@ -424,28 +509,89 @@ export function NewDealForm({
             <div className="grid grid-cols-5 gap-2">
               <div className="col-span-2">
                 <Label className="text-xs">Borrower</Label>
-                <Select
-                  value={addingBorrower}
-                  onValueChange={setAddingBorrower}
+                <Popover
+                  open={borrowerPopoverOpen}
+                  onOpenChange={setBorrowerPopoverOpen}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select borrower" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {borrowers
-                      .filter(
-                        (b) =>
-                          !selectedBorrowers.some(
-                            (sb) => sb.borrower_id === b.id
-                          )
-                      )
-                      .map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.name} {b.email ? `(${b.email})` : ""}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={borrowerPopoverOpen}
+                      className="w-full justify-between font-normal h-10"
+                    >
+                      <span className="truncate">
+                        {addingBorrower
+                          ? allBorrowers.find((b) => b.id === addingBorrower)
+                              ?.name || "Select borrower"
+                          : "Select borrower"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <input
+                        className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                        placeholder="Search borrowers..."
+                        value={borrowerSearch}
+                        onChange={(e) => setBorrowerSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto p-1">
+                      {filteredBorrowers.length === 0 ? (
+                        <div className="py-4 text-center text-sm text-muted-foreground">
+                          No borrowers found.
+                        </div>
+                      ) : (
+                        filteredBorrowers.map((b) => (
+                          <button
+                            key={b.id}
+                            className={cn(
+                              "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                              addingBorrower === b.id && "bg-accent"
+                            )}
+                            onClick={() => {
+                              setAddingBorrower(b.id);
+                              setBorrowerSearch("");
+                              setBorrowerPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                addingBorrower === b.id
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col items-start">
+                              <span>{b.name}</span>
+                              {b.email && (
+                                <span className="text-xs text-muted-foreground">
+                                  {b.email}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    <div className="border-t p-1">
+                      <button
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => {
+                          setBorrowerPopoverOpen(false);
+                          setAddBorrowerDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Borrower
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="col-span-2">
                 <Label className="text-xs">Role</Label>
@@ -473,6 +619,78 @@ export function NewDealForm({
                 </Button>
               </div>
             </div>
+
+            {/* Add New Borrower Dialog */}
+            <Dialog
+              open={addBorrowerDialogOpen}
+              onOpenChange={setAddBorrowerDialogOpen}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Borrower</DialogTitle>
+                  <DialogDescription>
+                    Quickly create a new borrower to add to this deal.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-3 py-4">
+                  <div>
+                    <Label>First Name *</Label>
+                    <Input
+                      value={newBorrowerFirstName}
+                      onChange={(e) => setNewBorrowerFirstName(e.target.value)}
+                      placeholder="John"
+                    />
+                  </div>
+                  <div>
+                    <Label>Last Name *</Label>
+                    <Input
+                      value={newBorrowerLastName}
+                      onChange={(e) => setNewBorrowerLastName(e.target.value)}
+                      placeholder="Doe"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={newBorrowerEmail}
+                      onChange={(e) => setNewBorrowerEmail(e.target.value)}
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      type="tel"
+                      value={newBorrowerPhone}
+                      onChange={(e) => setNewBorrowerPhone(e.target.value)}
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setAddBorrowerDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddNewBorrower}
+                    disabled={
+                      addingNewBorrower ||
+                      !newBorrowerFirstName.trim() ||
+                      !newBorrowerLastName.trim()
+                    }
+                  >
+                    {addingNewBorrower && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create Borrower
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(0)}>
