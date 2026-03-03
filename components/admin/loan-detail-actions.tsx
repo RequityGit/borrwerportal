@@ -245,7 +245,7 @@ export function LoanDetailActions({
           </TabsTrigger>
           <TabsTrigger value="deal-chat" className="gap-1">
             <MessageCircle className="h-3.5 w-3.5" />
-            Chat
+            Chatter
           </TabsTrigger>
           <TabsTrigger value="draw-requests">
             Draw Requests ({drawRequests.length})

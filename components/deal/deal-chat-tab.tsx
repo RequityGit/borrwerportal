@@ -328,7 +328,7 @@ export function DealChatTab({
       <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
         <CardTitle className="text-lg flex items-center gap-2">
           <MessageCircle className="h-4 w-4" />
-          Deal Chat
+          Deal Chatter
         </CardTitle>
         {pinnedMessages.length > 0 && (
           <Badge variant="outline" className="gap-1 text-xs">

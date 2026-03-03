@@ -228,6 +228,7 @@ export default async function DealDetailPage({
         teamMembers={teamMembers}
         allBorrowers={allBorrowersForSelect}
         isSuperAdmin={isSuperAdmin}
+        currentUserId={user.id}
       />
     </div>
   );

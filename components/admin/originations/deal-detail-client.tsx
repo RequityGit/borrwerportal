@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { OpportunityChatter } from "@/components/admin/originations/opportunity-chatter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +112,7 @@ interface DealDetailProps {
   teamMembers: { id: string; full_name: string }[];
   allBorrowers: { id: string; name: string; email: string }[];
   isSuperAdmin?: boolean;
+  currentUserId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +182,7 @@ export function DealDetailClient({
   teamMembers,
   allBorrowers,
   isSuperAdmin = false,
+  currentUserId,
 }: DealDetailProps) {
   const [opp, setOpp] = useState(initialOpp);
   const [property, setProperty] = useState(initialProp);
@@ -982,6 +985,15 @@ export function DealDetailClient({
           </div>
         )}
       </Section>
+
+      {/* ═══ DEAL CHATTER ═══ */}
+      {currentUserId && (
+        <OpportunityChatter
+          opportunityId={opp.id}
+          currentUserId={currentUserId}
+          dealName={opp.deal_name}
+        />
+      )}
 
       {/* ═══ DIALOGS ═══ */}
 
