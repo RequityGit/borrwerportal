@@ -53,6 +53,8 @@ import { LoanPricingTab } from "@/components/admin/loan-pricing-tab";
 import { LoanUnderwritingTab } from "@/components/admin/loan-underwriting-tab";
 import { LoanChatter } from "@/components/shared/loan-chatter";
 import { EmailActivityFeed, type EmailRecord } from "@/components/crm/email-activity-feed";
+import { DealEmailTab } from "@/components/deal/deal-email-tab";
+import { DealChatTab } from "@/components/deal/deal-chat-tab";
 import type { UnderwritingInputs } from "@/lib/underwriting/types";
 import { Scale, Building2, Handshake } from "lucide-react";
 import Link from "next/link";
@@ -241,9 +243,9 @@ export function LoanDetailActions({
             <ClipboardList className="h-3.5 w-3.5" />
             Conditions ({conditions.length})
           </TabsTrigger>
-          <TabsTrigger value="chatter" className="gap-1">
+          <TabsTrigger value="deal-chat" className="gap-1">
             <MessageCircle className="h-3.5 w-3.5" />
-            Chatter
+            Chat
           </TabsTrigger>
           <TabsTrigger value="draw-requests">
             Draw Requests ({drawRequests.length})
@@ -254,9 +256,9 @@ export function LoanDetailActions({
           <TabsTrigger value="documents">
             Documents ({documents.length})
           </TabsTrigger>
-          <TabsTrigger value="emails" className="gap-1">
+          <TabsTrigger value="deal-email" className="gap-1">
             <Mail className="h-3.5 w-3.5" />
-            Emails ({emails.length})
+            Email
           </TabsTrigger>
           <TabsTrigger value="quotes" className="gap-1">
             <Handshake className="h-3.5 w-3.5" />
@@ -297,11 +299,11 @@ export function LoanDetailActions({
           />
         </TabsContent>
 
-        <TabsContent value="chatter" className="mt-4">
-          <LoanChatter
+        <TabsContent value="deal-chat" className="mt-4">
+          <DealChatTab
             loanId={loanId}
             currentUserId={currentUserId}
-            isAdmin={true}
+            currentUserName={currentUserName}
           />
         </TabsContent>
 
@@ -320,14 +322,15 @@ export function LoanDetailActions({
           <DocumentsTable documents={documents} />
         </TabsContent>
 
-        <TabsContent value="emails" className="mt-4">
-          <EmailActivityFeed
-            emails={emails}
-            defaultToEmail={borrowerEmail}
-            defaultToName={borrowerName}
-            linkedLoanId={loanId}
+        <TabsContent value="deal-email" className="mt-4">
+          <DealEmailTab
+            loanId={loanId}
             currentUserId={currentUserId}
             currentUserName={currentUserName}
+            defaultToEmail={borrowerEmail}
+            defaultToName={borrowerName}
+            propertyAddress={loan.property_address ?? undefined}
+            loanType={loan.loan_type ?? undefined}
           />
         </TabsContent>
 
