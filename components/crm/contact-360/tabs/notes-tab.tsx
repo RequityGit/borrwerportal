@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,8 +43,8 @@ export function NotesTab({
   const router = useRouter();
   const { toast } = useToast();
 
-  // Load notes on first render
-  useState(() => {
+  // Load notes on mount
+  useEffect(() => {
     const loadNotes = async () => {
       const supabase = createClient();
       const { data } = await supabase
@@ -69,7 +69,7 @@ export function NotesTab({
       setLoaded(true);
     };
     loadNotes();
-  });
+  }, [contactId]);
 
   async function handleSave() {
     if (!content.trim()) return;
