@@ -12,6 +12,7 @@ import { ActivityTrackerProvider } from "@/components/tracking/ActivityTracker";
 import { MobileLayoutWrapper } from "@/components/layout/mobile-layout-wrapper";
 import { ModuleAccessProvider } from "@/contexts/module-access-context";
 import { ModuleGuard } from "@/components/layout/module-guard";
+import { SoftphoneWrapper } from "@/components/softphone/SoftphoneWrapper";
 
 // Never statically generate authenticated pages
 export const dynamic = "force-dynamic";
@@ -134,6 +135,9 @@ export default async function AuthenticatedLayout({
                 </div>
               </div>
               <Toaster />
+              {(effectiveRole === "admin" || effectiveRole === "super_admin") && (
+                <SoftphoneWrapper />
+              )}
             </div>
           </MobileLayoutWrapper>
         </ModuleAccessProvider>
