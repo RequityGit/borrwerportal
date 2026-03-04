@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -31,19 +31,14 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  UserPlus,
   MessageSquare,
   Clock,
   TrendingUp,
   CheckCircle2,
   DollarSign,
-  Trash2,
-  Plus,
   Briefcase,
 } from "lucide-react";
-import { ContactDrawer } from "./contact-drawer";
-import { CompanyDrawer } from "./company-drawer";
-import { Avatar, RelPill, StageDot, CompanyStatusDot, getInitials } from "./crm-primitives";
+import { Avatar, RelPill, StageDot, CompanyStatusDot } from "./crm-primitives";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -120,10 +115,6 @@ export function CrmV2Page({
 
   // View state
   const [activeView, setActiveView] = useState<"contacts" | "companies">(initialView);
-
-  // Drawer state
-  const [selectedContact, setSelectedContact] = useState<CrmContactRow | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<CompanyRowV2 | null>(null);
 
   // Contact filters
   const [contactSearch, setContactSearch] = useState(searchParams.get("q") ?? "");
@@ -289,18 +280,6 @@ export function CrmV2Page({
     setStageFilter("all");
   }
 
-  // Close drawer on escape
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setSelectedContact(null);
-        setSelectedCompany(null);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   // ── Sort Header ──────────────────────────────────────────────────────
   function SortHeader({
     label,
@@ -355,11 +334,7 @@ export function CrmV2Page({
           ).map((v) => (
             <button
               key={v.key}
-              onClick={() => {
-                setActiveView(v.key);
-                setSelectedContact(null);
-                setSelectedCompany(null);
-              }}
+              onClick={() => setActiveView(v.key)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                 activeView === v.key
@@ -582,10 +557,7 @@ export function CrmV2Page({
                     filteredContacts.map((c, i) => (
                       <tr
                         key={c.id}
-                        onClick={() => {
-                          setSelectedContact(c);
-                          setSelectedCompany(null);
-                        }}
+                        onClick={() => router.push(`/admin/crm/${c.id}`)}
                         className={cn(
                           "cursor-pointer transition-colors hover:bg-muted/50",
                           i < filteredContacts.length - 1 && "border-b border-border/50"
@@ -709,10 +681,7 @@ export function CrmV2Page({
                     filteredCompanies.map((c, i) => (
                       <tr
                         key={c.id}
-                        onClick={() => {
-                          setSelectedCompany(c);
-                          setSelectedContact(null);
-                        }}
+                        onClick={() => router.push(`/admin/crm/companies/${c.id}`)}
                         className={cn(
                           "cursor-pointer transition-colors hover:bg-muted/50",
                           i < filteredCompanies.length - 1 && "border-b border-border/50"
@@ -768,34 +737,6 @@ export function CrmV2Page({
         </div>
       )}
 
-      {/* Contact Drawer */}
-      {selectedContact && (
-        <>
-          <div
-            onClick={() => setSelectedContact(null)}
-            className="fixed inset-0 bg-black/15 dark:bg-black/40 z-40 animate-in fade-in duration-200"
-          />
-          <ContactDrawer
-            contact={selectedContact}
-            onClose={() => setSelectedContact(null)}
-            isSuperAdmin={isSuperAdmin}
-          />
-        </>
-      )}
-
-      {/* Company Drawer */}
-      {selectedCompany && (
-        <>
-          <div
-            onClick={() => setSelectedCompany(null)}
-            className="fixed inset-0 bg-black/15 dark:bg-black/40 z-40 animate-in fade-in duration-200"
-          />
-          <CompanyDrawer
-            company={selectedCompany}
-            onClose={() => setSelectedCompany(null)}
-          />
-        </>
-      )}
     </div>
   );
 }
