@@ -3,6 +3,15 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=edhlkknvlczhbowasjna"
+    },
+    "appfolio": {
+      "command": "npx",
+      "args": ["@fluegeldao/appfolio-mcp-server"],
+      "env": {
+        "VHOST": "trgliving",
+        "USERNAME": "dylanmarma@gmail.com",
+        "PASSWORD": "Requity1$"
+      }
     }
   }
 }
