@@ -128,7 +128,7 @@ export function DealDetail({
           />
         );
       case "underwriting":
-        return <UnderwritingTab />;
+        return <UnderwritingTab dealId={deal.id} dealType={deal.type ?? null} />;
       default:
         return null;
     }
