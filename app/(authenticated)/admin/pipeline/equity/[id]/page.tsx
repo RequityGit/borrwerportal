@@ -31,6 +31,7 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
     stageHistoryResult,
     equityUwResult,
     commercialUwResult,
+    profilesResult,
   ] = await Promise.all([
     admin
       .from("equity_deals")
@@ -55,7 +56,9 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
       }),
     admin
       .from("equity_deal_tasks")
-      .select("*")
+      .select(
+        "*, assigned_to_profile:profiles!equity_deal_tasks_assigned_to_fkey(id, full_name, avatar_url)"
+      )
       .eq("deal_id", id)
       .order("sort_order"),
     admin
@@ -76,6 +79,11 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
       .select("*")
       .eq("loan_id", id)
       .maybeSingle(),
+    admin
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .not("full_name", "is", null)
+      .order("full_name"),
   ]);
 
   if (dealResult.error || !dealResult.data) {
@@ -88,6 +96,11 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
   const stageHistory = stageHistoryResult.data ?? [];
   const equityUw = equityUwResult?.data ?? null;
   const commercialUw = commercialUwResult?.data ?? null;
+  const profiles = (profilesResult.data ?? []).map((p: any) => ({
+    id: p.id,
+    full_name: p.full_name ?? "",
+    avatar_url: p.avatar_url ?? null,
+  }));
 
   // Fetch pipeline view data for computed fields (days_in_stage, completed_tasks, etc.)
   const { data: pipelineData } = await (admin as any)
@@ -99,19 +112,11 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
   // Fetch assigned user profile
   let assignedToProfile: { full_name: string | null; id: string } | null = null;
   if (deal.assigned_to) {
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("id, full_name")
-      .eq("id", deal.assigned_to)
-      .single();
-    assignedToProfile = profile ?? null;
+    const match = profiles.find((p: any) => p.id === deal.assigned_to);
+    if (match) {
+      assignedToProfile = { id: match.id, full_name: match.full_name };
+    }
   }
-
-  // Fetch admin profiles for team assignment
-  const { data: adminProfiles } = await admin
-    .from("profiles")
-    .select("id, full_name")
-    .order("full_name");
 
   return (
     <EquityDealDetail
@@ -123,7 +128,7 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
       commercialUw={commercialUw}
       pipelineData={pipelineData}
       assignedToProfile={assignedToProfile}
-      adminProfiles={adminProfiles ?? []}
+      adminProfiles={profiles}
       currentUserId={user.id}
     />
   );

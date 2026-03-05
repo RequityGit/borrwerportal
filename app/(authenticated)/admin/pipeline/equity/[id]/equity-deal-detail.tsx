@@ -69,6 +69,8 @@ import {
   markEquityDealLost,
   saveCommercialUnderwriting,
 } from "./actions";
+import { EquityDealTasksTab } from "./equity-deal-tasks-tab";
+import type { EquityDealTask, TaskProfile } from "./equity-deal-tasks-tab";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -90,7 +92,7 @@ interface EquityDealDetailProps {
   commercialUw: any;
   pipelineData: any;
   assignedToProfile: { full_name: string | null; id: string } | null;
-  adminProfiles: { id: string; full_name: string }[];
+  adminProfiles: TaskProfile[];
   currentUserId: string;
 }
 
@@ -528,6 +530,13 @@ export function EquityDealDetail({
               <FolderOpen size={15} strokeWidth={1.5} />
               Documents
             </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-1.5">
+              <ScrollText size={15} strokeWidth={1.5} />
+              Tasks
+              <span className="text-[10px] num text-muted-foreground">
+                {completedTasks}/{totalTasks}
+              </span>
+            </TabsTrigger>
             <TabsTrigger value="activity" className="gap-1.5">
               <BarChart3 size={15} strokeWidth={1.5} />
               Activity
@@ -582,6 +591,17 @@ export function EquityDealDetail({
                     </p>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              {/* Tasks Tab */}
+              <TabsContent value="tasks" className="mt-0">
+                <EquityDealTasksTab
+                  initialTasks={tasks}
+                  dealId={deal.id}
+                  dealStage={deal.stage}
+                  profiles={adminProfiles}
+                  currentUserId={currentUserId}
+                />
               </TabsContent>
 
               {/* Activity Tab */}
