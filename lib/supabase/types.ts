@@ -88,7 +88,6 @@ export type Database = {
           author_id: string | null
           author_name: string | null
           comment: string
-          comment_type: string | null
           created_at: string | null
           edited_at: string | null
           id: string
@@ -102,7 +101,6 @@ export type Database = {
           author_id?: string | null
           author_name?: string | null
           comment: string
-          comment_type?: string | null
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -116,7 +114,6 @@ export type Database = {
           author_id?: string | null
           author_name?: string | null
           comment?: string
-          comment_type?: string | null
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -9637,7 +9634,6 @@ export type Database = {
           author_id: string | null
           author_name: string | null
           comment: string
-          comment_type: string
           created_at: string | null
           edited_at: string | null
           id: string
@@ -9650,7 +9646,6 @@ export type Database = {
           author_id?: string | null
           author_name?: string | null
           comment: string
-          comment_type?: string
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -9663,7 +9658,6 @@ export type Database = {
           author_id?: string | null
           author_name?: string | null
           comment?: string
-          comment_type?: string
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -9891,7 +9885,6 @@ export type Database = {
           author_id: string | null
           author_name: string | null
           comment: string
-          comment_type: string
           created_at: string | null
           edited_at: string | null
           id: string
@@ -9905,7 +9898,6 @@ export type Database = {
           author_id?: string | null
           author_name?: string | null
           comment: string
-          comment_type?: string
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -9919,7 +9911,6 @@ export type Database = {
           author_id?: string | null
           author_name?: string | null
           comment?: string
-          comment_type?: string
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -15313,93 +15304,3 @@ export const Constants = {
     },
   },
 } as const
-
-export type Profile = Tables<'profiles'>
-export type Loan = Tables<'loans'>
-export type LoanPayment = Tables<'loan_payments'>
-export type LoanCondition = Tables<'loan_conditions'>
-export type LoanDocument = Tables<'loan_documents'>
-export type Document = Tables<'documents'>
-export type DrawRequest = Tables<'draw_requests'>
-export type CrmContact = Tables<'crm_contacts'>
-export type LoanConditionTemplate = Tables<'loan_condition_templates'>
-export type BorrowerEntity = Tables<'borrower_entities'>
-
-// Types for tables not yet migrated (used by components)
-export interface LenderQuote {
-  id: string
-  quote_name: string
-  lender_company_id: string | null
-  lender_contact_name: string | null
-  loan_amount: number | null
-  interest_rate: number | null
-  loan_term_months: number | null
-  interest_only_period_months: number | null
-  ltv: number | null
-  amortization_months: number | null
-  origination_fee: number | null
-  uw_processing_fee: number | null
-  requity_lending_fee: number | null
-  prepayment_penalty: string | null
-  ym_spread: number | null
-  ym_amount: number | null
-  term_sheet_url: string | null
-  description: string | null
-  status: string
-  status_changed_at: string | null
-  requested_at: string | null
-  received_at: string | null
-  accepted_at: string | null
-  declined_at: string | null
-  declined_reason: string | null
-  created_at: string
-}
-
-export interface PricingProgram {
-  id: string
-  program_id: string
-  program_name: string
-  version: string | null
-  interest_rate: number
-  loan_term_months: number
-  loan_type: string | null
-  rate_type: string | null
-  origination_points: number
-  min_origination_fee: number
-  min_credit_score: number
-  min_deals_24mo: number
-  max_ltv: number
-  max_ltc: number
-  max_ltp: number
-  citizenship: string | null
-  bpo_appraisal_cost: number
-  bpo_appraisal_note: string | null
-  legal_doc_fee: number
-  exit_points: number | null
-  points_note: string | null
-  term_note: string | null
-  ltv_note: string | null
-  ltc_note: string | null
-  effective_date: string | null
-  is_current: boolean | null
-}
-
-export interface LeverageAdjuster {
-  id: string
-  risk_factor: string
-  display_name: string
-  condition_description: string | null
-  ltv_adjustment: number
-  ltc_adjustment: number
-  is_active: boolean
-  sort_order: number | null
-  note: string | null
-}
-
-export interface PricingProgramVersion {
-  id?: string
-  program_id: string
-  version: string
-  change_description: string | null
-  changed_at: string
-}

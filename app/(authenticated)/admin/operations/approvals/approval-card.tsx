@@ -100,7 +100,6 @@ interface ApprovalCommentData {
   author_id: string | null;
   author_name: string | null;
   comment: string;
-  comment_type: string;
   likes: string[];
   created_at: string;
 }
@@ -204,7 +203,6 @@ export function ApprovalCard({
           author_id: currentUserId,
           author_name: profile?.full_name ?? "Team",
           comment: text,
-          comment_type: "update",
           mentions: mentionIds.length > 0 ? mentionIds : [],
           likes: [],
         } as never)
