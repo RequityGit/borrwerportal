@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Calculator, Plus, Eye, Zap, Loader2, Building2, Home, TrendingUp } from "lucide-react";
+import {
+  Calculator,
+  Plus,
+  Eye,
+  Loader2,
+  Building2,
+  Home,
+  TrendingUp,
+  ExternalLink,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -52,7 +61,7 @@ export function UnderwritingTab({
       if (result.error) {
         console.error("Create version error:", result.error);
       } else {
-        router.refresh();
+        router.push(`/admin/deals/${dealId}/underwriting`);
       }
     } finally {
       setCreating(false);
@@ -61,15 +70,40 @@ export function UnderwritingTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* UW Versions */}
-      <SectionCard
-        title="Underwriting Scenarios"
-        icon={Calculator}
-        right={
+      {/* Open Editor CTA */}
+      <div
+        className="rounded-xl p-5 flex items-center justify-between"
+        style={{
+          backgroundColor: T.bg.surface,
+          border: `1px solid ${T.bg.border}`,
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg"
+            style={{
+              background: `linear-gradient(135deg, ${T.accent.blue}22, ${T.accent.purple}22)`,
+              border: `1px solid ${T.bg.border}`,
+            }}
+          >
+            <Calculator size={20} color={T.accent.blue} strokeWidth={1.5} />
+          </div>
+          <div>
+            <div className="text-[14px] font-semibold" style={{ color: T.text.primary }}>
+              {UW_MODEL_LABELS[defaultModel]} Editor
+            </div>
+            <div className="text-[12px]" style={{ color: T.text.muted }}>
+              {uwVersions.length > 0
+                ? `${uwVersions.length} version${uwVersions.length !== 1 ? "s" : ""} · Last updated ${fD(uwVersions[0]?.created_at)}`
+                : "No scenarios yet — create one to get started"}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={handleNewScenario}
             disabled={creating}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-[5px] text-xs font-medium cursor-pointer transition-colors duration-150"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-[7px] text-xs font-medium cursor-pointer transition-colors duration-150"
             style={{
               backgroundColor: T.bg.elevated,
               border: `1px solid ${T.bg.border}`,
@@ -83,15 +117,29 @@ export function UnderwritingTab({
             )}
             New Scenario
           </button>
-        }
-      >
+          <Link
+            href={`/admin/deals/${dealId}/underwriting`}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-[7px] text-xs font-medium cursor-pointer transition-colors duration-150 no-underline"
+            style={{
+              backgroundColor: T.accent.blue,
+              color: "#fff",
+            }}
+          >
+            <ExternalLink size={13} strokeWidth={1.5} />
+            Open Editor
+          </Link>
+        </div>
+      </div>
+
+      {/* Version History */}
+      <SectionCard title="Version History" icon={Calculator}>
         <div className="flex flex-col gap-1">
           {uwVersions.length === 0 && (
             <div
-              className="py-8 text-center text-[13px]"
+              className="py-6 text-center text-[13px]"
               style={{ color: T.text.muted }}
             >
-              No underwriting scenarios yet. Create one to get started.
+              No underwriting scenarios yet.
             </div>
           )}
           {uwVersions.map((v) => (
@@ -105,326 +153,99 @@ export function UnderwritingTab({
         </div>
       </SectionCard>
 
-      {/* Active Scenario Detail — renders based on model type */}
+      {/* Selected Version Summary (read-only) */}
       {selectedVersion && (
-        <VersionDetail
-          version={selectedVersion}
-          dealId={dealId}
-          dealType={dealType}
-        />
+        <VersionSummary version={selectedVersion} dealType={dealType} dealId={dealId} />
       )}
     </div>
   );
 }
 
-/* ── Version Detail Router ── */
-function VersionDetail({
+/* ── Version Summary (read-only condensed view) ── */
+function VersionSummary({
   version,
-  dealId,
   dealType,
+  dealId,
 }: {
   version: UWVersion;
-  dealId: string;
   dealType: string | null;
+  dealId: string;
 }) {
   const modelType = version.model_type || getUWModelForLoanType(dealType);
   const ModelIcon = MODEL_ICONS[modelType];
-  const label = `v${version.version_number} — ${UW_MODEL_LABELS[modelType]}`;
+  const outputs = version.calculator_outputs || {};
 
   return (
-    <SectionCard title={label} icon={ModelIcon}>
-      <div className="p-2">
-        {modelType === "commercial" && (
-          <CommercialUWDetail version={version} dealId={dealId} />
-        )}
-        {modelType === "rtl" && (
-          <RTLUWDetail version={version} />
-        )}
-        {modelType === "dscr" && (
-          <DSCRUWDetail version={version} />
-        )}
+    <SectionCard
+      title={`v${version.version_number} — ${UW_MODEL_LABELS[modelType]}`}
+      icon={ModelIcon}
+      right={
+        <Link
+          href={`/admin/deals/${dealId}/underwriting`}
+          className="flex items-center gap-1 text-[11px] font-medium no-underline"
+          style={{ color: T.accent.blue }}
+        >
+          <ExternalLink size={11} strokeWidth={1.5} />
+          Edit
+        </Link>
+      }
+    >
+      <div className="p-1">
+        {modelType === "commercial" && <CommercialSummary outputs={outputs} />}
+        {modelType === "rtl" && <RTLSummary outputs={outputs} />}
+        {modelType === "dscr" && <DSCRSummary outputs={outputs} />}
       </div>
     </SectionCard>
   );
 }
 
-/* ── Commercial UW Detail ── */
-function CommercialUWDetail({
-  version,
-  dealId,
-}: {
-  version: UWVersion;
-  dealId: string;
-}) {
-  const outputs = version.calculator_outputs || {};
+/* ── Commercial Summary ── */
+function CommercialSummary({ outputs }: { outputs: Record<string, unknown> }) {
   const noi = outputs.noi as number | undefined;
   const dscr = outputs.dscr as number | undefined;
   const capRate = outputs.cap_rate as number | undefined;
   const egi = outputs.egi as number | undefined;
-  const totalOpex = outputs.total_opex as number | undefined;
-  const debtService = outputs.debt_service as number | undefined;
-  const netCashFlow = outputs.net_cash_flow as number | undefined;
-  const expenseRatio = outputs.expense_ratio as number | undefined;
 
   return (
-    <>
-      {/* Income & Expenses Summary */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Operating Summary
-        </div>
-        <div className="grid grid-cols-4 gap-2.5">
-          <MiniMetric label="Eff. Gross Income" value={fmtNum(egi)} />
-          <MiniMetric label="Total OpEx" value={fmtNum(totalOpex)} />
-          <MiniMetric label="NOI" value={fmtNum(noi)} />
-          <MiniMetric label="Expense Ratio" value={expenseRatio != null ? `${expenseRatio.toFixed(1)}%` : "—"} />
-        </div>
-      </div>
-
-      {/* Debt Service */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Debt Service
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          <MiniMetric label="Annual Debt Service" value={fmtNum(debtService)} />
-          <MiniMetric label="Net Cash Flow" value={fmtNum(netCashFlow)} />
-          <MiniMetric label="Cap Rate" value={capRate != null ? `${capRate.toFixed(2)}%` : "—"} />
-        </div>
-      </div>
-
-      {/* Result */}
-      <ResultBanner
-        mainLabel="DSCR"
-        mainValue={dscr != null ? `${dscr.toFixed(2)}x` : "—"}
-        mainColor={dscr != null && dscr >= 1.0 ? T.accent.green : T.accent.red}
-        extras={[
-          { label: "NOI", value: fmtNum(noi) },
-          { label: "Cap Rate", value: capRate != null ? `${capRate.toFixed(2)}%` : "—" },
-        ]}
-      />
-
-      {/* Link to full commercial UW */}
-      <div className="mt-4 text-center">
-        <Link
-          href={`/admin/loans/${dealId}/commercial-uw`}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium no-underline hover:underline"
-          style={{ color: T.accent.blue }}
-        >
-          <Building2 size={13} strokeWidth={1.5} />
-          Open Full Commercial Underwriting
-        </Link>
-      </div>
-    </>
+    <div className="grid grid-cols-4 gap-2.5">
+      <MiniMetric label="EGI" value={fmtNum(egi)} />
+      <MiniMetric label="NOI" value={fmtNum(noi)} />
+      <MiniMetric label="DSCR" value={dscr != null ? `${dscr.toFixed(2)}x` : "—"} highlight={dscr != null && dscr >= 1.0} />
+      <MiniMetric label="Cap Rate" value={capRate != null ? `${capRate.toFixed(2)}%` : "—"} />
+    </div>
   );
 }
 
-/* ── RTL / Fix & Flip UW Detail ── */
-function RTLUWDetail({ version }: { version: UWVersion }) {
-  const outputs = version.calculator_outputs || {};
+/* ── RTL Summary ── */
+function RTLSummary({ outputs }: { outputs: Record<string, unknown> }) {
   const ltv = outputs.ltv as number | undefined;
   const ltarv = outputs.ltarv as number | undefined;
-  const ltc = outputs.ltc as number | undefined;
-  const monthlyPayment = outputs.monthly_payment as number | undefined;
-  const totalInterest = outputs.total_interest as number | undefined;
-  const originationFee = outputs.origination_fee as number | undefined;
-  const totalClosingCosts = outputs.total_closing_costs as number | undefined;
-  const totalCashToClose = outputs.total_cash_to_close as number | undefined;
-  const totalHoldingCosts = outputs.total_holding_costs as number | undefined;
   const netProfit = outputs.net_profit as number | undefined;
-  const borrowerRoi = outputs.borrower_roi as number | undefined;
-  const annualizedRoi = outputs.annualized_roi as number | undefined;
-  const netYield = outputs.net_yield as number | undefined;
-  const totalProjectCost = outputs.total_project_cost as number | undefined;
-
-  const inputs = version.calculator_inputs || {};
-  const purchasePrice = inputs.purchase_price as number | undefined;
-  const rehabBudget = inputs.rehab_budget as number | undefined;
-  const arv = inputs.after_repair_value as number | undefined;
+  const roi = outputs.borrower_roi as number | undefined;
 
   return (
-    <>
-      {/* Deal Structure */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Deal Structure
-        </div>
-        <div className="grid grid-cols-4 gap-2.5">
-          <MiniMetric label="Purchase Price" value={fmtNum(purchasePrice)} />
-          <MiniMetric label="Rehab Budget" value={fmtNum(rehabBudget)} />
-          <MiniMetric label="ARV" value={fmtNum(arv)} />
-          <MiniMetric label="Total Project Cost" value={fmtNum(totalProjectCost)} />
-        </div>
-      </div>
-
-      {/* Costs & Fees */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Costs & Fees
-        </div>
-        <div className="grid grid-cols-4 gap-2.5">
-          <MiniMetric label="Monthly Payment" value={fmtNum(monthlyPayment)} />
-          <MiniMetric label="Total Interest" value={fmtNum(totalInterest)} />
-          <MiniMetric label="Origination Fee" value={fmtNum(originationFee)} />
-          <MiniMetric label="Total Closing" value={fmtNum(totalClosingCosts)} />
-        </div>
-      </div>
-
-      {/* Holding & Cash */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Cash Requirements
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          <MiniMetric label="Cash to Close" value={fmtNum(totalCashToClose)} />
-          <MiniMetric label="Total Holding Costs" value={fmtNum(totalHoldingCosts)} />
-          <MiniMetric label="Net Yield" value={netYield != null ? `${netYield.toFixed(2)}%` : "—"} />
-        </div>
-      </div>
-
-      {/* Result */}
-      <ResultBanner
-        mainLabel="Net Profit"
-        mainValue={fmtNum(netProfit)}
-        mainColor={netProfit != null && netProfit >= 0 ? T.accent.green : T.accent.red}
-        extras={[
-          { label: "LTV", value: ltv != null ? `${ltv.toFixed(1)}%` : "—" },
-          { label: "LTARV", value: ltarv != null ? `${ltarv.toFixed(1)}%` : "—" },
-          { label: "LTC", value: ltc != null ? `${ltc.toFixed(1)}%` : "—" },
-          { label: "ROI", value: borrowerRoi != null ? `${borrowerRoi.toFixed(1)}%` : "—" },
-          { label: "Ann. ROI", value: annualizedRoi != null ? `${annualizedRoi.toFixed(1)}%` : "—" },
-        ]}
-      />
-    </>
+    <div className="grid grid-cols-4 gap-2.5">
+      <MiniMetric label="LTV" value={ltv != null ? `${ltv.toFixed(1)}%` : "—"} />
+      <MiniMetric label="LTARV" value={ltarv != null ? `${ltarv.toFixed(1)}%` : "—"} />
+      <MiniMetric label="Net Profit" value={fmtNum(netProfit)} highlight={netProfit != null && netProfit >= 0} />
+      <MiniMetric label="ROI" value={roi != null ? `${roi.toFixed(1)}%` : "—"} />
+    </div>
   );
 }
 
-/* ── DSCR UW Detail ── */
-function DSCRUWDetail({ version }: { version: UWVersion }) {
-  const outputs = version.calculator_outputs || {};
-  const rate = outputs.rate as number | undefined;
+/* ── DSCR Summary ── */
+function DSCRSummary({ outputs }: { outputs: Record<string, unknown> }) {
   const dscr = outputs.dscr as number | undefined;
+  const rate = outputs.rate as number | undefined;
   const ltv = outputs.ltv as number | undefined;
   const monthlyPi = outputs.monthly_pi as number | undefined;
-  const noi = outputs.noi as number | undefined;
-  const monthlyRent = outputs.monthly_rent as number | undefined;
-  const otherIncome = outputs.other_income as number | undefined;
-  const grossIncome = outputs.gross_income as number | undefined;
-  const taxes = outputs.taxes as number | undefined;
-  const insurance = outputs.insurance as number | undefined;
-  const hoa = outputs.hoa as number | undefined;
-  const totalPitia = outputs.total_pitia as number | undefined;
 
   return (
-    <>
-      {/* Revenue */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Revenue
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          <MiniMetric label="Monthly Rent" value={fmtNum(monthlyRent)} />
-          <MiniMetric label="Other Income" value={fmtNum(otherIncome)} />
-          <MiniMetric label="Gross Income" value={fmtNum(grossIncome)} />
-        </div>
-      </div>
-
-      {/* Expenses */}
-      <div className="mb-5">
-        <div
-          className="text-[11px] font-semibold uppercase tracking-wider mb-2.5"
-          style={{ color: T.text.muted }}
-        >
-          Expenses
-        </div>
-        <div className="grid grid-cols-4 gap-2.5">
-          <MiniMetric label="Taxes" value={fmtNum(taxes)} />
-          <MiniMetric label="Insurance" value={fmtNum(insurance)} />
-          <MiniMetric label="HOA" value={fmtNum(hoa)} />
-          <MiniMetric label="Total PITIA" value={fmtNum(totalPitia)} />
-        </div>
-      </div>
-
-      {/* Result */}
-      <ResultBanner
-        mainLabel="Calculated DSCR"
-        mainValue={dscr != null ? `${dscr.toFixed(2)}x` : "—"}
-        mainColor={dscr != null && dscr >= 1.0 ? T.accent.green : T.accent.red}
-        extras={[
-          { label: "Monthly P&I", value: fmtNum(monthlyPi) },
-          { label: "NOI", value: fmtNum(noi) },
-          ...(rate != null ? [{ label: "Rate", value: `${rate.toFixed(2)}%` }] : []),
-          ...(ltv != null ? [{ label: "LTV", value: `${ltv.toFixed(1)}%` }] : []),
-        ]}
-      />
-    </>
-  );
-}
-
-/* ── Result Banner ── */
-function ResultBanner({
-  mainLabel,
-  mainValue,
-  mainColor,
-  extras,
-}: {
-  mainLabel: string;
-  mainValue: string;
-  mainColor: string;
-  extras: { label: string; value: string }[];
-}) {
-  return (
-    <div
-      className="flex items-center justify-between rounded-[10px] px-5 py-4"
-      style={{
-        background: `linear-gradient(135deg, ${T.accent.green}12, ${T.accent.blue}08)`,
-        border: `1px solid ${T.accent.green}33`,
-      }}
-    >
-      <div>
-        <div
-          className="text-[11px] uppercase tracking-wider mb-0.5"
-          style={{ color: T.text.muted }}
-        >
-          {mainLabel}
-        </div>
-        <div
-          className="text-[28px] font-bold num"
-          style={{ color: mainColor }}
-        >
-          {mainValue}
-        </div>
-      </div>
-      <div className="flex gap-6">
-        {extras.map((e) => (
-          <div key={e.label} className="text-right">
-            <div className="text-[10px] uppercase mb-0.5" style={{ color: T.text.muted }}>
-              {e.label}
-            </div>
-            <div className="text-[15px] font-semibold num" style={{ color: T.text.primary }}>
-              {e.value}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-4 gap-2.5">
+      <MiniMetric label="DSCR" value={dscr != null ? `${dscr.toFixed(2)}x` : "—"} highlight={dscr != null && dscr >= 1.0} />
+      <MiniMetric label="Rate" value={rate != null ? `${rate.toFixed(2)}%` : "—"} />
+      <MiniMetric label="LTV" value={ltv != null ? `${ltv.toFixed(1)}%` : "—"} />
+      <MiniMetric label="Monthly P&I" value={fmtNum(monthlyPi)} />
     </div>
   );
 }
@@ -439,12 +260,9 @@ function UWVersionRow({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const outputs = version.calculator_outputs || {};
   const modelType = version.model_type || "rtl";
   const ModelIcon = MODEL_ICONS[modelType];
-
-  // Show relevant metrics based on model type
-  const metrics = getVersionRowMetrics(modelType, outputs);
+  const metrics = getVersionRowMetrics(modelType, version.calculator_outputs);
 
   return (
     <div
@@ -480,9 +298,18 @@ function UWVersionRow({
             <ModelIcon size={10} strokeWidth={1.5} />
             {UW_MODEL_LABELS[modelType]}
           </span>
+          {version.status === "draft" && (
+            <span
+              className="rounded px-1.5 py-px text-[10px] font-medium"
+              style={{ backgroundColor: T.accent.amberMuted, color: T.accent.amber }}
+            >
+              Draft
+            </span>
+          )}
         </div>
         <div className="text-[11px] num" style={{ color: T.text.muted }}>
           {fD(version.created_at)}
+          {version.label && <span> · {version.label}</span>}
         </div>
       </div>
       <div className="flex gap-4 text-xs num" style={{ color: T.text.secondary }}>
@@ -500,42 +327,33 @@ function UWVersionRow({
 
 function getVersionRowMetrics(modelType: UWModelType, outputs: Record<string, unknown>): string[] {
   const metrics: string[] = [];
-
   if (modelType === "commercial") {
     const noi = outputs.noi as number | undefined;
     const dscr = outputs.dscr as number | undefined;
-    const capRate = outputs.cap_rate as number | undefined;
     if (noi != null) metrics.push(`NOI ${fmtNum(noi)}`);
     if (dscr != null) metrics.push(`DSCR ${dscr.toFixed(2)}`);
-    if (capRate != null) metrics.push(`Cap ${capRate.toFixed(2)}%`);
   } else if (modelType === "dscr") {
     const rate = outputs.rate as number | undefined;
     const dscr = outputs.dscr as number | undefined;
-    const ltv = outputs.ltv as number | undefined;
     if (rate != null) metrics.push(`${rate.toFixed(2)}%`);
     if (dscr != null) metrics.push(`DSCR ${dscr.toFixed(2)}`);
-    if (ltv != null) metrics.push(`LTV ${(ltv as number).toFixed(0)}%`);
   } else {
-    // RTL / Fix & Flip
     const ltv = outputs.ltv as number | undefined;
-    const ltarv = outputs.ltarv as number | undefined;
     const roi = outputs.borrower_roi as number | undefined;
     if (ltv != null) metrics.push(`LTV ${ltv.toFixed(0)}%`);
-    if (ltarv != null) metrics.push(`LTARV ${ltarv.toFixed(0)}%`);
     if (roi != null) metrics.push(`ROI ${roi.toFixed(1)}%`);
   }
-
   return metrics;
 }
 
 /* ── Mini Metric ── */
-function MiniMetric({ label, value }: { label: string; value: string }) {
+function MiniMetric({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div
       className="rounded-lg px-3 py-2.5"
       style={{
         backgroundColor: T.bg.elevated,
-        border: `1px solid ${T.bg.borderSubtle}`,
+        border: `1px solid ${highlight ? T.accent.green + "33" : T.bg.borderSubtle}`,
       }}
     >
       <div
@@ -544,7 +362,10 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
       >
         {label}
       </div>
-      <div className="text-base font-semibold num" style={{ color: T.text.primary }}>
+      <div
+        className="text-base font-semibold num"
+        style={{ color: highlight ? T.accent.green : T.text.primary }}
+      >
         {value}
       </div>
     </div>
