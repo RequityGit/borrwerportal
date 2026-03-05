@@ -582,6 +582,60 @@ export type Database = {
           },
         ]
       }
+      borrower_requests: {
+        Row: {
+          borrower_name: string
+          created_at: string | null
+          description: string
+          follow_up_count: number | null
+          id: string
+          last_follow_up_at: string | null
+          loan_id: string
+          requested_by: string
+          resolved_at: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          borrower_name: string
+          created_at?: string | null
+          description: string
+          follow_up_count?: number | null
+          id?: string
+          last_follow_up_at?: string | null
+          loan_id: string
+          requested_by: string
+          resolved_at?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          borrower_name?: string
+          created_at?: string | null
+          description?: string
+          follow_up_count?: number | null
+          id?: string
+          last_follow_up_at?: string | null
+          loan_id?: string
+          requested_by?: string
+          resolved_at?: string | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrower_requests_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loan_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "borrower_requests_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       borrowers: {
         Row: {
           created_at: string
@@ -4307,6 +4361,60 @@ export type Database = {
           },
           {
             foreignKeyName: "crm_tasks_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_tasks: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          due_date: string
+          id: string
+          is_completed: boolean | null
+          loan_id: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          due_date: string
+          id?: string
+          is_completed?: boolean | null
+          loan_id?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          is_completed?: boolean | null
+          loan_id?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_tasks_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loan_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_tasks_loan_id_fkey"
             columns: ["loan_id"]
             isOneToOne: false
             referencedRelation: "loans"
@@ -9238,12 +9346,9 @@ export type Database = {
           entity_label: string | null
           entity_type: string | null
           id: string
-          is_archived: boolean
-          is_read: boolean
           notification_slug: string
           notification_type_id: string | null
           priority: string
-          read_at: string | null
           title: string
           user_id: string
         }
@@ -9259,12 +9364,9 @@ export type Database = {
           entity_label?: string | null
           entity_type?: string | null
           id?: string
-          is_archived?: boolean
-          is_read?: boolean
           notification_slug: string
           notification_type_id?: string | null
           priority?: string
-          read_at?: string | null
           title: string
           user_id: string
         }
@@ -9280,12 +9382,9 @@ export type Database = {
           entity_label?: string | null
           entity_type?: string | null
           id?: string
-          is_archived?: boolean
-          is_read?: boolean
           notification_slug?: string
           notification_type_id?: string | null
           priority?: string
-          read_at?: string | null
           title?: string
           user_id?: string
         }
@@ -12938,6 +13037,30 @@ export type Database = {
           },
         ]
       }
+      user_streaks: {
+        Row: {
+          best_streak: number | null
+          current_streak: number | null
+          last_completed_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          best_streak?: number | null
+          current_streak?: number | null
+          last_completed_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          best_streak?: number | null
+          current_streak?: number | null
+          last_completed_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       borrower_entities_safe: {
@@ -13021,6 +13144,40 @@ export type Database = {
             columns: ["borrower_id"]
             isOneToOne: false
             referencedRelation: "borrowers_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      borrower_requests_view: {
+        Row: {
+          borrower_name: string | null
+          created_at: string | null
+          days_since_sent: number | null
+          description: string | null
+          follow_up_count: number | null
+          id: string | null
+          last_follow_up_at: string | null
+          loan_id: string | null
+          loan_name: string | null
+          loan_number: string | null
+          requested_by: string | null
+          resolved_at: string | null
+          sent_at: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrower_requests_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loan_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "borrower_requests_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
             referencedColumns: ["id"]
           },
         ]
@@ -13477,6 +13634,40 @@ export type Database = {
           urgency: string | null
         }
         Relationships: []
+      }
+      dashboard_tasks_view: {
+        Row: {
+          category: string | null
+          completed_at: string | null
+          created_at: string | null
+          days_overdue: number | null
+          due_date: string | null
+          id: string | null
+          is_completed: boolean | null
+          is_past_due: boolean | null
+          loan_id: string | null
+          loan_name: string | null
+          loan_number: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_tasks_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loan_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_tasks_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_investors_detail: {
         Row: {
@@ -14145,6 +14336,15 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_dashboard_summary: {
+        Row: {
+          period: string | null
+          tasks_completed: number | null
+          tasks_created: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_payment: {
@@ -14169,6 +14369,11 @@ export type Database = {
           p_reviewer_id: string
         }
         Returns: Json
+      }
+      archive_all_notifications: { Args: never; Returns: undefined }
+      archive_notification: {
+        Args: { p_notification_id: string }
+        Returns: undefined
       }
       assign_role: {
         Args: {
@@ -14247,6 +14452,7 @@ export type Database = {
         Args: { p_loan_id: string; p_payoff_date: string }
         Returns: Json
       }
+      get_active_notification_count: { Args: never; Returns: number }
       get_borrower_deals_last_2_years: {
         Args: { p_borrower_id: string }
         Returns: number
@@ -14265,7 +14471,6 @@ export type Database = {
       }
       get_portal_context: { Args: never; Returns: Json }
       get_portfolio_draw_dashboard: { Args: never; Returns: Json }
-      get_unread_notification_count: { Args: never; Returns: number }
       grant_all_modules: {
         Args: { granter_id: string; target_user_id: string }
         Returns: undefined
@@ -14303,11 +14508,6 @@ export type Database = {
           profile_email: string
           profile_id: string
         }[]
-      }
-      mark_all_notifications_read: { Args: never; Returns: undefined }
-      mark_notifications_read: {
-        Args: { p_notification_ids: string[] }
-        Returns: undefined
       }
       match_email_to_entities: {
         Args: { lookup_email: string }
@@ -14422,6 +14622,11 @@ export type Database = {
       test_servicing_infrastructure: { Args: never; Returns: Json }
       text_soundex: { Args: { "": string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
+      unarchive_notification: {
+        Args: { p_notification_id: string }
+        Returns: undefined
+      }
+      update_user_streak: { Args: { p_user_id: string }; Returns: undefined }
       validate_budget_integrity: {
         Args: { p_budget_id: string }
         Returns: boolean
@@ -15304,3 +15509,4 @@ export const Constants = {
     },
   },
 } as const
+

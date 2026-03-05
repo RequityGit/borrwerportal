@@ -1,19 +1,36 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Mail, Loader2, Chrome } from "lucide-react";
+import { Mail, Loader2, Chrome, ShieldAlert } from "lucide-react";
 
 function getSupabase() {
   return createClient();
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState<"google" | "magic" | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noAccess, setNoAccess] = useState(false);
+  const searchParams = useSearchParams();
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("error") === "no_access") {
+      setNoAccess(true);
+    }
+  }, [searchParams]);
 
   function getClient() {
     if (!supabaseRef.current) {
@@ -95,6 +112,19 @@ export default function LoginPage() {
               Platform Login
             </p>
           </div>
+
+          {/* No Access Message */}
+          {noAccess && (
+            <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-md mb-4 flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" strokeWidth={1.5} />
+              <div>
+                <p className="font-medium">Access denied</p>
+                <p className="mt-1 text-destructive/80">
+                  Your account has not been invited to this portal. Please contact your administrator for access.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
