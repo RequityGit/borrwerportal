@@ -514,6 +514,21 @@ export default async function DealDetailPage({ params }: PageProps) {
     };
   });
 
+  // ─── Fetch admin/team profiles for team assignment ───
+  let adminProfiles: { id: string; full_name: string }[] = [];
+  try {
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .order("full_name");
+    adminProfiles = (allProfiles ?? []).map((p: { id: string; full_name: string | null }) => ({
+      id: p.id,
+      full_name: p.full_name ?? "Unknown",
+    }));
+  } catch {
+    /* ok */
+  }
+
   const deal: DealData = {
     ...d,
     _borrower_name: d._borrower_name ?? null,
@@ -545,6 +560,7 @@ export default async function DealDetailPage({ params }: PageProps) {
       currentUserId={currentUserId}
       currentUserName={currentUserName}
       currentUserInitials={currentUserInitials}
+      adminProfiles={adminProfiles}
     />
   );
 }
