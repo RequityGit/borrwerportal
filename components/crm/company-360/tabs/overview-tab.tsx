@@ -21,6 +21,10 @@ import {
   FieldRow,
   EditableFieldRow,
 } from "@/components/crm/contact-360/contact-detail-shared";
+import {
+  CrmEditSectionDialog,
+  type CrmSectionField,
+} from "@/components/crm/crm-edit-section-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/format";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
@@ -88,6 +92,9 @@ export function CompanyOverviewTab({
   const router = useRouter();
   const { toast } = useToast();
   const [showWire, setShowWire] = useState(false);
+  const [editCompanyOpen, setEditCompanyOpen] = useState(false);
+  const [editAddressOpen, setEditAddressOpen] = useState(false);
+  const [editAgreementsOpen, setEditAgreementsOpen] = useState(false);
   const isLender = company.company_type === "lender";
   const typeCfg =
     COMPANY_TYPE_CONFIG[company.company_type] || COMPANY_TYPE_CONFIG.other;
@@ -124,6 +131,51 @@ export function CompanyOverviewTab({
     [company.id, router, toast]
   );
 
+  // --- Section field definitions for edit dialogs ---
+
+  const companyInfoFields: CrmSectionField[] = [
+    { label: "Legal Name", fieldName: "name", fieldType: "text", value: company.name },
+    { label: "DBA / Other Names", fieldName: "other_names", fieldType: "text", value: company.other_names },
+    {
+      label: "Company Type", fieldName: "company_type", fieldType: "select", value: company.company_type,
+      options: COMPANY_TYPE_OPTIONS,
+    },
+    { label: "Phone", fieldName: "phone", fieldType: "text", value: company.phone },
+    { label: "Email", fieldName: "email", fieldType: "text", value: company.email },
+    { label: "Website", fieldName: "website", fieldType: "text", value: company.website },
+    { label: "Source", fieldName: "source", fieldType: "text", value: company.source },
+    { label: "Status", fieldName: "is_active", fieldType: "boolean", value: company.is_active },
+    { label: "Title Co. Verified", fieldName: "title_company_verified", fieldType: "boolean", value: company.title_company_verified },
+  ];
+
+  const addressFields: CrmSectionField[] = [
+    { label: "Address Line 1", fieldName: "address_line1", fieldType: "text", value: company.address_line1 },
+    { label: "Address Line 2", fieldName: "address_line2", fieldType: "text", value: company.address_line2 },
+    { label: "City", fieldName: "city", fieldType: "text", value: company.city },
+    { label: "State", fieldName: "state", fieldType: "text", value: company.state },
+    { label: "Zip", fieldName: "zip", fieldType: "text", value: company.zip },
+    { label: "Country", fieldName: "country", fieldType: "text", value: company.country || "US" },
+  ];
+
+  const agreementFields: CrmSectionField[] = [
+    { label: "NDA Created", fieldName: "nda_created_date", fieldType: "date", value: company.nda_created_date },
+    { label: "NDA Expiration", fieldName: "nda_expiration_date", fieldType: "date", value: company.nda_expiration_date },
+    { label: "Fee Agreement On File", fieldName: "fee_agreement_on_file", fieldType: "boolean", value: company.fee_agreement_on_file },
+  ];
+
+  function SectionEditButton({ onClick }: { onClick: () => void }) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-1 text-xs h-7 text-muted-foreground"
+        onClick={onClick}
+      >
+        <Pencil size={12} strokeWidth={1.5} /> Edit
+      </Button>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-5">
       {/* Lender Performance Metrics - placeholder for future data */}
@@ -141,7 +193,7 @@ export function CompanyOverviewTab({
       )}
 
       {/* Company Information */}
-      <SectionCard title="Company Information" icon={Building2}>
+      <SectionCard title="Company Information" icon={Building2} action={<SectionEditButton onClick={() => setEditCompanyOpen(true)} />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
           <EditableFieldRow
             label="Legal Name"
@@ -218,7 +270,7 @@ export function CompanyOverviewTab({
       </SectionCard>
 
       {/* Address */}
-      <SectionCard title="Address" icon={MapPin}>
+      <SectionCard title="Address" icon={MapPin} action={<SectionEditButton onClick={() => setEditAddressOpen(true)} />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
           <EditableFieldRow
             label="Address Line 1"
@@ -371,7 +423,7 @@ export function CompanyOverviewTab({
         )}
 
       {/* Agreements */}
-      <SectionCard title="Agreements" icon={FileText}>
+      <SectionCard title="Agreements" icon={FileText} action={<SectionEditButton onClick={() => setEditAgreementsOpen(true)} />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
           <FieldRow
             label="NDA Status"
@@ -523,6 +575,29 @@ export function CompanyOverviewTab({
           onSave={(v) => saveField("notes", v)}
         />
       </SectionCard>
+
+      {/* Section Edit Dialogs */}
+      <CrmEditSectionDialog
+        open={editCompanyOpen}
+        onOpenChange={setEditCompanyOpen}
+        title="Company Information"
+        fields={companyInfoFields}
+        onSave={saveField}
+      />
+      <CrmEditSectionDialog
+        open={editAddressOpen}
+        onOpenChange={setEditAddressOpen}
+        title="Address"
+        fields={addressFields}
+        onSave={saveField}
+      />
+      <CrmEditSectionDialog
+        open={editAgreementsOpen}
+        onOpenChange={setEditAgreementsOpen}
+        title="Agreements"
+        fields={agreementFields}
+        onSave={saveField}
+      />
     </div>
   );
 }

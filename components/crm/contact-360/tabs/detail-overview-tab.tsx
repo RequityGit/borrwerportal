@@ -1,18 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Landmark, TrendingUp, User, Shield, FileText } from "lucide-react";
+import { Landmark, TrendingUp, User, Shield, FileText, Pencil } from "lucide-react";
 import {
   MetricCard,
   FieldRow,
   EditableFieldRow,
   MonoValue,
 } from "../contact-detail-shared";
+import {
+  CrmEditSectionDialog,
+  type CrmSectionField,
+} from "@/components/crm/crm-edit-section-dialog";
 import { formatCurrency, formatPercent, formatDate } from "@/lib/format";
 import type {
   ContactData,
@@ -31,6 +36,18 @@ interface DetailOverviewTabProps {
   isSuperAdmin: boolean;
 }
 
+function SectionEditButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors cursor-pointer border-0 text-muted-foreground bg-transparent hover:bg-muted hover:text-foreground"
+    >
+      <Pencil size={12} strokeWidth={1.5} />
+      Edit
+    </button>
+  );
+}
+
 export function DetailOverviewTab({
   contact,
   borrower,
@@ -42,6 +59,10 @@ export function DetailOverviewTab({
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
+
+  const [editContactOpen, setEditContactOpen] = useState(false);
+  const [editBorrowerOpen, setEditBorrowerOpen] = useState(false);
+  const [editInvestorOpen, setEditInvestorOpen] = useState(false);
 
   async function updateBorrowerField(
     field: string,
@@ -140,6 +161,94 @@ export function DetailOverviewTab({
   const hasBorrower = !!borrower;
   const hasInvestor = !!investor;
 
+  // --- Section field definitions for edit dialogs ---
+
+  const contactFields: CrmSectionField[] = [
+    { label: "First Name", fieldName: "first_name", fieldType: "text", value: contact.first_name },
+    { label: "Last Name", fieldName: "last_name", fieldType: "text", value: contact.last_name },
+    { label: "Email", fieldName: "email", fieldType: "text", value: contact.email },
+    { label: "Phone", fieldName: "phone", fieldType: "text", value: contact.phone },
+    { label: "Address", fieldName: "address_line1", fieldType: "text", value: contact.address_line1 },
+    { label: "City", fieldName: "city", fieldType: "text", value: contact.city },
+    { label: "State", fieldName: "state", fieldType: "text", value: contact.state },
+    { label: "Zip", fieldName: "zip", fieldType: "text", value: contact.zip },
+    {
+      label: "Lifecycle Stage", fieldName: "lifecycle_stage", fieldType: "select", value: contact.lifecycle_stage,
+      options: [
+        { label: "Uncontacted", value: "uncontacted" },
+        { label: "Prospect", value: "prospect" },
+        { label: "Active", value: "active" },
+        { label: "Past", value: "past" },
+      ],
+    },
+    {
+      label: "Status", fieldName: "status", fieldType: "select", value: contact.status,
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+        { label: "Converted", value: "converted" },
+        { label: "Lost", value: "lost" },
+        { label: "Do Not Contact", value: "do_not_contact" },
+      ],
+    },
+    {
+      label: "Source", fieldName: "source", fieldType: "select", value: contact.source,
+      options: [
+        { label: "Website", value: "website" },
+        { label: "Referral", value: "referral" },
+        { label: "Cold Call", value: "cold_call" },
+        { label: "Email Campaign", value: "email_campaign" },
+        { label: "Social Media", value: "social_media" },
+        { label: "Event", value: "event" },
+        { label: "Paid Ad", value: "paid_ad" },
+        { label: "Organic", value: "organic" },
+        { label: "Broker", value: "broker" },
+        { label: "Repeat Client", value: "repeat_client" },
+        { label: "Other", value: "other" },
+      ],
+    },
+    { label: "Company", fieldName: "company_name", fieldType: "text", value: contact.company_name },
+  ];
+
+  const borrowerFields: CrmSectionField[] = borrower
+    ? [
+        { label: "Credit Score", fieldName: "credit_score", fieldType: "number", value: borrower.credit_score },
+        { label: "Credit Report Date", fieldName: "credit_report_date", fieldType: "date", value: borrower.credit_report_date },
+        { label: "RE Experience", fieldName: "experience_count", fieldType: "number", value: borrower.experience_count },
+        { label: "Date of Birth", fieldName: "date_of_birth", fieldType: "date", value: borrower.date_of_birth },
+        { label: "US Citizen", fieldName: "is_us_citizen", fieldType: "boolean", value: borrower.is_us_citizen },
+        {
+          label: "Marital Status", fieldName: "marital_status", fieldType: "select", value: borrower.marital_status,
+          options: [
+            { label: "Single", value: "single" },
+            { label: "Married", value: "married" },
+            { label: "Divorced", value: "divorced" },
+            { label: "Widowed", value: "widowed" },
+            { label: "Separated", value: "separated" },
+          ],
+        },
+        { label: "Stated Liquidity", fieldName: "stated_liquidity", fieldType: "currency", value: borrower.stated_liquidity },
+        { label: "Verified Liquidity", fieldName: "verified_liquidity", fieldType: "currency", value: borrower.verified_liquidity },
+        { label: "Stated Net Worth", fieldName: "stated_net_worth", fieldType: "currency", value: borrower.stated_net_worth },
+        { label: "Verified Net Worth", fieldName: "verified_net_worth", fieldType: "currency", value: borrower.verified_net_worth },
+      ]
+    : [];
+
+  const investorFields: CrmSectionField[] = investor
+    ? [
+        {
+          label: "Accreditation", fieldName: "accreditation_status", fieldType: "select", value: investor.accreditation_status,
+          options: [
+            { label: "Pending", value: "pending" },
+            { label: "Verified", value: "verified" },
+            { label: "Expired", value: "expired" },
+            { label: "Not Accredited", value: "not_accredited" },
+          ],
+        },
+        { label: "Verified At", fieldName: "accreditation_verified_at", fieldType: "date", value: investor.accreditation_verified_at },
+      ]
+    : [];
+
   return (
     <div className="flex flex-col gap-5">
       {/* Borrower Summary */}
@@ -222,14 +331,17 @@ export function DetailOverviewTab({
       {hasBorrower && (
         <Card className="rounded-xl border-border">
           <CardHeader className="px-5 py-3.5 border-b border-border/60">
-            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
-              <User
-                size={16}
-                className="text-muted-foreground"
-                strokeWidth={1.5}
-              />
-              Borrower Profile
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
+                <User
+                  size={16}
+                  className="text-muted-foreground"
+                  strokeWidth={1.5}
+                />
+                Borrower Profile
+              </CardTitle>
+              <SectionEditButton onClick={() => setEditBorrowerOpen(true)} />
+            </div>
           </CardHeader>
           <CardContent className="p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
@@ -365,14 +477,17 @@ export function DetailOverviewTab({
       {hasInvestor && (
         <Card className="rounded-xl border-border">
           <CardHeader className="px-5 py-3.5 border-b border-border/60">
-            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
-              <Shield
-                size={16}
-                className="text-muted-foreground"
-                strokeWidth={1.5}
-              />
-              Investor Profile
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
+                <Shield
+                  size={16}
+                  className="text-muted-foreground"
+                  strokeWidth={1.5}
+                />
+                Investor Profile
+              </CardTitle>
+              <SectionEditButton onClick={() => setEditInvestorOpen(true)} />
+            </div>
           </CardHeader>
           <CardContent className="p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
@@ -441,14 +556,17 @@ export function DetailOverviewTab({
       {/* Contact Profile */}
       <Card className="rounded-xl border-border">
         <CardHeader className="px-5 py-3.5 border-b border-border/60">
-          <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
-            <FileText
-              size={16}
-              className="text-muted-foreground"
-              strokeWidth={1.5}
-            />
-            Contact Profile
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
+              <FileText
+                size={16}
+                className="text-muted-foreground"
+                strokeWidth={1.5}
+              />
+              Contact Profile
+            </CardTitle>
+            <SectionEditButton onClick={() => setEditContactOpen(true)} />
+          </div>
         </CardHeader>
         <CardContent className="p-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
@@ -600,6 +718,33 @@ export function DetailOverviewTab({
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Section Edit Dialogs */}
+      <CrmEditSectionDialog
+        open={editContactOpen}
+        onOpenChange={setEditContactOpen}
+        title="Contact Profile"
+        fields={contactFields}
+        onSave={updateContactField}
+      />
+      {hasBorrower && (
+        <CrmEditSectionDialog
+          open={editBorrowerOpen}
+          onOpenChange={setEditBorrowerOpen}
+          title="Borrower Profile"
+          fields={borrowerFields}
+          onSave={updateBorrowerField}
+        />
+      )}
+      {hasInvestor && (
+        <CrmEditSectionDialog
+          open={editInvestorOpen}
+          onOpenChange={setEditInvestorOpen}
+          title="Investor Profile"
+          fields={investorFields}
+          onSave={updateInvestorField}
+        />
       )}
     </div>
   );
