@@ -13,11 +13,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const VALID_TYPES = ["rtl", "dscr"] as const;
+const VALID_TYPES = ["rtl", "dscr", "commercial"] as const;
 
 const MODEL_LABELS: Record<string, string> = {
   rtl: "Fix & Flip / RTL",
   dscr: "DSCR Calculator",
+  commercial: "Commercial Underwriting",
 };
 
 export default async function SandboxPage({
@@ -92,7 +93,7 @@ export default async function SandboxPage({
     created_by: existingVersion.created_by,
     label: existingVersion.label ?? null,
     notes: existingVersion.notes ?? null,
-    model_type: type as "rtl" | "dscr",
+    model_type: type as "rtl" | "dscr" | "commercial",
     calculator_inputs: (existingVersion.calculator_inputs ?? {}) as Record<string, unknown>,
     calculator_outputs: (existingVersion.calculator_outputs ?? {}) as Record<string, unknown>,
     status: "draft",
@@ -104,7 +105,7 @@ export default async function SandboxPage({
     <UWEditorClient
       dealId=""
       dealName={`Sandbox — ${MODEL_LABELS[type] || type}`}
-      modelType={type as "rtl" | "dscr"}
+      modelType={type as "rtl" | "dscr" | "commercial"}
       versions={[version]}
       activeVersionId={null}
       currentUserId={user.id}
