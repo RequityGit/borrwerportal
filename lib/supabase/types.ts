@@ -7667,8 +7667,9 @@ export type Database = {
           id: string
           is_edited: boolean
           is_internal: boolean
-          loan_id: string
+          loan_id: string | null
           mentions: string[] | null
+          opportunity_id: string | null
           parent_comment_id: string | null
           updated_at: string
         }
@@ -7681,8 +7682,9 @@ export type Database = {
           id?: string
           is_edited?: boolean
           is_internal?: boolean
-          loan_id: string
+          loan_id?: string | null
           mentions?: string[] | null
+          opportunity_id?: string | null
           parent_comment_id?: string | null
           updated_at?: string
         }
@@ -7695,8 +7697,9 @@ export type Database = {
           id?: string
           is_edited?: boolean
           is_internal?: boolean
-          loan_id?: string
+          loan_id?: string | null
           mentions?: string[] | null
+          opportunity_id?: string | null
           parent_comment_id?: string | null
           updated_at?: string
         }
@@ -7713,6 +7716,20 @@ export type Database = {
             columns: ["loan_id"]
             isOneToOne: false
             referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_comments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_comments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_pipeline"
             referencedColumns: ["id"]
           },
           {
@@ -8242,6 +8259,7 @@ export type Database = {
           is_active: boolean
           label: string | null
           loan_id: string
+          model_type: string
           notes: string | null
           status: string
           version_number: number
@@ -8255,6 +8273,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           loan_id: string
+          model_type?: string
           notes?: string | null
           status?: string
           version_number?: number
@@ -8268,6 +8287,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           loan_id?: string
+          model_type?: string
           notes?: string | null
           status?: string
           version_number?: number

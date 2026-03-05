@@ -179,11 +179,12 @@ export async function saveUWVersion(
 }
 
 export async function postComment(
-  loanId: string,
+  dealId: string,
   userId: string,
   userName: string,
   comment: string,
-  isInternal: boolean
+  isInternal: boolean,
+  isOpportunity: boolean = false
 ) {
   try {
     const auth = await requireAdmin();
@@ -191,27 +192,27 @@ export async function postComment(
 
     const admin = createAdminClient();
 
+    const insertPayload = isOpportunity
+      ? { opportunity_id: dealId, author_id: userId, author_name: userName, comment, is_internal: isInternal }
+      : { loan_id: dealId, author_id: userId, author_name: userName, comment, is_internal: isInternal };
+
     const { data, error } = await admin
       .from("loan_comments")
-      .insert({
-        loan_id: loanId,
-        author_id: userId,
-        author_name: userName,
-        comment,
-        is_internal: isInternal,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
     if (error) return { error: error.message };
 
-    // Log activity
-    await admin.from("loan_activity_log").insert({
-      loan_id: loanId,
-      action: "comment",
-      description: `Comment posted by ${userName}`,
-      performed_by: userId,
-    });
+    // Log activity (only for loans — loan_activity_log has FK to loans)
+    if (!isOpportunity) {
+      await admin.from("loan_activity_log").insert({
+        loan_id: dealId,
+        action: "comment",
+        description: `Comment posted by ${userName}`,
+        performed_by: userId,
+      });
+    }
 
     return { success: true, comment: data };
   } catch (err: unknown) {
