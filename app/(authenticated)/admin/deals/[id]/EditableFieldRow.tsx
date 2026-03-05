@@ -71,7 +71,8 @@ export function EditableFieldRow({
 
   const isEditable =
     (onSave && !relatedTable) ||
-    (onSaveRelated && relatedTable && relatedId);
+    (onSaveRelated && relatedTable && relatedId) ||
+    (onSave && relatedTable && !relatedId);
 
   const shown =
     displayValue ??
@@ -158,7 +159,7 @@ export function EditableFieldRow({
           {label}
         </span>
         <Select
-          value={value != null ? String(value) : ""}
+          value={value != null && value !== "" ? String(value) : undefined}
           onValueChange={async (newVal) => {
             setIsSaving(true);
             try {
@@ -184,7 +185,7 @@ export function EditableFieldRow({
               {isSaving ? (
                 <Loader2 size={12} className="animate-spin" color={T.accent.blue} />
               ) : (
-                <SelectValue placeholder="\u2014" />
+                <SelectValue placeholder="—" />
               )}
             </div>
           </SelectTrigger>

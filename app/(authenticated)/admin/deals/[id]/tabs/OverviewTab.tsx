@@ -1,19 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import {
   FileText,
   Building2,
   Shield,
+  Pencil,
 } from "lucide-react";
 import {
   SectionCard,
   fmt,
   fP,
   cap,
+  T,
   type DealData,
 } from "../components";
 import { EditableFieldRow } from "../EditableFieldRow";
 import type { SelectOption } from "../EditableFieldRow";
+import { EditSectionDialog, type SectionField } from "../EditSectionDialog";
 import {
   LOAN_DB_TYPES,
   LOAN_PURPOSES,
@@ -42,13 +46,106 @@ function toOptions(
   return arr.map((i) => ({ value: i.value, label: i.label }));
 }
 
+function EditButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors cursor-pointer border-0"
+      style={{
+        color: T.text.muted,
+        backgroundColor: "transparent",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = T.bg.hover;
+        e.currentTarget.style.color = T.text.primary;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+        e.currentTarget.style.color = T.text.muted;
+      }}
+    >
+      <Pencil size={12} strokeWidth={1.5} />
+      Edit
+    </button>
+  );
+}
+
+const ENTITY_TYPE_OPTIONS: SelectOption[] = [
+  { value: "llc", label: "LLC" },
+  { value: "corporation", label: "Corporation" },
+  { value: "partnership", label: "Partnership" },
+  { value: "trust", label: "Trust" },
+  { value: "individual", label: "Individual" },
+  { value: "other", label: "Other" },
+];
+
 export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
   const d = deal;
+  const isEditable = Boolean(onSave);
+
+  const [editLoanOpen, setEditLoanOpen] = useState(false);
+  const [editPropertyOpen, setEditPropertyOpen] = useState(false);
+  const [editBorrowerOpen, setEditBorrowerOpen] = useState(false);
+
+  const loanFields: SectionField[] = [
+    { label: "Loan Number", fieldName: "loan_number", fieldType: "readonly", value: d.loan_number },
+    { label: "Type", fieldName: "type", fieldType: "select", options: toOptions(LOAN_DB_TYPES), value: d.type || d.loan_type },
+    { label: "Purpose", fieldName: "purpose", fieldType: "select", options: toOptions(LOAN_PURPOSES), value: d.purpose || d.loan_purpose },
+    { label: "Channel", fieldName: "funding_channel", fieldType: "select", options: toOptions(FUNDING_CHANNELS), value: d.funding_channel },
+    { label: "Strategy", fieldName: "strategy", fieldType: "select", options: toOptions(INVESTMENT_STRATEGIES), value: d.strategy || d.investment_strategy },
+    { label: "Financing", fieldName: "financing", fieldType: "select", options: toOptions(DEAL_FINANCING_OPTIONS), value: d.financing || d.deal_financing },
+    { label: "Tranche", fieldName: "debt_tranche", fieldType: "select", options: toOptions(DEBT_TRANCHES), value: d.debt_tranche },
+    { label: "Programs", fieldName: "deal_programs", fieldType: "text", value: d.deal_programs?.join(", ") },
+  ];
+
+  const propertyFields: SectionField[] = [
+    { label: "Address", fieldName: "property_address_line1", fieldType: "text", value: d.property_address_line1 || d.property_address?.split(",")[0] },
+    { label: "City", fieldName: "property_city", fieldType: "text", value: d.property_city },
+    { label: "State", fieldName: "property_state", fieldType: "text", value: d.property_state },
+    { label: "Zip", fieldName: "property_zip", fieldType: "text", value: d.property_zip },
+    { label: "Property Type", fieldName: "property_type", fieldType: "select", options: PROPERTY_TYPE_OPTIONS as unknown as SelectOption[], value: d.property_type },
+    { label: "Units", fieldName: "property_units", fieldType: "number", value: d.property_units ?? d.number_of_units },
+    { label: "Year Built", fieldName: "_property_year_built", fieldType: "number", value: d._property_year_built },
+    { label: "Sq Ft", fieldName: "_property_sqft", fieldType: "number", value: d._property_sqft },
+    { label: "Appraised Value", fieldName: "appraised_value", fieldType: "currency", value: d.appraised_value },
+    { label: "Purchase Price", fieldName: "purchase_price", fieldType: "currency", value: d.purchase_price },
+  ];
+
+  const borrowerFields: SectionField[] = [
+    {
+      label: "Entity Name", fieldName: "entity_name", fieldType: "text", value: d._entity_name,
+      relatedTable: "borrower_entities", relatedId: d.borrower_entity_id,
+    },
+    {
+      label: "Entity Type", fieldName: "entity_type", fieldType: "select", options: ENTITY_TYPE_OPTIONS, value: d._entity_type,
+      relatedTable: "borrower_entities", relatedId: d.borrower_entity_id,
+    },
+    {
+      label: "Guarantor", fieldName: "first_name", fieldType: "text", value: d._borrower_name,
+      relatedTable: "borrowers", relatedId: d.borrower_id,
+    },
+    {
+      label: "FICO", fieldName: "credit_score", fieldType: "number", value: d._borrower_credit_score,
+      relatedTable: "borrowers", relatedId: d.borrower_id,
+    },
+    {
+      label: "Liquidity", fieldName: "verified_liquidity", fieldType: "currency", value: d._borrower_liquidity,
+      relatedTable: "borrowers", relatedId: d.borrower_id,
+    },
+    {
+      label: "Experience", fieldName: "experience_count", fieldType: "number", value: d._borrower_experience,
+      relatedTable: "borrowers", relatedId: d.borrower_id,
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-4">
       {/* Loan Details */}
-      <SectionCard title="Loan Details" icon={FileText}>
+      <SectionCard
+        title="Loan Details"
+        icon={FileText}
+        right={isEditable ? <EditButton onClick={() => setEditLoanOpen(true)} /> : undefined}
+      >
         <div className="grid grid-cols-2 gap-x-8">
           <EditableFieldRow
             label="Loan Number"
@@ -120,7 +217,11 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
       </SectionCard>
 
       {/* Property */}
-      <SectionCard title="Property" icon={Building2}>
+      <SectionCard
+        title="Property"
+        icon={Building2}
+        right={isEditable ? <EditButton onClick={() => setEditPropertyOpen(true)} /> : undefined}
+      >
         <div className="grid grid-cols-2 gap-x-8">
           <EditableFieldRow
             label="Address"
@@ -202,7 +303,11 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
       </SectionCard>
 
       {/* Borrower Entity */}
-      <SectionCard title="Borrower Entity" icon={Shield}>
+      <SectionCard
+        title="Borrower Entity"
+        icon={Shield}
+        right={isEditable ? <EditButton onClick={() => setEditBorrowerOpen(true)} /> : undefined}
+      >
         <div className="grid grid-cols-2 gap-x-8">
           <EditableFieldRow
             label="Entity Name"
@@ -218,14 +323,7 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
             displayValue={cap(d._entity_type)}
             fieldName="entity_type"
             fieldType="select"
-            options={[
-              { value: "llc", label: "LLC" },
-              { value: "corporation", label: "Corporation" },
-              { value: "partnership", label: "Partnership" },
-              { value: "trust", label: "Trust" },
-              { value: "individual", label: "Individual" },
-              { value: "other", label: "Other" },
-            ]}
+            options={ENTITY_TYPE_OPTIONS}
             relatedTable="borrower_entities"
             relatedId={d.borrower_entity_id}
             onSaveRelated={onSaveRelated}
@@ -275,6 +373,34 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
           />
         </div>
       </SectionCard>
+
+      {/* Edit Dialogs */}
+      {isEditable && (
+        <>
+          <EditSectionDialog
+            open={editLoanOpen}
+            onOpenChange={setEditLoanOpen}
+            title="Loan Details"
+            fields={loanFields}
+            onSave={onSave}
+          />
+          <EditSectionDialog
+            open={editPropertyOpen}
+            onOpenChange={setEditPropertyOpen}
+            title="Property"
+            fields={propertyFields}
+            onSave={onSave}
+          />
+          <EditSectionDialog
+            open={editBorrowerOpen}
+            onOpenChange={setEditBorrowerOpen}
+            title="Borrower Entity"
+            fields={borrowerFields}
+            onSave={onSave}
+            onSaveRelated={onSaveRelated}
+          />
+        </>
+      )}
     </div>
   );
 }
