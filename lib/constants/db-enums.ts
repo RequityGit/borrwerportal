@@ -531,14 +531,6 @@ export type EligibilityOverallResult =
   (typeof ELIGIBILITY_OVERALL_VALUES)[number];
 
 // ============================================
-// loan_comments
-// ============================================
-
-/** Constraint: inline check on loan_comments.comment_type */
-export const LOAN_COMMENT_TYPES = ["loan", "condition"] as const;
-export type LoanCommentType = (typeof LOAN_COMMENT_TYPES)[number];
-
-// ============================================
 // commercial_underwriting
 // ============================================
 
