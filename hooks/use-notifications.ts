@@ -9,7 +9,7 @@ interface UseNotificationsOptions {
   limit?: number;
   category?: string;
   priority?: string;
-  status?: "all" | "unread" | "read";
+  view?: "active" | "archived";
   dateRange?: "today" | "week" | "month" | "all";
 }
 
@@ -17,7 +17,7 @@ export function useNotifications(
   userId: string | undefined,
   options: UseNotificationsOptions = {}
 ) {
-  const { limit = 15, category, priority, status = "all", dateRange = "all" } = options;
+  const { limit = 15, category, priority, view = "active", dateRange = "all" } = options;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -34,9 +34,15 @@ export function useNotifications(
         .notifications()
         .select("*")
         .eq("user_id", userId)
-        .eq("is_archived", false)
         .order("created_at", { ascending: false })
         .range(pageNum * limit, (pageNum + 1) * limit - 1);
+
+      // Active = archived_at IS NULL, Archived = archived_at IS NOT NULL
+      if (view === "active") {
+        query = query.is("archived_at", null);
+      } else {
+        query = query.not("archived_at", "is", null);
+      }
 
       if (category && category !== "all") {
         query = query.eq("notification_slug", category);
@@ -44,12 +50,6 @@ export function useNotifications(
 
       if (priority && priority !== "all") {
         query = query.eq("priority", priority);
-      }
-
-      if (status === "unread") {
-        query = query.eq("is_read", false);
-      } else if (status === "read") {
-        query = query.eq("is_read", true);
       }
 
       if (dateRange === "today") {
@@ -80,7 +80,7 @@ export function useNotifications(
       setLoading(false);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [userId, limit, category, priority, status, dateRange]
+    [userId, limit, category, priority, view, dateRange]
   );
 
   useEffect(() => {
@@ -88,9 +88,9 @@ export function useNotifications(
     fetchNotifications(0);
   }, [fetchNotifications]);
 
-  // Subscribe to realtime new notifications
+  // Subscribe to realtime new notifications (only for active view)
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || view !== "active") return;
 
     const channel = supabase
       .channel(`notifications-list-${userId}`)
@@ -113,7 +113,7 @@ export function useNotifications(
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, view]);
 
   const loadMore = useCallback(() => {
     const nextPage = page + 1;
@@ -121,41 +121,11 @@ export function useNotifications(
     fetchNotifications(nextPage, true);
   }, [page, fetchNotifications]);
 
-  const markAsRead = useCallback(
-    async (notificationIds: string[]) => {
-      const { error } = await q.rpc("mark_notifications_read", {
-        p_notification_ids: notificationIds,
-      });
-      if (!error) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            notificationIds.includes(n.id)
-              ? { ...n, is_read: true, read_at: new Date().toISOString() }
-              : n
-          )
-        );
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const markAllAsRead = useCallback(async () => {
-    const { error } = await q.rpc("mark_all_notifications_read");
-    if (!error) {
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const archiveNotification = useCallback(
     async (notificationId: string) => {
-      const { error } = await q
-        .notifications()
-        .update({ is_archived: true, archived_at: new Date().toISOString() })
-        .eq("id", notificationId);
+      const { error } = await q.rpc("archive_notification", {
+        p_notification_id: notificationId,
+      });
       if (!error) {
         setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       }
@@ -164,28 +134,35 @@ export function useNotifications(
     []
   );
 
-  const archiveAllRead = useCallback(async () => {
-    const { error } = await q
-      .notifications()
-      .update({ is_archived: true, archived_at: new Date().toISOString() })
-      .eq("user_id", userId)
-      .eq("is_read", true)
-      .eq("is_archived", false);
+  const archiveAll = useCallback(async () => {
+    const { error } = await q.rpc("archive_all_notifications");
     if (!error) {
-      setNotifications((prev) => prev.filter((n) => !n.is_read));
+      setNotifications([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, []);
+
+  const unarchiveNotification = useCallback(
+    async (notificationId: string) => {
+      const { error } = await q.rpc("unarchive_notification", {
+        p_notification_id: notificationId,
+      });
+      if (!error) {
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   return {
     notifications,
     loading,
     hasMore,
     loadMore,
-    markAsRead,
-    markAllAsRead,
     archiveNotification,
-    archiveAllRead,
+    archiveAll,
+    unarchiveNotification,
     refetch: () => fetchNotifications(0),
   };
 }

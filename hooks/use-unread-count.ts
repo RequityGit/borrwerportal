@@ -13,7 +13,7 @@ export function useUnreadCount(userId: string | undefined) {
   const fetchCount = useCallback(async () => {
     if (!userId) return;
     const { data, error } = await nq(supabaseRef.current).rpc(
-      "get_unread_notification_count"
+      "get_active_notification_count"
     );
     if (!error && data !== null) {
       setCount(data as number);
@@ -42,7 +42,7 @@ export function useUnreadCount(userId: string | undefined) {
     };
 
     const channel = supabase
-      .channel(`unread-count-${userId}`)
+      .channel(`active-count-${userId}`)
       .on(
         "postgres_changes",
         {
