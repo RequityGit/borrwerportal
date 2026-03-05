@@ -141,7 +141,7 @@ export function UnifiedPipeline({
 
   // ── Equity pipeline stats ─────────────────────────────────────────
 
-  const equityTerminalStages = ["dead"];
+  const equityTerminalStages = ["closed_won", "closed_lost"];
   const activeEquityDeals = equityDeals.filter(
     (d) => !equityTerminalStages.includes(d.stage)
   );
@@ -154,7 +154,7 @@ export function UnifiedPipeline({
   );
 
   const underContractPlus = activeEquityDeals.filter((d) =>
-    ["under_contract", "closing", "closed"].includes(d.stage)
+    ["under_contract", "closed_won"].includes(d.stage)
   ).length;
 
   // ── Filtering ─────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ export function UnifiedPipeline({
       {/* Page Header with Toggle and New Deal */}
       <PageHeader
         title="Pipeline"
-        description="Track and manage deals from sourcing through close."
+        description="Track and manage deals from new deals through close."
         action={
           <Link
             href={

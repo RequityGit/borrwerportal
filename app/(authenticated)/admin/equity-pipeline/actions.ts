@@ -20,8 +20,8 @@ export async function moveEquityStageAction(
 
     const admin = createAdminClient();
 
-    if (newStage === "dead" && !lossReason) {
-      return { error: "Loss reason is required when marking a deal as dead" };
+    if (newStage === "closed_lost" && !lossReason) {
+      return { error: "Loss reason is required when marking a deal as closed lost" };
     }
 
     const { data: deal, error: fetchErr } = await admin
