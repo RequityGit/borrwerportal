@@ -13,11 +13,10 @@ import { DocumentsTab } from "./tabs/DocumentsTab";
 import { ActivityTab } from "./tabs/ActivityTab";
 import { CommentsTab } from "./tabs/CommentsTab";
 import { UnderwritingTab } from "./tabs/UnderwritingTab";
-import { updateDealField } from "./update-deal-action";
+import { updateDealField, updateRelatedField } from "./update-deal-action";
+import { EditableMetricCard } from "./EditableMetricCard";
 import {
   T,
-  MetricCard,
-  fmt,
   fP,
   getDefaultTab,
   type DealData,
@@ -30,6 +29,11 @@ import {
   type CommentData,
   type ChatMessage,
 } from "./components";
+
+export interface TeamProfile {
+  id: string;
+  full_name: string;
+}
 
 interface DealDetailProps {
   deal: DealData;
@@ -45,6 +49,7 @@ interface DealDetailProps {
   currentUserId: string;
   currentUserName: string;
   currentUserInitials: string;
+  adminProfiles?: TeamProfile[];
 }
 
 interface TabConfig {
@@ -67,6 +72,7 @@ export function DealDetail({
   currentUserId,
   currentUserName,
   currentUserInitials,
+  adminProfiles,
 }: DealDetailProps) {
   const [tab, setTab] = useState(getDefaultTab(initialDeal.stage));
   const [deal, setDeal] = useState<DealData>(initialDeal);
@@ -87,7 +93,37 @@ export function DealDetail({
     [deal.id, isOpportunity, router]
   );
 
+  const handleSaveRelated = useCallback(
+    async (
+      table: string,
+      id: string,
+      field: string,
+      value: string | number | null
+    ): Promise<boolean> => {
+      if (isOpportunity) return false;
+      const result = await updateRelatedField(table, id, field, value);
+      if (result.error) {
+        console.error("Failed to update related field:", result.error);
+        return false;
+      }
+      // Update local state for computed display fields
+      if (table === "borrower_entities") {
+        if (field === "entity_name") setDeal((prev) => ({ ...prev, _entity_name: value as string }));
+        if (field === "entity_type") setDeal((prev) => ({ ...prev, _entity_type: value as string }));
+      }
+      if (table === "borrowers") {
+        if (field === "credit_score") setDeal((prev) => ({ ...prev, _borrower_credit_score: value as number }));
+        if (field === "experience_count") setDeal((prev) => ({ ...prev, _borrower_experience: value as number }));
+        if (field === "verified_liquidity") setDeal((prev) => ({ ...prev, _borrower_liquidity: value as number }));
+      }
+      router.refresh();
+      return true;
+    },
+    [isOpportunity, router]
+  );
+
   const onSave = isOpportunity ? undefined : handleSave;
+  const onSaveRelated = isOpportunity ? undefined : handleSaveRelated;
 
   const openConditions = conditions.filter(
     (c) =>
@@ -110,7 +146,7 @@ export function DealDetail({
   const renderTab = () => {
     switch (tab) {
       case "overview":
-        return <OverviewTab deal={deal} onSave={onSave} />;
+        return <OverviewTab deal={deal} onSave={onSave} onSaveRelated={onSaveRelated} />;
       case "underwriting":
         return (
           <UnderwritingTab
@@ -143,6 +179,10 @@ export function DealDetail({
   };
 
   const displayId = deal.loan_number || deal.id?.slice(0, 8);
+
+  // Format currency for display
+  const fmtMetric = (n: number | null | undefined) =>
+    n != null ? "$" + n.toLocaleString("en-US") : "\u2014";
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -179,17 +219,56 @@ export function DealDetail({
           <Stepper deal={deal} stages={pipelineStages} />
         </div>
 
-        {/* Loan Metrics */}
+        {/* Loan Metrics - Editable */}
         <div className="mt-5 flex gap-2.5">
-          <MetricCard label="Loan Amount" value={fmt(deal.loan_amount)} />
-          <MetricCard label="Rate" value={fP(deal.interest_rate)} />
-          <MetricCard label="LTV" value={fP(deal.ltv)} />
-          <MetricCard label="DSCR" value={deal.dscr_ratio != null ? deal.dscr_ratio.toFixed(2) : "\u2014"} />
-          <MetricCard
+          <EditableMetricCard
+            label="Loan Amount"
+            value={fmtMetric(deal.loan_amount)}
+            fieldName="loan_amount"
+            fieldType="currency"
+            rawValue={deal.loan_amount}
+            onSave={onSave}
+          />
+          <EditableMetricCard
+            label="Rate"
+            value={fP(deal.interest_rate)}
+            fieldName="interest_rate"
+            fieldType="percent"
+            rawValue={deal.interest_rate}
+            onSave={onSave}
+          />
+          <EditableMetricCard
+            label="LTV"
+            value={fP(deal.ltv)}
+            fieldName="ltv"
+            fieldType="percent"
+            rawValue={deal.ltv}
+            onSave={onSave}
+          />
+          <EditableMetricCard
+            label="DSCR"
+            value={deal.dscr_ratio != null ? deal.dscr_ratio.toFixed(2) : "\u2014"}
+            fieldName="dscr_ratio"
+            fieldType="number"
+            rawValue={deal.dscr_ratio}
+            onSave={onSave}
+          />
+          <EditableMetricCard
             label="Term"
             value={termMonths ? `${termMonths} mo` : "\u2014"}
+            fieldName="loan_term_months"
+            fieldType="number"
+            rawValue={termMonths}
+            onSave={onSave}
           />
-          <MetricCard label="Points" value={fP(deal.points ?? deal.points_pct)} />
+          <EditableMetricCard
+            label="Points"
+            value={fP(deal.points ?? deal.points_pct)}
+            fieldName="points"
+            fieldType="percent"
+            rawValue={deal.points ?? deal.points_pct}
+            onSave={onSave}
+          />
         </div>
 
         {/* Tab Bar */}
@@ -244,6 +323,7 @@ export function DealDetail({
             currentUserId={currentUserId}
             currentUserName={currentUserName}
             onSave={onSave}
+            adminProfiles={adminProfiles}
           />
         </div>
       </div>
