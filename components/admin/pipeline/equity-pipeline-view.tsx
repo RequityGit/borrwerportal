@@ -112,7 +112,7 @@ export function EquityPipelineView({
             <List className="h-4 w-4" />
           </button>
         </div>
-        <Link href="/admin/equity-pipeline/new">
+        <Link href="/admin/pipeline/equity/new">
           <Button size="sm" className="gap-1.5">
             <Plus className="h-4 w-4" />
             New Deal

@@ -71,7 +71,7 @@ const adminNav: NavItem[] = [
     label: "Pipeline",
     href: "/admin/pipeline",
     icon: Columns3,
-    activePaths: ["/admin/originations", "/admin/equity-pipeline", "/admin/loans", "/admin/conditions", "/admin/pricing"],
+    activePaths: ["/admin/originations", "/admin/loans", "/admin/conditions", "/admin/pricing"],
     moduleName: "pipeline",
   },
   {

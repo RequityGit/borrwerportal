@@ -15,7 +15,6 @@ const ROUTE_TO_MODULE: Record<string, string> = {
   "/admin/borrowers": "crm",
   "/admin/pipeline": "pipeline",
   "/admin/originations": "pipeline",
-  "/admin/equity-pipeline": "pipeline",
   "/admin/loans": "pipeline",
   "/admin/conditions": "pipeline",
   "/admin/pricing": "pipeline",

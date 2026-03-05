@@ -253,7 +253,7 @@ export function EquityKanbanBoard({
                     key={deal.id}
                     className="border-b hover:bg-muted/30 cursor-pointer transition-colors"
                     onClick={() =>
-                      router.push(`/admin/equity-pipeline/${deal.id}`)
+                      router.push(`/admin/pipeline/equity/${deal.id}`)
                     }
                   >
                     <td className="px-4 py-3">
@@ -386,7 +386,7 @@ export function EquityKanbanBoard({
                                 className="flex-1 min-w-0 cursor-pointer"
                                 onClick={() =>
                                   router.push(
-                                    `/admin/equity-pipeline/${deal.id}`
+                                    `/admin/pipeline/equity/${deal.id}`
                                   )
                                 }
                               >
