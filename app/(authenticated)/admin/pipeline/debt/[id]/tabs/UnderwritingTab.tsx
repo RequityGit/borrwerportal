@@ -63,7 +63,7 @@ export function UnderwritingTab({
       if (result.error) {
         console.error("Create version error:", result.error);
       } else {
-        router.push(`/admin/deals/${dealId}/underwriting`);
+        router.push(`/admin/pipeline/debt/${dealId}/underwriting`);
       }
     } finally {
       setCreating(false);
@@ -120,7 +120,7 @@ export function UnderwritingTab({
             New Scenario
           </button>
           <Link
-            href={`/admin/deals/${dealId}/underwriting`}
+            href={`/admin/pipeline/debt/${dealId}/underwriting`}
             className="flex items-center gap-1.5 rounded-lg px-3 py-[7px] text-xs font-medium cursor-pointer transition-colors duration-150 no-underline"
             style={{
               backgroundColor: T.accent.blue,
@@ -183,7 +183,7 @@ function VersionSummary({
       icon={ModelIcon}
       right={
         <Link
-          href={`/admin/deals/${dealId}/underwriting`}
+          href={`/admin/pipeline/debt/${dealId}/underwriting`}
           className="flex items-center gap-1 text-[11px] font-medium no-underline"
           style={{ color: T.accent.blue }}
         >

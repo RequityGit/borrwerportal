@@ -286,7 +286,7 @@ export function OpportunityKanban({ data }: OpportunityKanbanProps) {
                                 className="flex-1 min-w-0 cursor-pointer"
                                 onClick={() =>
                                   router.push(
-                                    `/admin/deals/${opp.id}`
+                                    `/admin/pipeline/debt/${opp.id}`
                                   )
                                 }
                               >

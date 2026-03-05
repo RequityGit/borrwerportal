@@ -231,7 +231,7 @@ export function ContextPanel({ channel, onClose }: ContextPanelProps) {
           </div>
 
           <Link
-            href={`/admin/deals/${loan.id}`}
+            href={`/admin/pipeline/debt/${loan.id}`}
             className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors duration-200"
           >
             <ExternalLink className="h-4 w-4" />

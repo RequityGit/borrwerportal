@@ -298,7 +298,7 @@ export function LoanDetailDrawer({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t mt-auto">
-          <Link href={`/admin/deals/${loan.id}`}>
+          <Link href={`/admin/pipeline/debt/${loan.id}`}>
             <Button className="w-full gap-2">
               <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
               View Full Details

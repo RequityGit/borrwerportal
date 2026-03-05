@@ -30,7 +30,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import {
   EditSectionDialog,
   type SectionField,
-} from "@/app/(authenticated)/admin/deals/[id]/EditSectionDialog";
+} from "@/app/(authenticated)/admin/pipeline/debt/[id]/EditSectionDialog";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 import {
   EQUITY_STAGE_LABELS,

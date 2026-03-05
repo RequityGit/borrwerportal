@@ -70,7 +70,7 @@ export function PipelineCard({ deal, index, isDragging }: PipelineCardProps) {
   const docsComplete =
     deal.docsTotal > 0 && deal.docsApproved >= deal.docsTotal;
 
-  const detailUrl = `/admin/deals/${deal.id}`;
+  const detailUrl = `/admin/pipeline/debt/${deal.id}`;
 
   // Days badge styling
   let daysBadgeStyle: React.CSSProperties;
