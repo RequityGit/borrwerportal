@@ -11,6 +11,7 @@ import type { UWVersionData } from "@/components/admin/underwriting/uw-editor-cl
 export async function saveUWVersion(
   versionId: string,
   loanId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   inputs: Record<string, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   outputs: Record<string, any>,
