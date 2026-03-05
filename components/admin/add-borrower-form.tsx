@@ -159,7 +159,7 @@ export function AddBorrowerForm({ borrower }: AddBorrowerFormProps) {
                     ? "bg-primary text-white border-primary"
                     : i === step
                     ? "border-primary text-foreground"
-                    : "border-gray-300 text-gray-400"
+                    : "border-border text-muted-foreground"
                 }`}
               >
                 {i < step ? <Check className="h-4 w-4" /> : i + 1}
@@ -171,7 +171,7 @@ export function AddBorrowerForm({ borrower }: AddBorrowerFormProps) {
             {i < STEPS.length - 1 && (
               <div
                 className={`w-8 sm:w-16 h-0.5 mx-2 ${
-                  i < step ? "bg-primary" : "bg-gray-300"
+                  i < step ? "bg-primary" : "bg-muted"
                 }`}
               />
             )}

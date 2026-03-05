@@ -49,8 +49,8 @@ export function SearchResult({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-100",
-        isSelected && "bg-slate-100 border-l-2 border-l-blue-500"
+        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted",
+        isSelected && "bg-muted border-l-2 border-l-blue-500"
       )}
     >
       {/* Entity type icon */}
@@ -66,17 +66,17 @@ export function SearchResult({
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-slate-900">
+          <span className="truncate text-sm font-medium text-foreground">
             {primaryText}
           </span>
           {amountDisplay && (
-            <span className="shrink-0 text-xs font-medium text-slate-500">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">
               {amountDisplay}
             </span>
           )}
         </div>
         {secondaryText && (
-          <p className="truncate text-xs text-slate-500">{secondaryText}</p>
+          <p className="truncate text-xs text-muted-foreground">{secondaryText}</p>
         )}
       </div>
 
@@ -96,7 +96,7 @@ export function SearchResult({
         >
           {config.label}
         </span>
-        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
           {formatRelativeTime(updatedAt)}
         </span>
       </div>

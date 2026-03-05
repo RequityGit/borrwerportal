@@ -389,7 +389,7 @@ export function DebtKanban({
                     <td className="px-4 py-3 text-muted-foreground uppercase text-xs">
                       {item.loanType?.replace(/_/g, " ") || "—"}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-foreground">
+                    <td className="px-4 py-3 text-right num text-foreground">
                       {formatCurrency(item.amount)}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground truncate max-w-[150px]">
@@ -400,7 +400,7 @@ export function DebtKanban({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
-                        className="font-mono"
+                        className="num"
                         style={{
                           fontSize: "10px",
                           fontWeight: 600,
@@ -411,13 +411,13 @@ export function DebtKanban({
                               ? "#E5453D"
                               : item.daysInStage >= 5
                                 ? "#D97706"
-                                : "#9B9BA0",
+                                : "hsl(var(--muted-foreground))",
                           backgroundColor:
                             item.daysInStage >= 10
                               ? "rgba(229,69,61,0.07)"
                               : item.daysInStage >= 5
                                 ? "rgba(217,119,6,0.07)"
-                                : "rgba(0,0,0,0.03)",
+                                : "hsl(var(--muted))",
                         }}
                       >
                         {item.daysInStage}d
@@ -493,18 +493,18 @@ export function DebtKanban({
                       style={{
                         fontSize: "13px",
                         fontWeight: 600,
-                        color: "#1A1A1A",
+                        color: "hsl(var(--foreground))",
                       }}
                     >
                       {config.label}
                     </span>
                     <span
-                      className="font-mono"
+                      className="num"
                       style={{
                         fontSize: "11px",
                         fontWeight: 600,
-                        color: "#9B9BA0",
-                        backgroundColor: "#EFEFEF",
+                        color: "hsl(var(--muted-foreground))",
+                        backgroundColor: "hsl(var(--muted))",
                         padding: "1px 7px",
                         borderRadius: "5px",
                       }}
@@ -514,11 +514,11 @@ export function DebtKanban({
                   </div>
                   {/* Row 2: dollar volume */}
                   <div
-                    className="font-mono"
+                    className="num"
                     style={{
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#6B6B6F",
+                      color: "hsl(var(--muted-foreground))",
                       marginTop: "4px",
                       paddingLeft: "15px",
                     }}
@@ -533,9 +533,9 @@ export function DebtKanban({
                     /* Empty state */
                     <div
                       style={{
-                        border: "1px dashed #E5E5E7",
+                        border: "1px dashed hsl(var(--border))",
                         borderRadius: "10px",
-                        backgroundColor: "rgba(0,0,0,0.01)",
+                        backgroundColor: "hsl(var(--muted) / 0.5)",
                         padding: "24px 12px",
                         textAlign: "center",
                       }}
@@ -544,7 +544,7 @@ export function DebtKanban({
                         style={{
                           fontSize: "12px",
                           fontWeight: 450,
-                          color: "#9B9BA0",
+                          color: "hsl(var(--muted-foreground))",
                         }}
                       >
                         No deals

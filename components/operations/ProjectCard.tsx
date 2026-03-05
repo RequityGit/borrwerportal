@@ -46,6 +46,7 @@ export interface OpsTask {
   recurrence_day_of_month: number | null;
   recurrence_day_of_week: number | null;
   created_by: string | null;
+  sort_order: number;
   updated_at: string | null;
   created_at: string | null;
 }
@@ -64,6 +65,7 @@ export interface OpsProject {
   created_by: string | null;
   started_at: string | null;
   completed_at: string | null;
+  sort_order: number;
   updated_at: string | null;
   created_at: string | null;
 }
@@ -136,7 +138,7 @@ export function ProjectCard({ project, tasks, onToggleTask, onStopRecurrence, on
               {/* Task progress bar */}
               {totalCount > 0 && (
                 <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-teal-500 rounded-full transition-all"
                       style={{ width: `${progress}%` }}
@@ -183,7 +185,7 @@ export function ProjectCard({ project, tasks, onToggleTask, onStopRecurrence, on
         <CardContent className="pt-0">
           {/* Latest update */}
           {project.latest_update && (
-            <div className="mb-4 rounded-md bg-slate-50 p-3 border border-slate-100">
+            <div className="mb-4 rounded-md bg-card p-3 border border-border">
               <p className="text-xs font-medium text-muted-foreground mb-1">
                 Latest Update
               </p>

@@ -159,7 +159,7 @@ export function InviteUserDialog({
             <div
               key={s}
               className={`flex-1 h-1.5 rounded-full transition-colors ${
-                s <= step ? "bg-primary" : "bg-gray-200"
+                s <= step ? "bg-primary" : "bg-muted"
               }`}
             />
           ))}
@@ -277,7 +277,7 @@ export function InviteUserDialog({
         {/* Step 3: Review & Send */}
         {step === 3 && (
           <div className="space-y-3 py-2">
-            <div className="rounded-lg border bg-slate-50 p-4 space-y-2">
+            <div className="rounded-lg border bg-card p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Email</span>
                 <span className="font-medium">{email}</span>

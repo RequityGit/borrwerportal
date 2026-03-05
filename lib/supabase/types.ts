@@ -10161,6 +10161,218 @@ export type Database = {
           },
         ]
       }
+      portal_documents: {
+        Row: {
+          borrower_entity_id: string | null
+          borrower_id: string | null
+          category: string
+          company_id: string | null
+          created_at: string
+          crm_contact_id: string | null
+          deleted_at: string | null
+          display_name: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          fund_id: string | null
+          id: string
+          investing_entity_id: string | null
+          investor_id: string | null
+          loan_id: string | null
+          mime_type: string | null
+          notes: string | null
+          tags: string[] | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          borrower_entity_id?: string | null
+          borrower_id?: string | null
+          category?: string
+          company_id?: string | null
+          created_at?: string
+          crm_contact_id?: string | null
+          deleted_at?: string | null
+          display_name?: string | null
+          document_type?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          fund_id?: string | null
+          id?: string
+          investing_entity_id?: string | null
+          investor_id?: string | null
+          loan_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          borrower_entity_id?: string | null
+          borrower_id?: string | null
+          category?: string
+          company_id?: string | null
+          created_at?: string
+          crm_contact_id?: string | null
+          deleted_at?: string | null
+          display_name?: string | null
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          fund_id?: string | null
+          id?: string
+          investing_entity_id?: string | null
+          investor_id?: string | null
+          loan_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_documents_borrower_entity_id_fkey"
+            columns: ["borrower_entity_id"]
+            isOneToOne: false
+            referencedRelation: "borrower_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_borrower_entity_id_fkey"
+            columns: ["borrower_entity_id"]
+            isOneToOne: false
+            referencedRelation: "borrower_entities_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers_portal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "portal_documents_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
+          {
+            foreignKeyName: "portal_documents_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_investing_entity_id_fkey"
+            columns: ["investing_entity_id"]
+            isOneToOne: false
+            referencedRelation: "investing_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_investing_entity_id_fkey"
+            columns: ["investing_entity_id"]
+            isOneToOne: false
+            referencedRelation: "investing_entities_portal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_investing_entity_id_fkey"
+            columns: ["investing_entity_id"]
+            isOneToOne: false
+            referencedRelation: "investing_entities_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors_portal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loan_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_documents_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           activation_status: string | null
@@ -14936,7 +15148,8 @@ export const Constants = {
   },
 } as const
 
-// Convenience type aliases
+
+// Custom type aliases for convenience
 export type Profile = Tables<'profiles'>
 export type Loan = Tables<'loans'>
 export type LoanPayment = Tables<'loan_payments'>
@@ -14948,76 +15161,12 @@ export type CrmContact = Tables<'crm_contacts'>
 export type LoanConditionTemplate = Tables<'loan_condition_templates'>
 export type BorrowerEntity = Tables<'borrower_entities'>
 
-// pricing_programs — not yet in generated types
-export interface PricingProgram {
-  id: string
-  program_id: string
-  loan_type: string
-  program_name: string
-  arv_label: string | null
-  interest_rate: number
-  rate_type: string
-  origination_points: number
-  min_origination_fee: number
-  points_note: string | null
-  max_ltv: number
-  ltv_note: string | null
-  max_ltc: number
-  ltc_note: string | null
-  max_ltp: number
-  loan_term_months: number
-  exit_points: number
-  term_note: string | null
-  legal_doc_fee: number
-  bpo_appraisal_cost: number
-  bpo_appraisal_note: string | null
-  min_credit_score: number
-  min_deals_24mo: number
-  citizenship: string
-  version: number
-  is_current: boolean
-  effective_date: string
-  created_at: string
-  created_by: string | null
-}
-
-// pricing_program_versions — not yet in generated types
-export interface PricingProgramVersion {
-  id: string
-  program_id: string
-  version: number
-  change_description: string | null
-  changed_by: string | null
-  changed_at: string
-  snapshot: Json
-}
-
-// leverage_adjusters — not yet in generated types
-export interface LeverageAdjuster {
-  id: string
-  program_id: string
-  risk_factor: string
-  display_name: string
-  condition_description: string | null
-  ltc_adjustment: number
-  ltv_adjustment: number
-  note: string | null
-  is_active: boolean
-  sort_order: number
-}
-
-// lender_quotes — not yet in generated types
+// Types for tables not yet migrated (used by components)
 export interface LenderQuote {
   id: string
-  created_at: string | null
-  updated_at: string | null
   quote_name: string
-  status: string
-  status_changed_at: string | null
-  loan_id: string | null
   lender_company_id: string | null
   lender_contact_name: string | null
-  linked_property_id: string | null
   loan_amount: number | null
   interest_rate: number | null
   loan_term_months: number | null
@@ -15032,11 +15181,61 @@ export interface LenderQuote {
   ym_amount: number | null
   term_sheet_url: string | null
   description: string | null
+  status: string
+  status_changed_at: string | null
   requested_at: string | null
   received_at: string | null
   accepted_at: string | null
   declined_at: string | null
   declined_reason: string | null
-  created_by: string | null
-  updated_by: string | null
+  created_at: string
+}
+
+export interface PricingProgram {
+  id: string
+  program_id: string
+  program_name: string
+  version: string | null
+  interest_rate: number
+  loan_term_months: number
+  loan_type: string | null
+  rate_type: string | null
+  origination_points: number
+  min_origination_fee: number
+  min_credit_score: number
+  min_deals_24mo: number
+  max_ltv: number
+  max_ltc: number
+  max_ltp: number
+  citizenship: string | null
+  bpo_appraisal_cost: number
+  bpo_appraisal_note: string | null
+  legal_doc_fee: number
+  exit_points: number | null
+  points_note: string | null
+  term_note: string | null
+  ltv_note: string | null
+  ltc_note: string | null
+  effective_date: string | null
+  is_current: boolean | null
+}
+
+export interface LeverageAdjuster {
+  id: string
+  risk_factor: string
+  display_name: string
+  condition_description: string | null
+  ltv_adjustment: number
+  ltc_adjustment: number
+  is_active: boolean
+  sort_order: number | null
+  note: string | null
+}
+
+export interface PricingProgramVersion {
+  id?: string
+  program_id: string
+  version: string
+  change_description: string | null
+  changed_at: string
 }

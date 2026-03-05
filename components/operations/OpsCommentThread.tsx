@@ -405,7 +405,7 @@ export function OpsCommentThread({
         <div className="space-y-3 max-h-[400px] overflow-y-auto">
           {comments.map((c) =>
             editingId === c.id ? (
-              <div key={c.id} className="space-y-2 border rounded-md p-2 bg-slate-50 ml-9">
+              <div key={c.id} className="space-y-2 border rounded-md p-2 bg-card ml-9">
                 <MentionInput
                   value={editText}
                   onChange={setEditText}

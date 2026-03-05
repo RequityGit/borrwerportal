@@ -14,7 +14,7 @@ const priorityConfig: Record<string, { className: string }> = {
 export function PriorityBadge({ priority }: { priority: string | null }) {
   if (!priority) return null;
   const config = priorityConfig[priority] ?? {
-    className: "bg-slate-100 text-slate-800 border-slate-200",
+    className: "bg-muted text-muted-foreground border-border",
   };
   return (
     <Badge variant="outline" className={cn("text-xs", config.className)}>
@@ -42,14 +42,14 @@ const statusDisplayMap: Record<string, string> = {
 
 const statusConfig: Record<string, { className: string }> = {
   // Project statuses
-  "Not Started": { className: "bg-slate-100 text-slate-800 border-slate-200" },
+  "Not Started": { className: "bg-muted text-muted-foreground border-border" },
   Planning: { className: "bg-purple-100 text-purple-800 border-purple-200" },
   "In Progress": { className: "bg-blue-100 text-blue-800 border-blue-200" },
   Blocked: { className: "bg-red-100 text-red-800 border-red-200" },
   "On Hold": { className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
   Complete: { className: "bg-green-100 text-green-800 border-green-200" },
   // Task statuses
-  "To Do": { className: "bg-slate-100 text-slate-800 border-slate-200" },
+  "To Do": { className: "bg-muted text-muted-foreground border-border" },
   "In Review": { className: "bg-indigo-100 text-indigo-800 border-indigo-200" },
 };
 
@@ -61,7 +61,7 @@ export function StatusBadge({ status }: { status: string | null }) {
   if (!status) return null;
   const display = normalizeStatusDisplay(status);
   const config = statusConfig[display] ?? {
-    className: "bg-slate-100 text-slate-800 border-slate-200",
+    className: "bg-muted text-muted-foreground border-border",
   };
   return (
     <Badge variant="outline" className={cn("text-xs", config.className)}>
@@ -139,7 +139,7 @@ export function RecurringBadge({
         "text-xs",
         isActive
           ? "bg-purple-100 text-purple-800 border-purple-200"
-          : "bg-slate-100 text-slate-500 border-slate-200 line-through"
+          : "bg-muted text-muted-foreground border-border line-through"
       )}
     >
       ↻ {label}
