@@ -26,7 +26,7 @@ const MODEL_META: Record<
     icon: Building2,
     description:
       "A multi-table relational model for commercial real estate loans. Includes rent roll analysis, T12 historical financials, operating expense breakdowns, pro forma year projections, and debt service coverage calculations. Data is stored across multiple database tables rather than a single JSONB blob.",
-    sandboxAvailable: false,
+    sandboxAvailable: true,
     inputFields: [
       { name: "Rent Roll", description: "Unit-level rent schedule with market rents and vacancy" },
       { name: "T12 Historicals", description: "Trailing 12-month income and expense actuals" },

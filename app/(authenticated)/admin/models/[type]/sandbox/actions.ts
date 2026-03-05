@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { SANDBOX_DEFAULT_INPUTS } from "@/lib/underwriting/types";
 import { computeOutputs } from "@/lib/underwriting/calculator";
+import { COMMERCIAL_SANDBOX_DEFAULTS } from "@/lib/underwriting/commercial-types";
+import { computeCommercialOutputs } from "@/lib/underwriting/commercial-calculator";
 
 export async function createSandboxVersion(
   userId: string,
@@ -15,7 +17,13 @@ export async function createSandboxVersion(
 
     const admin = createAdminClient();
 
-    const defaultOutputs = computeOutputs(SANDBOX_DEFAULT_INPUTS);
+    const isCommercial = modelType === "commercial";
+    const defaultInputs = isCommercial
+      ? COMMERCIAL_SANDBOX_DEFAULTS
+      : SANDBOX_DEFAULT_INPUTS;
+    const defaultOutputs = isCommercial
+      ? computeCommercialOutputs(COMMERCIAL_SANDBOX_DEFAULTS)
+      : computeOutputs(SANDBOX_DEFAULT_INPUTS);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (admin as any)
@@ -29,7 +37,7 @@ export async function createSandboxVersion(
         is_active: false,
         status: "draft",
         created_by: userId,
-        calculator_inputs: SANDBOX_DEFAULT_INPUTS as unknown as Record<string, unknown>,
+        calculator_inputs: defaultInputs as unknown as Record<string, unknown>,
         calculator_outputs: defaultOutputs as unknown as Record<string, unknown>,
         computation_status: "computed",
       })
