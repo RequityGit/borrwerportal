@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save } from "lucide-react";
-import type { Profile } from "@/lib/supabase/types";
+import type { Tables } from "@/lib/supabase/types";
+
+type Profile = Tables<"profiles">;
 import { resilientProfileUpdate } from "@/lib/supabase/resilient-profile-update";
 import { ProfilePhotoUpload } from "@/components/shared/profile-photo-upload";
 
