@@ -62,7 +62,9 @@ export function EditSectionDialog({
   onSave,
   onSaveRelated,
 }: EditSectionDialogProps) {
-  const editableFields = fields.filter((f) => f.fieldType !== "readonly");
+  const editableFields = fields.filter(
+    (f) => f.fieldType !== "readonly" && !(f.relatedTable && !f.relatedId)
+  );
   const initialValues: Record<string, string> = {};
   for (const f of editableFields) {
     initialValues[f.fieldName] = f.value != null ? String(f.value) : "";
@@ -148,14 +150,18 @@ export function EditSectionDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           {fields.map((f) => {
-            if (f.fieldType === "readonly") {
+            const isReadonly = f.fieldType === "readonly" || (f.relatedTable && !f.relatedId);
+            if (isReadonly) {
               return (
                 <div key={f.fieldName} className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right text-muted-foreground">
                     {f.label}
                   </Label>
                   <div className="col-span-3 text-sm text-muted-foreground">
-                    {f.value != null && f.value !== "" ? String(f.value) : "\u2014"}
+                    {f.value != null && f.value !== "" ? String(f.value) : "—"}
+                    {f.relatedTable && !f.relatedId && (
+                      <span className="ml-2 text-xs text-muted-foreground/60">Not linked</span>
+                    )}
                   </div>
                 </div>
               );
@@ -169,7 +175,7 @@ export function EditSectionDialog({
                   </Label>
                   <div className="col-span-3">
                     <Select
-                      value={values[f.fieldName] || ""}
+                      value={values[f.fieldName] || undefined}
                       onValueChange={(val) => handleChange(f.fieldName, val)}
                     >
                       <SelectTrigger id={f.fieldName}>
