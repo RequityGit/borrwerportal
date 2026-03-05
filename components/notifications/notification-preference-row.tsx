@@ -51,7 +51,7 @@ export function NotificationPreferenceRow({
   const inAppEnabled = pref?.in_app_enabled ?? type.default_in_app_enabled;
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-md px-4 py-3 hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between gap-4 rounded-md px-4 py-3 hover:bg-muted transition-colors">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900">
           {type.display_name}

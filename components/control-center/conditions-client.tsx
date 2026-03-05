@@ -322,7 +322,7 @@ export function ConditionsClient({ templates }: ConditionsClientProps) {
                     "px-3 py-1.5 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md",
                     loanTypeFilter === f.value
                       ? "bg-teal-600 text-white"
-                      : "text-muted-foreground hover:bg-slate-50"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   {f.label}

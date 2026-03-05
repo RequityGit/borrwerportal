@@ -104,8 +104,8 @@ export function QuickActions({
   if (actions.length === 0) return null;
 
   return (
-    <div className="border-t border-slate-200 px-4 py-2">
-      <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+    <div className="border-t border-border px-4 py-2">
+      <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
         Quick Actions
       </h4>
       <div className="flex items-center gap-1">
@@ -119,7 +119,7 @@ export function QuickActions({
                 router.push(action.href);
                 onClose();
               }}
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
             >
               <Icon className="h-3 w-3" />
               {action.label}

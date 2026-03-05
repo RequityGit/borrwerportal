@@ -145,7 +145,7 @@ function InlineNameEditor({
         }
       }}
       className={cn(
-        "font-medium cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 hover:bg-slate-100 transition-colors",
+        "font-medium cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 hover:bg-muted transition-colors",
         !isActive && "line-through text-muted-foreground"
       )}
       title="Click to edit name"
@@ -188,7 +188,7 @@ export function ConditionCategorySection({
       {/* Header */}
       <button
         onClick={onToggle}
-        className="flex w-full items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+        className="flex w-full items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
       >
         <div className="flex items-center gap-2">
           {expanded ? (
@@ -218,7 +218,7 @@ export function ConditionCategorySection({
         <div className="border-t">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50/50">
+              <tr className="bg-muted/50">
                 <th className="text-left font-medium text-muted-foreground px-4 py-2 w-10">
                   #
                 </th>
@@ -244,7 +244,7 @@ export function ConditionCategorySection({
                 <tr
                   key={item.id}
                   className={cn(
-                    "border-t hover:bg-slate-50/50 transition-colors",
+                    "border-t hover:bg-muted/50 transition-colors",
                     !item.is_active && "opacity-50"
                   )}
                 >

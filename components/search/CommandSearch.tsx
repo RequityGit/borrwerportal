@@ -225,7 +225,7 @@ export function CommandSearch({ role }: CommandSearchProps) {
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-        <kbd className="ml-2 hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-slate-200 bg-slate-100 px-1.5 font-mono text-[10px] font-medium text-slate-400">
+        <kbd className="ml-2 hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
           <span className="text-xs">⌘</span>K
         </kbd>
       </div>
@@ -256,7 +256,7 @@ export function CommandSearch({ role }: CommandSearchProps) {
                     key={search}
                     type="button"
                     onClick={() => setQuery(search)}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
                   >
                     <Clock className="h-3.5 w-3.5 text-slate-400" />
                     <span className="truncate">{search}</span>
@@ -315,23 +315,23 @@ export function CommandSearch({ role }: CommandSearchProps) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-slate-100 px-3 py-1.5">
-            <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
+          <div className="flex items-center justify-between border-t border-border px-3 py-1.5">
+            <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
               <span>
-                <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono">↑↓</kbd>{" "}
+                <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono">↑↓</kbd>{" "}
                 Navigate
               </span>
               <span>
-                <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono">↵</kbd>{" "}
+                <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono">↵</kbd>{" "}
                 Open
               </span>
               <span>
-                <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 font-mono">esc</kbd>{" "}
+                <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono">esc</kbd>{" "}
                 Close
               </span>
             </div>
             {results.length > 0 && (
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-muted-foreground">
                 {results.length} result{results.length !== 1 ? "s" : ""}
               </span>
             )}
