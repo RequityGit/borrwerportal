@@ -204,7 +204,7 @@ export function ApprovalsListView({ approvals, currentUserId, isSuperAdmin }: Ap
                       return (
                         <TableRow
                           key={approval.id}
-                          className="cursor-pointer hover:bg-slate-50"
+                          className="cursor-pointer hover:bg-muted"
                           onClick={() => router.push(`/admin/operations/approvals/${approval.id}`)}
                         >
                           <TableCell>

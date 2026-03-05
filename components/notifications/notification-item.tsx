@@ -41,7 +41,7 @@ export function NotificationItem({
           !notification.is_read && "border-l-4",
           !notification.is_read && priorityColors.border,
           notification.is_read && "border-gray-200",
-          "cursor-pointer hover:bg-gray-50"
+          "cursor-pointer hover:bg-muted"
         )}
         onClick={handleClick}
       >
@@ -96,7 +96,7 @@ export function NotificationItem({
                       e.stopPropagation();
                       onMarkAsRead(notification.id);
                     }}
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                     title="Mark as read"
                   >
                     <Check className="h-4 w-4" />
@@ -108,7 +108,7 @@ export function NotificationItem({
                       e.stopPropagation();
                       onArchive(notification.id);
                     }}
-                    className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                     title="Archive"
                   >
                     <Archive className="h-4 w-4" />
@@ -127,7 +127,7 @@ export function NotificationItem({
     <button
       onClick={handleClick}
       className={cn(
-        "w-full text-left flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-gray-50",
+        "w-full text-left flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted",
         !notification.is_read && "bg-blue-50/50"
       )}
     >

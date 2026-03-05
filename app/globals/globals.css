@@ -63,7 +63,7 @@
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 0 0% 96%;
+    --primary: 0 0% 85%;
     --primary-foreground: 0 0% 5%;
 
     --secondary: 0 0% 12%;
@@ -142,6 +142,46 @@
   .dark .hover\:bg-gray-50:hover,
   .dark .hover\:bg-slate-50:hover {
     background-color: hsl(0 0% 13%) !important;
+  }
+  .dark .hover\:bg-gray-100:hover,
+  .dark .hover\:bg-slate-100:hover {
+    background-color: hsl(0 0% 16%) !important;
+  }
+  .dark .hover\:bg-gray-200:hover,
+  .dark .hover\:bg-slate-200:hover {
+    background-color: hsl(0 0% 18%) !important;
+  }
+  /* Step indicators and heavier grays */
+  .dark .bg-gray-300,
+  .dark .bg-slate-300 {
+    background-color: hsl(0 0% 20%) !important;
+  }
+  /* Text overrides */
+  .dark .text-slate-500,
+  .dark .text-slate-600 {
+    color: hsl(0 0% 53%) !important;
+  }
+  .dark .text-slate-800 {
+    color: hsl(0 0% 85%) !important;
+  }
+  .dark .text-slate-900 {
+    color: hsl(0 0% 94%) !important;
+  }
+  .dark .text-gray-700 {
+    color: hsl(0 0% 65%) !important;
+  }
+  /* Border overrides */
+  .dark .border-slate-300,
+  .dark .border-gray-300 {
+    border-color: hsl(0 0% 20%) !important;
+  }
+  /* Hover text overrides */
+  .dark .hover\:text-gray-600:hover,
+  .dark .hover\:text-slate-600:hover {
+    color: hsl(0 0% 70%) !important;
+  }
+  .dark .hover\:bg-gray-100:hover {
+    background-color: hsl(0 0% 16%) !important;
   }
 }
 

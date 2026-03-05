@@ -99,7 +99,7 @@ export function NotificationsPageClient({
                     "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
                     categoryFilter === cat.value
                       ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   {cat.label}
@@ -122,7 +122,7 @@ export function NotificationsPageClient({
                     "w-full text-left rounded-md px-3 py-2 text-sm flex items-center gap-2 transition-colors",
                     priorityFilter === p.value
                       ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   {p.value !== "all" && (
@@ -150,7 +150,7 @@ export function NotificationsPageClient({
                     "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
                     statusFilter === s.value
                       ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   {s.label}
@@ -173,7 +173,7 @@ export function NotificationsPageClient({
                     "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
                     dateRange === d.value
                       ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   {d.label}

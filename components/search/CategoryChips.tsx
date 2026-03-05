@@ -33,7 +33,7 @@ export function CategoryChips({
               "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors",
               isActive
                 ? "bg-blue-600 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                : "bg-muted text-muted-foreground hover:bg-accent"
             )}
           >
             {category.label}
@@ -41,7 +41,7 @@ export function CategoryChips({
               <span
                 className={cn(
                   "text-[10px]",
-                  isActive ? "text-blue-200" : "text-slate-400"
+                  isActive ? "text-blue-200" : "text-muted-foreground"
                 )}
               >
                 {count}

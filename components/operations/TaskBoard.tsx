@@ -36,14 +36,14 @@ export function TaskBoard({ tasks, projectNames, commentCounts, onOpenTask }: Ta
         <div key={col.key} className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground">{col.key}</h3>
-            <span className="text-xs text-muted-foreground rounded-full bg-slate-100 px-2 py-0.5">
+            <span className="text-xs text-muted-foreground rounded-full bg-muted px-2 py-0.5">
               {col.tasks.length}
             </span>
           </div>
 
           <div className={cn("space-y-2 min-h-[200px]")}>
             {col.tasks.length === 0 ? (
-              <div className="rounded-md border border-dashed bg-slate-50 p-4 text-center text-sm text-muted-foreground">
+              <div className="rounded-md border border-dashed bg-card p-4 text-center text-sm text-muted-foreground">
                 No tasks
               </div>
             ) : (
