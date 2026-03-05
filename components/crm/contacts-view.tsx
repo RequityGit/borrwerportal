@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { KpiCard } from "@/components/shared/kpi-card";
 import { AddContactDialog } from "@/components/crm/add-contact-dialog";
 import { DeleteContactButton } from "@/components/crm/delete-contact-button";
 import {
@@ -27,9 +25,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  MessageSquare,
-  Clock,
-  TrendingUp,
 } from "lucide-react";
 import { Avatar, RelPill, StageDot } from "./crm-primitives";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
@@ -71,33 +66,6 @@ export function ContactsView({
     const newUrl = str ? `?${str}` : window.location.pathname;
     window.history.replaceState(null, "", newUrl);
   }, [contactSearch, relFilter, stageFilter]);
-
-  const contactStats = useMemo(() => {
-    const now = new Date();
-    const weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const thirtyDaysAgo = new Date(now);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const contactedThisWeek = contacts.filter((c) => {
-      if (!c.last_contacted_at) return false;
-      return new Date(c.last_contacted_at) >= weekAgo;
-    }).length;
-
-    const needsFollowUp = contacts.filter((c) => {
-      if (c.lifecycle_stage === "past") return false;
-      if (!c.last_contacted_at) return true;
-      return new Date(c.last_contacted_at) < thirtyDaysAgo;
-    }).length;
-
-    const pipeline = contacts.filter(
-      (c) =>
-        c.relationships.includes("borrower") &&
-        c.lifecycle_stage !== "past"
-    ).length;
-
-    return { contactedThisWeek, needsFollowUp, pipeline };
-  }, [contacts]);
 
   const filteredContacts = useMemo(() => {
     let result = [...contacts];
@@ -193,40 +161,7 @@ export function ContactsView({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div />
-        <AddContactDialog teamMembers={teamMembers} currentUserId={currentUserId} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          title="Total Contacts"
-          value={contacts.length.toString()}
-          description="Active relationships"
-          icon={<Users className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Contacted This Week"
-          value={contactStats.contactedThisWeek.toString()}
-          description="In last 7 days"
-          icon={<MessageSquare className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Needs Follow-Up"
-          value={contactStats.needsFollowUp.toString()}
-          description="30+ days since contact"
-          icon={<Clock className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Pipeline"
-          value={contactStats.pipeline.toString()}
-          description="Borrower leads & prospects"
-          icon={<TrendingUp className="h-5 w-5" />}
-        />
-      </div>
-
-      <div className="space-y-3">
+    <div className="space-y-3">
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="relative flex-1 min-w-[240px] max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -271,6 +206,8 @@ export function ContactsView({
               ))}
             </SelectContent>
           </Select>
+          <div className="flex-1" />
+          <AddContactDialog teamMembers={teamMembers} currentUserId={currentUserId} />
         </div>
 
         {hasContactFilters && (
@@ -425,7 +362,6 @@ export function ContactsView({
             </span>
           </div>
         </div>
-      </div>
     </div>
   );
 }
