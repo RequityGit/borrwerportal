@@ -23,8 +23,8 @@ import { RTLDSCRForm } from "./rtl-dscr-form";
 import { computeOutputs } from "@/lib/underwriting/calculator";
 import type { UnderwritingInputs } from "@/lib/underwriting/types";
 import { DEFAULT_INPUTS } from "@/lib/underwriting/types";
-import type { UWModelType } from "@/app/(authenticated)/admin/deals/[id]/components";
-import { UW_MODEL_LABELS } from "@/app/(authenticated)/admin/deals/[id]/components";
+import type { UWModelType } from "@/app/(authenticated)/admin/pipeline/debt/[id]/components";
+import { UW_MODEL_LABELS } from "@/app/(authenticated)/admin/pipeline/debt/[id]/components";
 
 export interface UWVersionData {
   id: string;
@@ -197,7 +197,7 @@ export function UWEditorClient({
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <Link href={`/admin/deals/${dealId}`}>
+            <Link href={`/admin/pipeline/debt/${dealId}`}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Back to Deal

@@ -263,7 +263,7 @@ export function Sidebar({
             icon={FileText}
             label="Term Sheet"
             onClick={() => {
-              window.open(`/admin/deals/${deal.id}/term-sheet`, "_blank");
+              window.open(`/admin/pipeline/debt/${deal.id}/term-sheet`, "_blank");
             }}
           />
           <QuickAction
