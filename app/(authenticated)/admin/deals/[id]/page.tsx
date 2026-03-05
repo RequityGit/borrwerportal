@@ -409,6 +409,21 @@ export default async function DealDetailPage({ params }: PageProps) {
     }
   }
 
+  // ─── Fetch comments for opportunities ───
+  if (isOpportunity) {
+    try {
+      const admin = createAdminClient();
+      const { data: oppComments } = await admin
+        .from("loan_comments")
+        .select("*")
+        .eq("opportunity_id", d.id)
+        .order("created_at", { ascending: false });
+      commentsData = oppComments ?? [];
+    } catch {
+      /* ok */
+    }
+  }
+
   // ─── Resolve names ───
   const userIdsSet = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

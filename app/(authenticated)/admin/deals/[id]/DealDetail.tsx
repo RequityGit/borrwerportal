@@ -169,6 +169,7 @@ export function DealDetail({
             currentUserId={currentUserId}
             currentUserName={currentUserName}
             currentUserInitials={currentUserInitials}
+            isOpportunity={isOpportunity}
           />
         );
       default:
