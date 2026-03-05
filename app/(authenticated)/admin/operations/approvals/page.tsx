@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ApprovalsListView } from "@/components/approvals/approvals-list-view";
+import { ApprovalsCardView } from "./approvals-card-view";
 
 export const dynamic = "force-dynamic";
 
@@ -15,46 +15,72 @@ export default async function ApprovalsPage() {
 
   const admin = createAdminClient();
 
-  // Fetch all approvals
-  const { data: approvals } = await admin
-    .from("approval_requests" as any)
-    .select("*")
-    .order("created_at", { ascending: false });
+  // Fetch all approvals and all profiles in parallel
+  const [approvalsRes, allProfilesRes, rolesRes] = await Promise.all([
+    admin
+      .from("approval_requests" as never)
+      .select("*" as never)
+      .order("created_at" as never, { ascending: false }),
+    admin
+      .from("profiles")
+      .select("id, full_name, email, avatar_url")
+      .not("full_name", "is", null)
+      .order("full_name"),
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id),
+  ]);
 
-  // Gather profile info for submitters and approvers
-  const userIds = new Set<string>();
-  (approvals ?? []).forEach((a: any) => {
-    userIds.add(a.submitted_by);
-    userIds.add(a.assigned_to);
-  });
+  const rawApprovals = ((approvalsRes as { data: Record<string, unknown>[] | null }).data ?? []);
 
-  const { data: profiles } = await admin
-    .from("profiles")
-    .select("id, full_name, email")
-    .in("id", Array.from(userIds));
-
+  // Build profile map
   const profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
-  (profiles ?? []).forEach((p: { id: string; full_name: string | null; email: string | null }) => {
-    profileMap[p.id] = { full_name: p.full_name, email: p.email };
-  });
+  const profiles = (allProfilesRes.data ?? []).map(
+    (p: { id: string; full_name: string | null; email: string | null; avatar_url: string | null }) => {
+      profileMap[p.id] = { full_name: p.full_name, email: p.email };
+      return {
+        id: p.id,
+        full_name: p.full_name || p.email || "Unknown",
+        avatar_url: p.avatar_url,
+      };
+    }
+  );
 
-  const enrichedApprovals = (approvals ?? []).map((a: any) => ({
-    ...a,
-    submitter_name: profileMap[a.submitted_by]?.full_name || profileMap[a.submitted_by]?.email || "Unknown",
-    approver_name: profileMap[a.assigned_to]?.full_name || profileMap[a.assigned_to]?.email || "Unknown",
+  const enrichedApprovals = rawApprovals.map((a) => ({
+    id: a.id as string,
+    entity_type: a.entity_type as string,
+    entity_id: a.entity_id as string,
+    status: a.status as string,
+    priority: (a.priority as string) || "normal",
+    submitted_by: a.submitted_by as string,
+    assigned_to: a.assigned_to as string,
+    submission_notes: (a.submission_notes as string) ?? null,
+    decision_notes: (a.decision_notes as string) ?? null,
+    deal_snapshot: (a.deal_snapshot as Record<string, unknown>) ?? {},
+    sla_deadline: (a.sla_deadline as string) ?? null,
+    sla_breached: (a.sla_breached as boolean) ?? false,
+    decision_at: (a.decision_at as string) ?? null,
+    created_at: a.created_at as string,
+    updated_at: a.updated_at as string,
+    submitter_name:
+      profileMap[a.submitted_by as string]?.full_name ||
+      profileMap[a.submitted_by as string]?.email ||
+      "Unknown",
+    approver_name:
+      profileMap[a.assigned_to as string]?.full_name ||
+      profileMap[a.assigned_to as string]?.email ||
+      "Unknown",
   }));
 
-  // Check user roles
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id);
-
-  const isSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === "super_admin");
+  const isSuperAdmin = (rolesRes.data ?? []).some(
+    (r: { role: string }) => r.role === "super_admin"
+  );
 
   return (
-    <ApprovalsListView
+    <ApprovalsCardView
       approvals={enrichedApprovals}
+      profiles={profiles}
       currentUserId={user.id}
       isSuperAdmin={isSuperAdmin}
     />

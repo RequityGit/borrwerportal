@@ -53,7 +53,7 @@ interface NavGroup {
   moduleName?: string;
   /** Additional path prefixes that should expand/highlight this group */
   activePaths?: string[];
-  children: { label: string; href: string }[];
+  children: { label: string; href: string; badge?: number }[];
 }
 
 type NavEntry = NavItem | NavGroup;
@@ -128,10 +128,14 @@ const adminNav: NavEntry[] = [
   },
   {
     label: "Operations",
-    href: "/admin/operations",
     icon: Settings2,
-    activePaths: ["/admin/operations/approvals"],
+    basePath: "/admin/operations",
     moduleName: "operations",
+    activePaths: ["/admin/operations/tasks", "/admin/operations/approvals"],
+    children: [
+      { label: "Tasks", href: "/admin/operations/tasks" },
+      { label: "Approvals", href: "/admin/operations/approvals" },
+    ],
   },
 ];
 
@@ -162,20 +166,30 @@ export function Sidebar({
   const { effectiveViewRole, isViewingAs } = useViewAs();
   const [userId, setUserId] = useState<string | undefined>();
   const { totalUnread } = useUnreadCounts(userId);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setUserId(user.id);
     });
+
+    // Fetch pending approvals count
+    supabase
+      .from("approval_requests" as never)
+      .select("id", { count: "exact", head: true })
+      .eq("status" as never, "pending" as never)
+      .then(({ count }) => {
+        setPendingApprovals(count ?? 0);
+      });
   }, []);
 
   // Use view-as role for navigation when super admin is simulating
   const navRole = isViewingAs ? effectiveViewRole : role;
   const allNavEntries = getNavEntries(navRole);
 
-  // Filter admin nav entries by module access
-  const navEntries =
+  // Filter admin nav entries by module access and inject dynamic badges
+  const filteredEntries =
     navRole === "admin" && accessibleModules && accessibleModules.length > 0
       ? allNavEntries.filter(
           (entry) => {
@@ -184,6 +198,21 @@ export function Sidebar({
           }
         )
       : allNavEntries;
+
+  // Inject pending approvals badge into Operations group
+  const navEntries = filteredEntries.map((entry) => {
+    if (isNavGroup(entry) && entry.basePath === "/admin/operations" && pendingApprovals > 0) {
+      return {
+        ...entry,
+        children: entry.children.map((child) =>
+          child.href === "/admin/operations/approvals"
+            ? { ...child, badge: pendingApprovals }
+            : child
+        ),
+      };
+    }
+    return entry;
+  });
 
   // Check if bottom nav items are accessible
   const showChatter =
@@ -429,7 +458,12 @@ function NavGroupItem({
                     : "text-sidebar-foreground/60 hover:bg-sidebar-hover hover:text-sidebar-foreground font-medium"
                 )}
               >
-                {child.label}
+                <span className="flex-1">{child.label}</span>
+                {child.badge != null && child.badge > 0 && (
+                  <span className="h-[17px] min-w-[20px] px-[7px] flex items-center justify-center rounded-full bg-[#F0719B] text-white text-[10px] font-bold">
+                    {child.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
