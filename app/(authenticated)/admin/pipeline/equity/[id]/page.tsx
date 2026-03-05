@@ -97,7 +97,7 @@ export default async function EquityDealDetailPage({ params }: PageProps) {
     .maybeSingle();
 
   // Fetch assigned user profile
-  let assignedToProfile: { full_name: string; id: string } | null = null;
+  let assignedToProfile: { full_name: string | null; id: string } | null = null;
   if (deal.assigned_to) {
     const { data: profile } = await admin
       .from("profiles")
