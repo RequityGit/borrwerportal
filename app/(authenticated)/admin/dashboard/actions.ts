@@ -220,7 +220,7 @@ export async function toggleTask(
 ): Promise<{ success: boolean } | { error: string }> {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if (!auth.user) return { error: auth.error ?? "Not authorized" };
 
     const admin = createAdminClient();
 
@@ -258,7 +258,7 @@ export async function createTask(input: {
 }): Promise<{ success: boolean; id?: string } | { error: string }> {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if (!auth.user) return { error: auth.error ?? "Not authorized" };
 
     const admin = createAdminClient();
 
@@ -289,7 +289,7 @@ export async function followUpBorrowerRequest(
 ): Promise<{ success: boolean } | { error: string }> {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if (!auth.user) return { error: auth.error ?? "Not authorized" };
 
     const admin = createAdminClient();
 
@@ -329,7 +329,7 @@ export async function approveRequest(
 ): Promise<{ success: boolean } | { error: string }> {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if (!auth.user) return { error: auth.error ?? "Not authorized" };
 
     const admin = createAdminClient();
 
