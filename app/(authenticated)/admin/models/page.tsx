@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FlaskConical, Building2, Home, TrendingUp, ArrowRight } from "lucide-react";
+import { FlaskConical, Building2, Home, TrendingUp, ArrowRight, GitBranch } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,6 +56,20 @@ export default async function ModelsOverviewPage() {
     else statsByType[mt].empty++;
   }
 
+  // Fetch scenario counts per model type
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: scenarioStats } = await (admin as any)
+    .from("model_scenarios")
+    .select("model_type")
+    .is("deleted_at", null)
+    .eq("status", "active");
+
+  const scenariosByType: Record<string, number> = {};
+  for (const row of scenarioStats ?? []) {
+    const mt = (row as { model_type: string }).model_type;
+    scenariosByType[mt] = (scenariosByType[mt] || 0) + 1;
+  }
+
   return (
     <div className="p-6 max-w-5xl">
       <PageHeader
@@ -85,19 +99,21 @@ export default async function ModelsOverviewPage() {
               </p>
 
               {/* Stats */}
-              {s.total > 0 && (
+              {(s.total > 0 || scenariosByType[model.type] > 0) && (
                 <div className="flex gap-3 text-[11px] num">
-                  <span className="text-muted-foreground">
-                    <span className="font-medium text-foreground">{s.total}</span> versions
-                  </span>
+                  {scenariosByType[model.type] > 0 && (
+                    <span className="text-muted-foreground">
+                      <span className="font-medium text-foreground">{scenariosByType[model.type]}</span> scenario{scenariosByType[model.type] !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {s.total > 0 && (
+                    <span className="text-muted-foreground">
+                      <span className="font-medium text-foreground">{s.total}</span> versions
+                    </span>
+                  )}
                   {s.computed > 0 && (
                     <span className="text-green-600 dark:text-green-400">
                       {s.computed} complete
-                    </span>
-                  )}
-                  {s.incomplete > 0 && (
-                    <span className="text-amber-600 dark:text-amber-400">
-                      {s.incomplete} incomplete
                     </span>
                   )}
                 </div>
@@ -108,6 +124,12 @@ export default async function ModelsOverviewPage() {
                   <Link href={`/admin/models/${model.type}`}>
                     Details
                     <ArrowRight size={12} className="ml-1" strokeWidth={1.5} />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 text-[12px]" asChild>
+                  <Link href={`/admin/models/${model.type}/scenarios`}>
+                    <GitBranch size={12} className="mr-1" strokeWidth={1.5} />
+                    Scenarios
                   </Link>
                 </Button>
                 {model.sandboxAvailable ? (
