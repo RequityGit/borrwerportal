@@ -8242,6 +8242,7 @@ export type Database = {
           is_active: boolean
           label: string | null
           loan_id: string
+          model_type: string
           notes: string | null
           status: string
           version_number: number
@@ -8255,6 +8256,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           loan_id: string
+          model_type?: string
           notes?: string | null
           status?: string
           version_number?: number
@@ -8268,6 +8270,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           loan_id?: string
+          model_type?: string
           notes?: string | null
           status?: string
           version_number?: number
