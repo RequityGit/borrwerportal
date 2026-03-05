@@ -123,7 +123,7 @@ export function EquityKanbanBoard({
     const deal = deals.find((d) => d.id === dealId);
     if (!deal || deal.stage === newStage) return;
 
-    if (newStage === "dead") {
+    if (newStage === "closed_lost") {
       setDeadDialog({ open: true, dealId });
       return;
     }
@@ -164,7 +164,7 @@ export function EquityKanbanBoard({
     setMovingId(deadDialog.dealId);
     const result = await moveEquityStageAction(
       deadDialog.dealId,
-      "dead",
+      "closed_lost",
       lossReason
     );
     if (result.error) {
@@ -176,10 +176,10 @@ export function EquityKanbanBoard({
     } else {
       setDeals((prev) =>
         prev.map((d) =>
-          d.id === deadDialog.dealId ? { ...d, stage: "dead" } : d
+          d.id === deadDialog.dealId ? { ...d, stage: "closed_lost" } : d
         )
       );
-      toast({ title: "Deal marked as Dead" });
+      toast({ title: "Deal marked as Closed Lost" });
     }
     setMovingId(null);
     setDeadDialog({ open: false, dealId: "" });
@@ -514,7 +514,7 @@ export function EquityKanbanBoard({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mark Deal as Dead</DialogTitle>
+            <DialogTitle>Mark Deal as Closed Lost</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <label className="text-sm font-medium">Loss Reason *</label>
@@ -548,7 +548,7 @@ export function EquityKanbanBoard({
               onClick={handleMarkDead}
               disabled={!lossReason}
             >
-              Mark as Dead
+              Mark as Closed Lost
             </Button>
           </DialogFooter>
         </DialogContent>

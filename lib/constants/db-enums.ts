@@ -1276,56 +1276,41 @@ export const CONDO_STATUSES = [
 
 /** Enum: equity_deal_stage */
 export const EQUITY_DEAL_STAGES = [
-  "sourcing",
-  "screening",
-  "due_diligence",
-  "loi_negotiation",
+  "new_deals",
+  "underwritten_needs_review",
+  "offer_placed",
   "under_contract",
-  "closing",
-  "closed",
-  "asset_management",
-  "disposition",
-  "dead",
+  "closed_won",
+  "closed_lost",
 ] as const;
 export type EquityDealStage = (typeof EQUITY_DEAL_STAGES)[number];
 
 /** Active pipeline stages shown on the equity board */
 export const EQUITY_PIPELINE_STAGES: EquityDealStage[] = [
-  "sourcing",
-  "screening",
-  "due_diligence",
-  "loi_negotiation",
+  "new_deals",
+  "underwritten_needs_review",
+  "offer_placed",
   "under_contract",
-  "closing",
-  "closed",
-  "asset_management",
-  "disposition",
+  "closed_won",
+  "closed_lost",
 ];
 
 export const EQUITY_STAGE_LABELS: Record<string, string> = {
-  sourcing: "Sourcing",
-  screening: "Screening",
-  due_diligence: "Due Diligence",
-  loi_negotiation: "LOI Negotiation",
+  new_deals: "New Deals",
+  underwritten_needs_review: "Underwritten Needs Review",
+  offer_placed: "Offer Placed",
   under_contract: "Under Contract",
-  closing: "Closing",
-  closed: "Closed",
-  asset_management: "Asset Mgmt",
-  disposition: "Disposition",
-  dead: "Dead",
+  closed_won: "Closed Won",
+  closed_lost: "Closed Lost",
 };
 
 export const EQUITY_STAGE_COLORS: Record<string, string> = {
-  sourcing: "bg-slate-100 text-slate-800",
-  screening: "bg-blue-100 text-blue-800",
-  due_diligence: "bg-purple-100 text-purple-800",
-  loi_negotiation: "bg-indigo-100 text-indigo-800",
+  new_deals: "bg-slate-100 text-slate-800",
+  underwritten_needs_review: "bg-blue-100 text-blue-800",
+  offer_placed: "bg-purple-100 text-purple-800",
   under_contract: "bg-amber-100 text-amber-800",
-  closing: "bg-teal-100 text-teal-800",
-  closed: "bg-green-100 text-green-800",
-  asset_management: "bg-cyan-100 text-cyan-800",
-  disposition: "bg-orange-100 text-orange-800",
-  dead: "bg-red-100 text-red-800",
+  closed_won: "bg-green-100 text-green-800",
+  closed_lost: "bg-red-100 text-red-800",
 };
 
 /** Enum: equity_deal_source */

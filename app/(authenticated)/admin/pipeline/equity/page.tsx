@@ -102,7 +102,7 @@ export default async function EquityPipelinePage() {
     <div className="space-y-6">
       <PageHeader
         title="Equity Pipeline"
-        description="Track and manage equity investment deals from sourcing through disposition."
+        description="Track and manage equity investment deals from new deals through close."
       />
       <EquityPipelineView
         stageConfigs={stageConfigs}
