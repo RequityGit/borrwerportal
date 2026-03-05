@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { TabBtn } from "@/components/crm/contact-360/contact-detail-shared";
+import { CompanyEditDialog } from "@/components/crm/company-edit-dialog";
 import { CompanyDetailHeader } from "./company-detail-header";
 import { CompanyDetailSidebar } from "./company-detail-sidebar";
 import { CompanyOverviewTab } from "./tabs/overview-tab";
@@ -111,23 +112,23 @@ export function CompanyDetailClient({
   }, [searchParams, tabs, activeTab]);
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8]">
+    <div className="min-h-screen bg-muted">
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-[#E5E5E7] px-7 py-2.5 flex items-center gap-2">
+      <div className="bg-card border-b border-border px-7 py-2.5 flex items-center gap-2">
         <Link
           href="/admin/crm?view=companies"
-          className="text-[#8B8B8B] hover:text-[#1A1A1A] transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft size={16} strokeWidth={1.5} />
         </Link>
         <Link
           href="/admin/crm?view=companies"
-          className="text-xs text-[#8B8B8B] hover:text-[#1A1A1A] transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Companies
         </Link>
-        <ChevronRight size={12} className="text-[#C5C5C5]" />
-        <span className="text-xs text-[#1A1A1A] font-medium">
+        <ChevronRight size={12} className="text-muted-foreground/50" />
+        <span className="text-xs text-foreground font-medium">
           {company.name}
         </span>
       </div>
@@ -136,14 +137,19 @@ export function CompanyDetailClient({
         {/* Main Content */}
         <div className="flex-1 min-w-0 px-6 py-5 pb-10">
           {/* Header Card */}
-          <CompanyDetailHeader
-            company={company}
-            primaryContact={primaryContact}
-            lastActivityAt={activities[0]?.created_at || null}
-          />
+          <div className="relative">
+            <CompanyDetailHeader
+              company={company}
+              primaryContact={primaryContact}
+              lastActivityAt={activities[0]?.created_at || null}
+            />
+            <div className="absolute top-4 right-4">
+              <CompanyEditDialog company={company} />
+            </div>
+          </div>
 
           {/* Tab Bar */}
-          <div className="border-b border-[#E5E5E7] mb-5 flex overflow-x-auto">
+          <div className="border-b border-border mb-5 flex overflow-x-auto">
             {tabs.map((t) => (
               <TabBtn
                 key={t.id}

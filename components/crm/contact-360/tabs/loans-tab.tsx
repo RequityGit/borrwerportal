@@ -16,7 +16,7 @@ function getDaysInStage(stageUpdatedAt: string | null): number {
 }
 
 function DaysInStageBadge({ days }: { days: number }) {
-  let color = "text-[#6B6B6B]";
+  let color = "text-muted-foreground";
   if (days >= 10) color = "text-[#E5453D]";
   else if (days >= 5) color = "text-[#E5930E]";
 
@@ -65,7 +65,7 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
           <Button
             variant="default"
             size="sm"
-            className="gap-1.5 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+            className="gap-1.5 rounded-lg bg-foreground text-white hover:bg-foreground/90"
             onClick={() => {
               const params = new URLSearchParams({ new_loan: "true" });
               if (borrowerId) params.set("borrower_id", borrowerId);
@@ -85,7 +85,7 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
       {/* Active Loans */}
       <div className="space-y-3">
         {activeLoans.length > 0 && (
-          <p className="text-xs font-medium text-[#6B6B6B] uppercase tracking-wider">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Active ({activeLoans.length})
           </p>
         )}
@@ -95,15 +95,15 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
             <Link
               key={loan.id}
               href={`/admin/deals/${loan.id}`}
-              className="block rounded-xl border border-[#E5E5E7] bg-white p-4 hover:bg-[#F7F7F8] transition-colors"
+              className="block rounded-xl border border-border bg-card p-4 hover:bg-muted transition-colors"
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-sm font-semibold text-[#1A1A1A]">
+                  <p className="text-sm font-semibold text-foreground">
                     {loan.property_address || "No address"}
                   </p>
                   {loan.loan_number && (
-                    <p className="text-xs text-[#9A9A9A]">
+                    <p className="text-xs text-muted-foreground">
                       #{loan.loan_number}
                     </p>
                   )}
@@ -115,18 +115,18 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
               </div>
               <div className="flex items-center gap-6 text-sm">
                 <div>
-                  <span className="text-xs text-[#6B6B6B]">Amount</span>
+                  <span className="text-xs text-muted-foreground">Amount</span>
                   <p>
-                    <MonoValue className="font-medium text-[#1A1A1A]">
+                    <MonoValue className="font-medium text-foreground">
                       {formatCurrency(loan.loan_amount)}
                     </MonoValue>
                   </p>
                 </div>
                 {loan.interest_rate != null && (
                   <div>
-                    <span className="text-xs text-[#6B6B6B]">Rate</span>
+                    <span className="text-xs text-muted-foreground">Rate</span>
                     <p>
-                      <MonoValue className="font-medium text-[#1A1A1A]">
+                      <MonoValue className="font-medium text-foreground">
                         {loan.interest_rate}%
                       </MonoValue>
                     </p>
@@ -134,9 +134,9 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
                 )}
                 {loan.ltv != null && (
                   <div>
-                    <span className="text-xs text-[#6B6B6B]">LTV</span>
+                    <span className="text-xs text-muted-foreground">LTV</span>
                     <p>
-                      <MonoValue className="font-medium text-[#1A1A1A]">
+                      <MonoValue className="font-medium text-foreground">
                         {loan.ltv}%
                       </MonoValue>
                     </p>
@@ -144,9 +144,9 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
                 )}
                 {loan.loan_term_months != null && (
                   <div>
-                    <span className="text-xs text-[#6B6B6B]">Term</span>
+                    <span className="text-xs text-muted-foreground">Term</span>
                     <p>
-                      <MonoValue className="font-medium text-[#1A1A1A]">
+                      <MonoValue className="font-medium text-foreground">
                         {loan.loan_term_months}mo
                       </MonoValue>
                     </p>
@@ -163,7 +163,7 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
         <div>
           <button
             onClick={() => setShowPast(!showPast)}
-            className="flex items-center gap-1.5 text-xs font-medium text-[#6B6B6B] uppercase tracking-wider hover:text-[#1A1A1A] transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
           >
             Past Loans ({pastLoans.length})
             {showPast ? (
@@ -179,22 +179,22 @@ export function LoansTab({ loans, contactId, borrowerId }: LoansTabProps) {
                 <Link
                   key={loan.id}
                   href={`/admin/deals/${loan.id}`}
-                  className="flex items-center justify-between rounded-lg border border-[#E5E5E7] bg-white p-3 hover:bg-[#F7F7F8] transition-colors"
+                  className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div>
-                      <p className="text-sm text-[#1A1A1A]">
+                      <p className="text-sm text-foreground">
                         {loan.property_address || "No address"}
                       </p>
                       {loan.loan_number && (
-                        <p className="text-xs text-[#9A9A9A]">
+                        <p className="text-xs text-muted-foreground">
                           #{loan.loan_number}
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <MonoValue className="text-sm text-[#6B6B6B]">
+                    <MonoValue className="text-sm text-muted-foreground">
                       {formatCurrency(loan.loan_amount)}
                     </MonoValue>
                     {loan.stage && <StagePill stage={loan.stage} />}

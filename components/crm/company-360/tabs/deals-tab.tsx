@@ -150,20 +150,20 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
       <SectionCard title="Deals" icon={Landmark} noPad>
         {!loaded ? (
           <div className="p-5">
-            <div className="h-20 rounded-lg bg-[#F7F7F8] animate-pulse" />
+            <div className="h-20 rounded-lg bg-muted animate-pulse" />
           </div>
         ) : deals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
               <Landmark
-                className="h-6 w-6 text-[#9A9A9A]"
+                className="h-6 w-6 text-muted-foreground"
                 strokeWidth={1.5}
               />
             </div>
-            <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
               No deals linked
             </h3>
-            <p className="text-sm text-[#6B6B6B]">
+            <p className="text-sm text-muted-foreground">
               Deals will appear here when linked to this company.
             </p>
           </div>
@@ -171,7 +171,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E5E7]">
+                <tr className="border-b border-border">
                   {[
                     "Deal",
                     "Stage",
@@ -183,7 +183,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-4 py-2.5 text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider"
+                      className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
                       style={{
                         textAlign: ["Amount", "Rate", "LTV"].includes(h)
                           ? "right"
@@ -202,7 +202,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                   return (
                     <tr
                       key={d.id}
-                      className="border-b border-[#F7F7F8] cursor-pointer hover:bg-[#FAFAFA]"
+                      className="border-b border-border/40 cursor-pointer hover:bg-muted/50"
                     >
                       <td className="px-4 py-3 text-[13px] font-medium">
                         {d.name}
@@ -219,26 +219,17 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                         />
                       </td>
                       <td
-                        className="px-4 py-3 text-right text-[13px] font-medium"
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                        }}
+                        className="px-4 py-3 text-right text-[13px] font-medium font-mono num"
                       >
                         {formatCurrency(d.amount)}
                       </td>
                       <td
-                        className="px-4 py-3 text-right text-[13px]"
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                        }}
+                        className="px-4 py-3 text-right text-[13px] font-mono num"
                       >
                         {formatPercent(d.rate)}
                       </td>
                       <td
-                        className="px-4 py-3 text-right text-[13px]"
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                        }}
+                        className="px-4 py-3 text-right text-[13px] font-mono num"
                       >
                         {d.ltv ? `${d.ltv}%` : "—"}
                       </td>
@@ -253,11 +244,10 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                 })}
               </tbody>
             </table>
-            <div className="px-4 py-2.5 border-t border-[#E5E5E7] flex justify-between text-xs text-[#8B8B8B]">
+            <div className="px-4 py-2.5 border-t border-border flex justify-between text-xs text-muted-foreground">
               <span>{deals.length} deals</span>
               <span
-                className="font-medium"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                className="font-medium font-mono num"
               >
                 Pipeline: {formatCurrency(pipelineTotal)}
               </span>
@@ -269,46 +259,45 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
       {/* Quotes — Lender only */}
       {isLender && (
         <SectionCard title="Quote History" icon={Receipt} noPad>
-          <div className="px-4 py-3 border-b border-[#E5E5E7] flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <div className="flex gap-1.5">
               {["all", "accepted", "declined", "countered", "pending"].map(
                 (s) => (
                   <button
                     key={s}
                     onClick={() => setQuoteFilter(s)}
-                    className="px-2.5 py-1 rounded-lg border text-[11px] font-medium cursor-pointer transition-all duration-150"
-                    style={{
-                      borderColor: quoteFilter === s ? "#1A1A1A" : "#E5E5E7",
-                      background: quoteFilter === s ? "#1A1A1A" : "#FFF",
-                      color: quoteFilter === s ? "#FFF" : "#6B6B6B",
-                    }}
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium cursor-pointer transition-all duration-150 ${
+                      quoteFilter === s
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)}
                   </button>
                 )
               )}
             </div>
-            <span className="text-xs text-[#8B8B8B]">
+            <span className="text-xs text-muted-foreground">
               {filteredQuotes.length} quotes
             </span>
           </div>
 
           {!loaded ? (
             <div className="p-5">
-              <div className="h-20 rounded-lg bg-[#F7F7F8] animate-pulse" />
+              <div className="h-20 rounded-lg bg-muted animate-pulse" />
             </div>
           ) : filteredQuotes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
                 <Receipt
-                  className="h-6 w-6 text-[#9A9A9A]"
+                  className="h-6 w-6 text-muted-foreground"
                   strokeWidth={1.5}
                 />
               </div>
-              <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+              <h3 className="text-sm font-semibold text-foreground mb-1">
                 No quotes
               </h3>
-              <p className="text-sm text-[#6B6B6B]">
+              <p className="text-sm text-muted-foreground">
                 {quoteFilter !== "all"
                   ? `No ${quoteFilter} quotes. Try changing the filter.`
                   : "Quote history will appear here."}
@@ -318,7 +307,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-[#E5E5E7]">
+                  <tr className="border-b border-border">
                     {[
                       "Deal",
                       "Product",
@@ -329,7 +318,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="px-4 py-2.5 text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider"
+                        className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
                         style={{
                           textAlign: ["Rate", "Points"].includes(h)
                             ? "right"
@@ -349,25 +338,19 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                     return (
                       <tr
                         key={q.id}
-                        className="border-b border-[#F7F7F8] cursor-pointer hover:bg-[#FAFAFA]"
+                        className="border-b border-border/40 cursor-pointer hover:bg-muted/50"
                       >
                         <td className="px-4 py-3 text-[13px] font-medium">
                           {q.deal}
                         </td>
                         <td className="px-4 py-3 text-xs">{q.product}</td>
                         <td
-                          className="px-4 py-3 text-right text-[13px]"
-                          style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                          }}
+                          className="px-4 py-3 text-right text-[13px] font-mono num"
                         >
                           {formatPercent(q.rate)}
                         </td>
                         <td
-                          className="px-4 py-3 text-right text-[13px]"
-                          style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                          }}
+                          className="px-4 py-3 text-right text-[13px] font-mono num"
                         >
                           {q.origination != null ? `${q.origination}%` : "—"}
                         </td>
@@ -378,7 +361,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                             small
                           />
                         </td>
-                        <td className="px-4 py-3 text-[11px] text-[#8B8B8B]">
+                        <td className="px-4 py-3 text-[11px] text-muted-foreground">
                           {relTime(q.submitted_at)}
                         </td>
                       </tr>
@@ -387,7 +370,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                 </tbody>
               </table>
               {/* Quote summary footer */}
-              <div className="px-4 py-3 border-t border-[#E5E5E7] flex gap-6 text-xs text-[#8B8B8B]">
+              <div className="px-4 py-3 border-t border-border flex gap-6 text-xs text-muted-foreground">
                 <span>
                   Accepted:{" "}
                   <strong className="text-[#22A861]">
@@ -408,8 +391,7 @@ export function CompanyDealsTab({ company }: DealsTabProps) {
                 </span>
                 {quotes.length > 0 && (
                   <span
-                    className="ml-auto font-medium text-[#1A1A1A]"
-                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    className="ml-auto font-medium text-foreground font-mono num"
                   >
                     Avg Rate:{" "}
                     {formatPercent(

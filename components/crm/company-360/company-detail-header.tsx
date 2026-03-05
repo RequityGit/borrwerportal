@@ -85,7 +85,7 @@ export function CompanyDetailHeader({
     : null;
 
   return (
-    <div className="bg-white border border-[#E5E5E7] rounded-xl p-6 mb-5">
+    <div className="bg-card border border-border rounded-xl p-6 mb-5">
       <div className="flex gap-4 items-start">
         {/* Avatar */}
         <Avatar
@@ -103,7 +103,7 @@ export function CompanyDetailHeader({
         <div className="flex-1 min-w-0">
           {/* Name + Pills */}
           <div className="flex items-center gap-2.5 flex-wrap mb-1">
-            <h1 className="text-[22px] font-bold text-[#1A1A1A] leading-tight m-0">
+            <h1 className="text-[22px] font-bold text-foreground leading-tight m-0">
               {company.name}
             </h1>
             <DotPill color={typeCfg.color} label={typeCfg.label} small />
@@ -128,7 +128,7 @@ export function CompanyDetailHeader({
 
           {/* Other names */}
           {company.other_names && (
-            <div className="text-xs text-[#8B8B8B] mb-1.5">
+            <div className="text-xs text-muted-foreground mb-1.5">
               Also known as: {company.other_names}
             </div>
           )}
@@ -139,7 +139,7 @@ export function CompanyDetailHeader({
               <ClickToCallNumber number={company.phone} className="text-[13px]" />
             )}
             {company.email && (
-              <span className="flex items-center gap-1.5 text-[13px] text-[#6B6B6B]">
+              <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                 <Mail size={13} strokeWidth={1.5} /> {company.email}
               </span>
             )}
@@ -160,7 +160,7 @@ export function CompanyDetailHeader({
               </a>
             )}
             {company.address_line1 && (
-              <span className="flex items-center gap-1.5 text-[13px] text-[#6B6B6B]">
+              <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                 <MapPin size={13} strokeWidth={1.5} />{" "}
                 {company.address_line1}
                 {company.address_line2 ? `, ${company.address_line2}` : ""}
@@ -229,29 +229,29 @@ export function CompanyDetailHeader({
         <div className="text-right shrink-0">
           {pcName && (
             <>
-              <div className="text-[11px] text-[#8B8B8B] mb-0.5 uppercase tracking-wide font-medium">
+              <div className="text-[11px] text-muted-foreground mb-0.5 uppercase tracking-wide font-medium">
                 Primary Contact
               </div>
               <div className="flex items-center gap-1.5 justify-end">
                 <Avatar className="h-6 w-6 rounded-md">
-                  <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[9px] font-semibold">
+                  <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[9px] font-semibold">
                     {pcInitials}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-[13px] font-medium">{pcName}</span>
               </div>
               {primaryContact?.user_function && (
-                <div className="text-[11px] text-[#8B8B8B] mt-0.5">
+                <div className="text-[11px] text-muted-foreground mt-0.5">
                   {primaryContact.user_function}
                 </div>
               )}
             </>
           )}
-          <div className="mt-2.5 text-[11px] text-[#8B8B8B]">
+          <div className="mt-2.5 text-[11px] text-muted-foreground">
             Last Contact: {relTime(lastActivityAt)}
           </div>
           {company.source && (
-            <div className="mt-1.5 text-[11px] text-[#8B8B8B]">
+            <div className="mt-1.5 text-[11px] text-muted-foreground">
               Source: {company.source}
             </div>
           )}

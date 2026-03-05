@@ -144,11 +144,11 @@ export function DetailTasksTab({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[13px] text-[#8B8B8B]">{openCount} open task{openCount !== 1 ? "s" : ""}</span>
+        <span className="text-[13px] text-muted-foreground">{openCount} open task{openCount !== 1 ? "s" : ""}</span>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-[#E5E5E7] text-xs"
+          className="gap-1.5 rounded-lg border-border text-xs"
           onClick={() => setDialogOpen(true)}
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -164,21 +164,21 @@ export function DetailTasksTab({
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
             <div>
-              <label className="text-xs font-medium text-[#6B6B6B] mb-1 block">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
                 Subject <span className="text-[#E5453D]">*</span>
               </label>
               <Input
                 placeholder="Task subject"
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                className="rounded-lg border-[#E5E5E7]"
+                className="rounded-lg border-border"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-[#6B6B6B] mb-1 block">Type</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Type</label>
                 <Select value={form.task_type} onValueChange={(v) => setForm((f) => ({ ...f, task_type: v }))}>
-                  <SelectTrigger className="rounded-lg border-[#E5E5E7]">
+                  <SelectTrigger className="rounded-lg border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -191,9 +191,9 @@ export function DetailTasksTab({
                 </Select>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#6B6B6B] mb-1 block">Priority</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Priority</label>
                 <Select value={form.priority} onValueChange={(v) => setForm((f) => ({ ...f, priority: v }))}>
-                  <SelectTrigger className="rounded-lg border-[#E5E5E7]">
+                  <SelectTrigger className="rounded-lg border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,22 +206,22 @@ export function DetailTasksTab({
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-[#6B6B6B] mb-1 block">Due Date</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Due Date</label>
               <Input
                 type="date"
                 value={form.due_date}
                 onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
-                className="rounded-lg border-[#E5E5E7]"
+                className="rounded-lg border-border"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-[#6B6B6B] mb-1 block">Description</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
               <Textarea
                 placeholder="Optional description"
                 rows={3}
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="rounded-lg border-[#E5E5E7] resize-none"
+                className="rounded-lg border-border resize-none"
               />
             </div>
           </div>
@@ -229,14 +229,14 @@ export function DetailTasksTab({
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="rounded-lg border-[#E5E5E7]"
+              className="rounded-lg border-border"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateTask}
               disabled={creating}
-              className="rounded-lg bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white gap-1.5"
+              className="rounded-lg bg-foreground hover:bg-foreground/90 text-background gap-1.5"
             >
               {creating && <Loader2 size={14} className="animate-spin" />}
               Create Task
@@ -247,11 +247,11 @@ export function DetailTasksTab({
 
       {tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
-            <CheckCircle2 className="h-6 w-6 text-[#9A9A9A]" strokeWidth={1.5} />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+            <CheckCircle2 className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">No tasks</h3>
-          <p className="text-sm text-[#6B6B6B]">Create a task to track to-dos for this contact.</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1">No tasks</h3>
+          <p className="text-sm text-muted-foreground">Create a task to track to-dos for this contact.</p>
         </div>
       ) : (
         tasks.map((t) => {
@@ -264,7 +264,7 @@ export function DetailTasksTab({
           return (
             <div
               key={t.id}
-              className="bg-white border border-[#E5E5E7] rounded-xl p-4 flex items-center gap-3.5"
+              className="bg-card border border-border rounded-xl p-4 flex items-center gap-3.5"
               style={{ opacity: isCompleted ? 0.6 : 1 }}
             >
               {/* Checkbox */}
@@ -283,7 +283,7 @@ export function DetailTasksTab({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div
-                  className="text-[13px] font-medium text-[#1A1A1A]"
+                  className="text-[13px] font-medium text-foreground"
                   style={{ textDecoration: isCompleted ? "line-through" : "none" }}
                 >
                   {t.subject}
@@ -296,13 +296,12 @@ export function DetailTasksTab({
                     {sc.label}
                   </span>
                   <span
-                    className="text-[11px]"
-                    style={{ color: isOverdue ? "#E5453D" : "#8B8B8B" }}
+                    className={`text-[11px] ${isOverdue ? "text-[#E5453D]" : "text-muted-foreground"}`}
                   >
                     Due {formatDate(t.due_date)}
                   </span>
-                  <span className="text-[11px] text-[#C5C5C5]">&middot;</span>
-                  <span className="text-[11px] text-[#8B8B8B]">
+                  <span className="text-[11px] text-muted-foreground/50">&middot;</span>
+                  <span className="text-[11px] text-muted-foreground">
                     {t.assigned_to_name || "Unassigned"}
                   </span>
                 </div>

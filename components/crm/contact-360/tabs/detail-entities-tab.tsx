@@ -32,13 +32,13 @@ export function DetailEntitiesTab({ entities }: DetailEntitiesTabProps) {
   if (entities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
-          <Building2 className="h-6 w-6 text-[#9A9A9A]" strokeWidth={1.5} />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+          <Building2 className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
         </div>
-        <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+        <h3 className="text-sm font-semibold text-foreground mb-1">
           No entities
         </h3>
-        <p className="text-sm text-[#6B6B6B]">
+        <p className="text-sm text-muted-foreground">
           No borrowing or investing entities linked.
         </p>
       </div>
@@ -48,13 +48,13 @@ export function DetailEntitiesTab({ entities }: DetailEntitiesTabProps) {
   return (
     <div className="flex flex-col gap-4">
       {entities.map((ent) => (
-        <Card key={ent.id} className="rounded-xl border-[#E5E5E7]">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
+        <Card key={ent.id} className="rounded-xl border-border">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+              <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
                 <Building2
                   size={16}
-                  className="text-[#6B6B6B]"
+                  className="text-muted-foreground"
                   strokeWidth={1.5}
                 />
                 {ent.entity_name}
@@ -101,7 +101,7 @@ export function DetailEntitiesTab({ entities }: DetailEntitiesTabProps) {
 
             {/* Documents */}
             <div>
-              <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wide mb-2">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                 Documents
               </div>
               <div className="flex gap-2 flex-wrap">

@@ -45,9 +45,9 @@ function ActiveLoansCard({ loans }: { loans: LoanData[] }) {
 
   if (activeLoans.length === 0) {
     return (
-      <Card className="rounded-xl border-[#E5E5E7] bg-white">
+      <Card className="rounded-xl border-border bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <DollarSign className="h-4 w-4" strokeWidth={1.5} />
             Active Loans
           </CardTitle>
@@ -64,9 +64,9 @@ function ActiveLoansCard({ loans }: { loans: LoanData[] }) {
   }
 
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+    <Card className="rounded-xl border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <DollarSign className="h-4 w-4" strokeWidth={1.5} />
           Active Loans ({activeLoans.length})
         </CardTitle>
@@ -76,15 +76,15 @@ function ActiveLoansCard({ loans }: { loans: LoanData[] }) {
           <Link
             key={loan.id}
             href={`/admin/deals/${loan.id}`}
-            className="block rounded-lg border border-[#E5E5E7] p-3 hover:bg-[#F7F7F8] transition-colors"
+            className="block rounded-lg border border-border p-3 hover:bg-muted transition-colors"
           >
             <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-medium text-[#1A1A1A] truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {loan.property_address || "No address"}
               </p>
               {loan.stage && <StagePill stage={loan.stage} />}
             </div>
-            <div className="flex items-center gap-4 text-xs text-[#6B6B6B]">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <MonoValue>{formatCurrency(loan.loan_amount)}</MonoValue>
               {loan.interest_rate != null && (
                 <MonoValue>{loan.interest_rate}%</MonoValue>
@@ -94,7 +94,7 @@ function ActiveLoansCard({ loans }: { loans: LoanData[] }) {
           </Link>
         ))}
         {activeLoans.length > 3 && (
-          <p className="text-xs text-[#6B6B6B] text-center">
+          <p className="text-xs text-muted-foreground text-center">
             +{activeLoans.length - 3} more loans
           </p>
         )}
@@ -120,9 +120,9 @@ function InvestmentSummaryCard({
 
   if (commitments.length === 0) {
     return (
-      <Card className="rounded-xl border-[#E5E5E7] bg-white">
+      <Card className="rounded-xl border-border bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <TrendingUp className="h-4 w-4" strokeWidth={1.5} />
             Investments
           </CardTitle>
@@ -139,9 +139,9 @@ function InvestmentSummaryCard({
   }
 
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+    <Card className="rounded-xl border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <TrendingUp className="h-4 w-4" strokeWidth={1.5} />
           Investment Summary
         </CardTitle>
@@ -149,14 +149,14 @@ function InvestmentSummaryCard({
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-[#6B6B6B]">Total Committed</p>
-            <MonoValue className="text-sm font-semibold text-[#1A1A1A]">
+            <p className="text-xs text-muted-foreground">Total Committed</p>
+            <MonoValue className="text-sm font-semibold text-foreground">
               {formatCurrency(totalCommitted)}
             </MonoValue>
           </div>
           <div>
-            <p className="text-xs text-[#6B6B6B]">Total Funded</p>
-            <MonoValue className="text-sm font-semibold text-[#1A1A1A]">
+            <p className="text-xs text-muted-foreground">Total Funded</p>
+            <MonoValue className="text-sm font-semibold text-foreground">
               {formatCurrency(totalFunded)}
             </MonoValue>
           </div>
@@ -164,13 +164,13 @@ function InvestmentSummaryCard({
         {commitments.slice(0, 3).map((c) => (
           <div
             key={c.id}
-            className="flex items-center justify-between rounded-lg border border-[#E5E5E7] p-3"
+            className="flex items-center justify-between rounded-lg border border-border p-3"
           >
             <div>
-              <p className="text-sm font-medium text-[#1A1A1A]">
+              <p className="text-sm font-medium text-foreground">
                 {c.fund_name || "Unknown Fund"}
               </p>
-              <MonoValue className="text-xs text-[#6B6B6B]">
+              <MonoValue className="text-xs text-muted-foreground">
                 {formatCurrency(c.commitment_amount)}
               </MonoValue>
             </div>
@@ -188,9 +188,9 @@ function ServicingSummaryCard({ loans }: { loans: LoanData[] }) {
     (l) => l.stage === "funded" || l.stage === "servicing"
   );
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+    <Card className="rounded-xl border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Briefcase className="h-4 w-4" strokeWidth={1.5} />
           Servicing Summary
         </CardTitle>
@@ -206,14 +206,14 @@ function ServicingSummaryCard({ loans }: { loans: LoanData[] }) {
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
-                <p className="text-xs text-[#6B6B6B]">Active Loans</p>
-                <MonoValue className="text-sm font-semibold text-[#1A1A1A]">
+                <p className="text-xs text-muted-foreground">Active Loans</p>
+                <MonoValue className="text-sm font-semibold text-foreground">
                   {servicingLoans.length}
                 </MonoValue>
               </div>
               <div>
-                <p className="text-xs text-[#6B6B6B]">Total Balance</p>
-                <MonoValue className="text-sm font-semibold text-[#1A1A1A]">
+                <p className="text-xs text-muted-foreground">Total Balance</p>
+                <MonoValue className="text-sm font-semibold text-foreground">
                   {formatCurrency(
                     servicingLoans.reduce(
                       (s, l) => s + (l.loan_amount || 0),
@@ -233,9 +233,9 @@ function ServicingSummaryCard({ loans }: { loans: LoanData[] }) {
 // ---------- Referral Summary Card (broker) ----------
 function ReferralSummaryCard() {
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+    <Card className="rounded-xl border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Users className="h-4 w-4" strokeWidth={1.5} />
           Referral Summary
         </CardTitle>
@@ -256,16 +256,16 @@ function RecentActivityCard({ activities }: { activities: ActivityData[] }) {
   const recent = activities.slice(0, 5);
 
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+    <Card className="rounded-xl border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Activity className="h-4 w-4" strokeWidth={1.5} />
           Recent Activity
         </CardTitle>
       </CardHeader>
       <CardContent>
         {recent.length === 0 ? (
-          <p className="text-sm text-[#6B6B6B] text-center py-4">
+          <p className="text-sm text-muted-foreground text-center py-4">
             No recent activity.
           </p>
         ) : (
@@ -325,7 +325,7 @@ export function OverviewTab({
   return (
     <div className="space-y-4">
       {!hasRelationships && (
-        <Card className="rounded-xl border-[#E5E5E7] bg-white">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="py-8">
             <EmptyState
               title="No relationships defined"
@@ -335,7 +335,7 @@ export function OverviewTab({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-lg border-[#E5E5E7]"
+                  className="rounded-lg border-border"
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} />
                   Add Relationship

@@ -140,13 +140,13 @@ export function RelationshipStats({
     <div className="space-y-2">
       {hasMultiple && (
         <div className="flex items-center gap-2 relative">
-          <span className="text-xs text-[#6B6B6B] font-medium">
+          <span className="text-xs text-muted-foreground font-medium">
             Showing stats for:
           </span>
           <Button
             variant="outline"
             size="sm"
-            className="gap-1 text-xs rounded-lg border-[#E5E5E7] h-7"
+            className="gap-1 text-xs rounded-lg border-border h-7"
             onClick={() => setShowDropdown(!showDropdown)}
           >
             <span
@@ -157,7 +157,7 @@ export function RelationshipStats({
             <ChevronDown className="h-3 w-3" strokeWidth={1.5} />
           </Button>
           {showDropdown && (
-            <div className="absolute top-full left-24 mt-1 z-10 bg-white border border-[#E5E5E7] rounded-lg shadow-sm py-1">
+            <div className="absolute top-full left-24 mt-1 z-10 bg-card border border-border rounded-lg shadow-sm py-1">
               {activeRelationships
                 .filter((r) =>
                   ["borrower", "investor", "lender", "broker"].includes(r)
@@ -167,7 +167,7 @@ export function RelationshipStats({
                   return (
                     <button
                       key={rel}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[#F7F7F8] w-full text-left"
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted w-full text-left"
                       onClick={() => {
                         setSelectedRel(rel);
                         setShowDropdown(false);
@@ -192,13 +192,13 @@ export function RelationshipStats({
         {stats.map((stat) => (
           <Card
             key={stat.label}
-            className="rounded-xl border-[#E5E5E7] bg-white"
+            className="rounded-xl border-border bg-card"
           >
             <CardContent className="p-4">
-              <p className="text-xs text-[#6B6B6B] font-medium mb-1">
+              <p className="text-xs text-muted-foreground font-medium mb-1">
                 {stat.label}
               </p>
-              <MonoValue className="text-lg font-semibold text-[#1A1A1A]">
+              <MonoValue className="text-lg font-semibold text-foreground">
                 {stat.value}
               </MonoValue>
             </CardContent>

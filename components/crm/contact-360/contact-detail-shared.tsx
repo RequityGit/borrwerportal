@@ -46,7 +46,7 @@ export function OutlinedPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-[#1A1A1A] text-[#1A1A1A] whitespace-nowrap",
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-foreground text-foreground whitespace-nowrap",
         className
       )}
     >
@@ -70,12 +70,12 @@ export function SectionCard({
   noPad?: boolean;
 }) {
   return (
-    <div className="bg-white border border-[#E5E5E7] rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       {title && (
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0F0]">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60">
           <div className="flex items-center gap-2">
-            {Icon && <Icon size={16} className="text-[#6B6B6B]" strokeWidth={1.5} />}
-            <span className="text-[13px] font-semibold text-[#1A1A1A]">{title}</span>
+            {Icon && <Icon size={16} className="text-muted-foreground" strokeWidth={1.5} />}
+            <span className="text-[13px] font-semibold text-foreground">{title}</span>
           </div>
           {action}
         </div>
@@ -99,16 +99,15 @@ export function MetricCard({
 }) {
   return (
     <div className="flex-1 min-w-[120px]">
-      <div className="text-[11px] text-[#8B8B8B] font-medium mb-1 uppercase tracking-wide">
+      <div className="text-[11px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">
         {label}
       </div>
       <div
-        className="text-xl font-semibold text-[#1A1A1A] leading-tight"
-        style={mono ? { fontFamily: "'JetBrains Mono', monospace" } : undefined}
+        className={cn("text-xl font-semibold text-foreground leading-tight", mono && "num font-mono")}
       >
         {value}
       </div>
-      {sub && <div className="text-[11px] text-[#8B8B8B] mt-0.5">{sub}</div>}
+      {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -126,15 +125,14 @@ export function FieldRow({
   danger?: boolean;
 }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-[#F7F7F8]">
-      <span className="text-xs text-[#8B8B8B]">{label}</span>
+    <div className="flex justify-between items-center py-2 border-b border-border/40">
+      <span className="text-xs text-muted-foreground">{label}</span>
       <span
         className={cn(
           "text-[13px] text-right",
-          danger ? "text-[#E5453D]" : "text-[#1A1A1A]",
-          mono ? "font-medium" : "font-normal"
+          danger ? "text-red-500" : "text-foreground",
+          mono ? "font-medium num font-mono" : "font-normal"
         )}
-        style={mono ? { fontFamily: "'JetBrains Mono', monospace" } : undefined}
       >
         {value || "—"}
       </span>
@@ -231,8 +229,8 @@ export function EditableFieldRow({
 
   if (editing) {
     return (
-      <div className="flex justify-between items-center py-1.5 border-b border-[#F7F7F8] gap-2">
-        <span className="text-xs text-[#8B8B8B] shrink-0">{label}</span>
+      <div className="flex justify-between items-center py-1.5 border-b border-border/40 gap-2">
+        <span className="text-xs text-muted-foreground shrink-0">{label}</span>
         <div className="flex items-center gap-1.5">
           {(fieldType === "select" || fieldType === "boolean") ? (
             <select
@@ -241,7 +239,7 @@ export function EditableFieldRow({
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={saving}
-              className="h-7 rounded-md border border-[#E5E5E7] bg-white px-2 text-[13px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] transition-colors"
+              className="h-7 rounded-md border border-border bg-background px-2 text-[13px] text-foreground outline-none focus:border-foreground transition-colors"
             >
               <option value="">—</option>
               {fieldType === "boolean" ? (
@@ -264,25 +262,24 @@ export function EditableFieldRow({
               onKeyDown={handleKeyDown}
               disabled={saving}
               className={cn(
-                "h-7 w-32 rounded-md border border-[#E5E5E7] bg-white px-2 text-[13px] text-[#1A1A1A] text-right outline-none focus:border-[#1A1A1A] transition-colors",
-                mono && "font-medium"
+                "h-7 w-32 rounded-md border border-border bg-background px-2 text-[13px] text-foreground text-right outline-none focus:border-foreground transition-colors",
+                mono && "font-medium num font-mono"
               )}
-              style={mono ? { fontFamily: "'JetBrains Mono', monospace" } : undefined}
             />
           )}
           {saving ? (
-            <Loader2 size={14} className="text-[#8B8B8B] animate-spin" />
+            <Loader2 size={14} className="text-muted-foreground animate-spin" />
           ) : (
             <>
               <button
                 onClick={handleSave}
-                className="h-6 w-6 rounded-md flex items-center justify-center bg-[#22A861] text-white hover:bg-[#1E9655] transition-colors"
+                className="h-6 w-6 rounded-md flex items-center justify-center bg-green-600 text-white hover:bg-green-700 transition-colors"
               >
                 <Check size={12} strokeWidth={2} />
               </button>
               <button
                 onClick={handleCancel}
-                className="h-6 w-6 rounded-md flex items-center justify-center bg-[#F7F7F8] text-[#6B6B6B] hover:bg-[#E5E5E7] transition-colors"
+                className="h-6 w-6 rounded-md flex items-center justify-center bg-muted text-muted-foreground hover:bg-accent transition-colors"
               >
                 <X size={12} strokeWidth={2} />
               </button>
@@ -295,22 +292,21 @@ export function EditableFieldRow({
 
   return (
     <div
-      className="group flex justify-between items-center py-2 border-b border-[#F7F7F8] cursor-pointer hover:bg-[#FAFAFA] -mx-1 px-1 rounded transition-colors"
+      className="group flex justify-between items-center py-2 border-b border-border/40 cursor-pointer hover:bg-muted/50 -mx-1 px-1 rounded transition-colors"
       onClick={startEditing}
     >
-      <span className="text-xs text-[#8B8B8B]">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1.5">
         <span
           className={cn(
             "text-[13px] text-right",
-            danger ? "text-[#E5453D]" : "text-[#1A1A1A]",
-            mono ? "font-medium" : "font-normal"
+            danger ? "text-red-500" : "text-foreground",
+            mono ? "font-medium num font-mono" : "font-normal"
           )}
-          style={mono ? { fontFamily: "'JetBrains Mono', monospace" } : undefined}
         >
           {value || "—"}
         </span>
-        <Pencil size={12} className="text-[#C5C5C5] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" strokeWidth={1.5} />
+        <Pencil size={12} className="text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" strokeWidth={1.5} />
       </div>
     </div>
   );
@@ -334,8 +330,8 @@ export function TabBtn({
       className={cn(
         "py-2.5 mr-6 bg-transparent border-none border-b-2 text-[13px] cursor-pointer transition-all duration-150 inline-flex items-center gap-1.5 whitespace-nowrap",
         active
-          ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-          : "border-transparent text-[#8B8B8B] font-medium hover:text-[#6B6B6B]"
+          ? "border-foreground text-foreground font-semibold"
+          : "border-transparent text-muted-foreground font-medium hover:text-foreground/70"
       )}
     >
       {label}
@@ -343,7 +339,7 @@ export function TabBtn({
         <span
           className={cn(
             "text-[10px] rounded-full px-1.5 py-px font-semibold",
-            active ? "bg-[#1A1A1A] text-white" : "bg-[#E5E5E7] text-[#6B6B6B]"
+            active ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
           )}
         >
           {count}

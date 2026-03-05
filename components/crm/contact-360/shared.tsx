@@ -78,11 +78,11 @@ export function EmptyState({
   const IconComponent = Icon || UserPlus;
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
-        <IconComponent className="h-6 w-6 text-[#9A9A9A]" strokeWidth={1.5} />
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+        <IconComponent className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
       </div>
-      <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">{title}</h3>
-      <p className="text-sm text-[#6B6B6B] max-w-sm mb-4">{description}</p>
+      <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-sm mb-4">{description}</p>
       {action}
     </div>
   );
@@ -92,7 +92,7 @@ export function EmptyState({
 export function SectionSkeleton({ label }: { label: string }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-[#9A9A9A] font-medium">{label}</p>
+      <p className="text-xs text-muted-foreground font-medium">{label}</p>
       <Skeleton className="h-20 w-full rounded-xl" />
       <Skeleton className="h-20 w-full rounded-xl" />
     </div>
@@ -123,7 +123,7 @@ export function TimelineEvent({
     <div className="flex gap-3 relative">
       {/* Connecting line */}
       {!isLast && (
-        <div className="absolute left-4 top-9 bottom-0 w-px bg-[#E5E5E7]" />
+        <div className="absolute left-4 top-9 bottom-0 w-px bg-border" />
       )}
       {/* Icon */}
       <div
@@ -134,14 +134,14 @@ export function TimelineEvent({
       </div>
       {/* Content */}
       <div className="flex-1 min-w-0 pb-6">
-        <p className="text-sm font-medium text-[#1A1A1A]">{title}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
         {description && (
-          <p className="text-sm text-[#6B6B6B] mt-0.5 whitespace-pre-wrap">
+          <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">
             {description}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-1 text-xs text-[#9A9A9A]">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+          <span className="font-mono num">
             {new Date(timestamp).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -151,7 +151,7 @@ export function TimelineEvent({
           {actor && (
             <>
               <span>by</span>
-              <span className="text-[#6B6B6B]">{actor}</span>
+              <span className="text-muted-foreground">{actor}</span>
             </>
           )}
         </div>
@@ -170,8 +170,7 @@ export function MonoValue({
 }) {
   return (
     <span
-      className={cn("tabular-nums", className)}
-      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+      className={cn("font-mono num", className)}
     >
       {children}
     </span>

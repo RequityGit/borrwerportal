@@ -14,13 +14,13 @@ export function DetailEmailsTab({ emails }: DetailEmailsTabProps) {
   if (emails.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
-          <Mail className="h-6 w-6 text-[#9A9A9A]" strokeWidth={1.5} />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+          <Mail className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
         </div>
-        <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+        <h3 className="text-sm font-semibold text-foreground mb-1">
           No emails
         </h3>
-        <p className="text-sm text-[#6B6B6B]">
+        <p className="text-sm text-muted-foreground">
           No email history for this contact.
         </p>
       </div>
@@ -34,7 +34,7 @@ export function DetailEmailsTab({ emails }: DetailEmailsTabProps) {
         return (
           <Card
             key={e.id}
-            className="rounded-xl border-[#E5E5E7] cursor-pointer transition-all duration-150 hover:border-[#D0D0D0]"
+            className="rounded-xl border-border cursor-pointer transition-all duration-150 hover:border-border"
           >
             <CardContent className="p-[18px]">
               <div className="flex justify-between items-start mb-1.5">
@@ -52,7 +52,7 @@ export function DetailEmailsTab({ emails }: DetailEmailsTabProps) {
                       strokeWidth={1.5}
                     />
                   )}
-                  <span className="text-sm font-semibold text-[#1A1A1A]">
+                  <span className="text-sm font-semibold text-foreground">
                     {e.subject}
                   </span>
                 </div>
@@ -89,15 +89,15 @@ export function DetailEmailsTab({ emails }: DetailEmailsTabProps) {
                   </Badge>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs text-[#8B8B8B]">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>
                   {isOutbound
                     ? `From: ${e.sent_by_name || e.from_email}`
                     : `From: ${e.from_email}`}
                 </span>
-                <span className="text-[#D5D5D5]">&rarr;</span>
+                <span className="text-muted-foreground/50">&rarr;</span>
                 <span>{e.to_email}</span>
-                <span className="text-[#D5D5D5]">&middot;</span>
+                <span className="text-muted-foreground/50">&middot;</span>
                 <span>{relTime(e.created_at)}</span>
               </div>
             </CardContent>

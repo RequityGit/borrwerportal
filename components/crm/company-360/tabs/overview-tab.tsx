@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   TrendingUp,
   Building2,
@@ -11,15 +12,19 @@ import {
   Target,
   Eye,
   EyeOff,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SectionCard,
   MetricCard,
   FieldRow,
+  EditableFieldRow,
 } from "@/components/crm/contact-360/contact-detail-shared";
-import { formatDate, formatCurrency, formatPercent } from "@/lib/format";
+import { useToast } from "@/components/ui/use-toast";
+import { formatDate } from "@/lib/format";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
+import { updateCompanyAction } from "@/app/(authenticated)/admin/crm/company-actions";
 import type {
   CompanyDetailData,
   CompanyWireData,
@@ -37,7 +42,12 @@ interface OverviewTabProps {
   company: CompanyDetailData;
   wireInstructions: CompanyWireData | null;
   files: CompanyFileData[];
+  onEditLenderDetails?: () => void;
 }
+
+const COMPANY_TYPE_OPTIONS = Object.entries(COMPANY_TYPE_CONFIG).map(
+  ([value, { label }]) => ({ value, label })
+);
 
 function ChipGroup({
   items,
@@ -63,7 +73,7 @@ function ChipGroup({
         </span>
       ))}
       {items.length === 0 && (
-        <span className="text-xs text-[#8B8B8B] italic">None configured</span>
+        <span className="text-xs text-muted-foreground italic">None configured</span>
       )}
     </div>
   );
@@ -73,7 +83,10 @@ export function CompanyOverviewTab({
   company,
   wireInstructions,
   files,
+  onEditLenderDetails,
 }: OverviewTabProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [showWire, setShowWire] = useState(false);
   const isLender = company.company_type === "lender";
   const typeCfg =
@@ -95,6 +108,22 @@ export function CompanyOverviewTab({
     new Date(company.nda_expiration_date).getTime() - new Date().getTime() <
       90 * 86400000;
 
+  const saveField = useCallback(
+    async (field: string, value: string | number | boolean | null) => {
+      const result = await updateCompanyAction({
+        id: company.id,
+        [field]: value,
+      });
+      if ("error" in result && result.error) {
+        toast({ title: "Error saving", description: result.error, variant: "destructive" });
+      } else {
+        toast({ title: "Saved" });
+      }
+      router.refresh();
+    },
+    [company.id, router, toast]
+  );
+
   return (
     <div className="flex flex-col gap-5">
       {/* Lender Performance Metrics - placeholder for future data */}
@@ -114,11 +143,25 @@ export function CompanyOverviewTab({
       {/* Company Information */}
       <SectionCard title="Company Information" icon={Building2}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-          <FieldRow label="Legal Name" value={company.name} />
-          <FieldRow label="DBA / Other Names" value={company.other_names || "—"} />
-          <FieldRow
+          <EditableFieldRow
+            label="Legal Name"
+            value={company.name}
+            rawValue={company.name}
+            onSave={(v) => saveField("name", v)}
+          />
+          <EditableFieldRow
+            label="DBA / Other Names"
+            value={company.other_names || "—"}
+            rawValue={company.other_names}
+            onSave={(v) => saveField("other_names", v)}
+          />
+          <EditableFieldRow
             label="Company Type"
             value={typeCfg.label}
+            rawValue={company.company_type}
+            fieldType="select"
+            selectOptions={COMPANY_TYPE_OPTIONS}
+            onSave={(v) => saveField("company_type", v)}
           />
           {company.company_subtype && (
             <FieldRow
@@ -129,24 +172,47 @@ export function CompanyOverviewTab({
               }
             />
           )}
-          <FieldRow label="Phone" value={<ClickToCallNumber number={company.phone} showIcon={false} />} />
-          <FieldRow label="Email" value={company.email} />
-          <FieldRow
+          <EditableFieldRow
+            label="Phone"
+            value={company.phone ? <ClickToCallNumber number={company.phone} showIcon={false} /> : "—"}
+            rawValue={company.phone}
+            onSave={(v) => saveField("phone", v)}
+          />
+          <EditableFieldRow
+            label="Email"
+            value={company.email || "—"}
+            rawValue={company.email}
+            onSave={(v) => saveField("email", v)}
+          />
+          <EditableFieldRow
             label="Website"
             value={
               company.website
                 ? company.website.replace(/^https?:\/\//, "")
                 : "—"
             }
+            rawValue={company.website}
+            onSave={(v) => saveField("website", v)}
           />
-          <FieldRow label="Source" value={company.source || "—"} />
-          <FieldRow
+          <EditableFieldRow
+            label="Source"
+            value={company.source || "—"}
+            rawValue={company.source}
+            onSave={(v) => saveField("source", v)}
+          />
+          <EditableFieldRow
             label="Status"
             value={company.is_active ? "Active" : "Inactive"}
+            rawValue={company.is_active ? "true" : "false"}
+            fieldType="boolean"
+            onSave={(v) => saveField("is_active", v)}
           />
-          <FieldRow
+          <EditableFieldRow
             label="Title Co. Verified"
             value={company.title_company_verified ? "Yes" : "No"}
+            rawValue={company.title_company_verified ? "true" : "false"}
+            fieldType="boolean"
+            onSave={(v) => saveField("title_company_verified", v)}
           />
         </div>
       </SectionCard>
@@ -154,21 +220,67 @@ export function CompanyOverviewTab({
       {/* Address */}
       <SectionCard title="Address" icon={MapPin}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-          <FieldRow label="Address Line 1" value={company.address_line1} />
-          <FieldRow label="Address Line 2" value={company.address_line2} />
-          <FieldRow label="City" value={company.city} />
-          <FieldRow label="State" value={company.state} />
-          <FieldRow label="Zip" value={company.zip} mono />
-          <FieldRow label="Country" value={company.country || "US"} />
+          <EditableFieldRow
+            label="Address Line 1"
+            value={company.address_line1 || "—"}
+            rawValue={company.address_line1}
+            onSave={(v) => saveField("address_line1", v)}
+          />
+          <EditableFieldRow
+            label="Address Line 2"
+            value={company.address_line2 || "—"}
+            rawValue={company.address_line2}
+            onSave={(v) => saveField("address_line2", v)}
+          />
+          <EditableFieldRow
+            label="City"
+            value={company.city || "—"}
+            rawValue={company.city}
+            onSave={(v) => saveField("city", v)}
+          />
+          <EditableFieldRow
+            label="State"
+            value={company.state || "—"}
+            rawValue={company.state}
+            onSave={(v) => saveField("state", v)}
+          />
+          <EditableFieldRow
+            label="Zip"
+            value={company.zip || "—"}
+            rawValue={company.zip}
+            mono
+            onSave={(v) => saveField("zip", v)}
+          />
+          <EditableFieldRow
+            label="Country"
+            value={company.country || "US"}
+            rawValue={company.country || "US"}
+            onSave={(v) => saveField("country", v)}
+          />
         </div>
       </SectionCard>
 
       {/* Lender Details */}
       {isLender && (
-        <SectionCard title="Lender Details" icon={Landmark}>
+        <SectionCard
+          title="Lender Details"
+          icon={Landmark}
+          action={
+            onEditLenderDetails ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1 text-xs h-7 text-muted-foreground"
+                onClick={onEditLenderDetails}
+              >
+                <Pencil size={12} strokeWidth={1.5} /> Edit
+              </Button>
+            ) : undefined
+          }
+        >
           <div className="flex flex-col gap-5">
             <div>
-              <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Programs
               </div>
               <ChipGroup
@@ -178,7 +290,7 @@ export function CompanyOverviewTab({
               />
             </div>
             <div>
-              <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Asset Types
               </div>
               <ChipGroup
@@ -188,7 +300,7 @@ export function CompanyOverviewTab({
               />
             </div>
             <div>
-              <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Geographies
               </div>
               <ChipGroup
@@ -198,7 +310,7 @@ export function CompanyOverviewTab({
               />
             </div>
             <div>
-              <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Capabilities
               </div>
               <ChipGroup
@@ -220,7 +332,7 @@ export function CompanyOverviewTab({
             <div className="flex flex-col gap-4">
               {(company.company_capabilities ?? []).length > 0 && (
                 <div>
-                  <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     Capabilities
                   </div>
                   <ChipGroup
@@ -232,7 +344,7 @@ export function CompanyOverviewTab({
               )}
               {(company.asset_types ?? []).length > 0 && (
                 <div>
-                  <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     Asset Types
                   </div>
                   <ChipGroup
@@ -244,7 +356,7 @@ export function CompanyOverviewTab({
               )}
               {(company.geographies ?? []).length > 0 && (
                 <div>
-                  <div className="text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wider mb-2">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     Geographies
                   </div>
                   <ChipGroup
@@ -275,24 +387,30 @@ export function CompanyOverviewTab({
               </span>
             }
           />
-          <FieldRow
+          <EditableFieldRow
             label="NDA Created"
             value={
               company.nda_created_date
                 ? formatDate(company.nda_created_date)
                 : "—"
             }
+            rawValue={company.nda_created_date}
+            fieldType="date"
+            onSave={(v) => saveField("nda_created_date", v)}
           />
-          <FieldRow
+          <EditableFieldRow
             label="NDA Expiration"
             value={
               company.nda_expiration_date
                 ? formatDate(company.nda_expiration_date)
                 : "—"
             }
+            rawValue={company.nda_expiration_date}
+            fieldType="date"
             danger={!!ndaExpDanger}
+            onSave={(v) => saveField("nda_expiration_date", v)}
           />
-          <FieldRow
+          <EditableFieldRow
             label="Fee Agreement"
             value={
               <span
@@ -307,6 +425,9 @@ export function CompanyOverviewTab({
                 {company.fee_agreement_on_file ? "On File" : "Missing"}
               </span>
             }
+            rawValue={company.fee_agreement_on_file ? "true" : "false"}
+            fieldType="boolean"
+            onSave={(v) => saveField("fee_agreement_on_file", v)}
           />
         </div>
       </SectionCard>
@@ -320,7 +441,7 @@ export function CompanyOverviewTab({
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1 text-xs h-7 text-[#6B6B6B]"
+              className="gap-1 text-xs h-7 text-muted-foreground"
               onClick={() => setShowWire(!showWire)}
             >
               {showWire ? (
@@ -383,7 +504,7 @@ export function CompanyOverviewTab({
             />
           </div>
         ) : (
-          <span className="text-[13px] text-[#8B8B8B]">
+          <span className="text-[13px] text-muted-foreground">
             No wire instructions on file.
           </span>
         )}
@@ -391,9 +512,16 @@ export function CompanyOverviewTab({
 
       {/* Internal Notes */}
       <SectionCard title="Internal Notes" icon={FileText}>
-        <div className="text-[13px] text-[#6B6B6B] leading-relaxed whitespace-pre-wrap">
-          {company.notes || "No notes."}
-        </div>
+        <EditableFieldRow
+          label=""
+          value={
+            <span className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {company.notes || "No notes."}
+            </span>
+          }
+          rawValue={company.notes}
+          onSave={(v) => saveField("notes", v)}
+        />
       </SectionCard>
     </div>
   );

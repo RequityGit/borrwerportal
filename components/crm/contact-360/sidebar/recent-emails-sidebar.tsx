@@ -36,10 +36,10 @@ export function RecentEmailsSidebar({
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white">
+    <Card className="rounded-xl border-border bg-card">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-1.5">
+          <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-1.5">
             <Mail className="h-4 w-4" strokeWidth={1.5} />
             Recent Emails
           </CardTitle>
@@ -47,7 +47,7 @@ export function RecentEmailsSidebar({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1 text-xs h-7 rounded-lg border-[#E5E5E7]"
+              className="gap-1 text-xs h-7 rounded-lg border-border"
               onClick={() => setComposeOpen(true)}
             >
               <Send className="h-3 w-3" strokeWidth={1.5} />
@@ -59,12 +59,12 @@ export function RecentEmailsSidebar({
       <CardContent>
         {emails.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-sm text-[#6B6B6B] mb-2">No emails yet.</p>
+            <p className="text-sm text-muted-foreground mb-2">No emails yet.</p>
             {contactEmail && (
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1 text-xs rounded-lg border-[#E5E5E7]"
+                className="gap-1 text-xs rounded-lg border-border"
                 onClick={() => setComposeOpen(true)}
               >
                 <Send className="h-3 w-3" strokeWidth={1.5} />
@@ -82,30 +82,26 @@ export function RecentEmailsSidebar({
                   onClick={() =>
                     setExpandedId(isExpanded ? null : email.id)
                   }
-                  className="w-full text-left rounded-lg border border-[#E5E5E7] p-3 hover:bg-[#F7F7F8] transition-colors"
+                  className="w-full text-left rounded-lg border border-border p-3 hover:bg-muted transition-colors"
                 >
                   <div className="flex items-start justify-between mb-1">
-                    <p className="text-xs font-medium text-[#1A1A1A] truncate flex-1">
+                    <p className="text-xs font-medium text-foreground truncate flex-1">
                       {email.subject}
                     </p>
                     {isExpanded ? (
                       <ChevronUp
-                        className="h-3.5 w-3.5 text-[#9A9A9A] shrink-0 ml-1"
+                        className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1"
                         strokeWidth={1.5}
                       />
                     ) : (
                       <ChevronDown
-                        className="h-3.5 w-3.5 text-[#9A9A9A] shrink-0 ml-1"
+                        className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1"
                         strokeWidth={1.5}
                       />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-[#9A9A9A]">
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                      }}
-                    >
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="font-mono num">
                       {formatDate(email.created_at)}
                     </span>
                     {email.delivered_at && (
@@ -122,7 +118,7 @@ export function RecentEmailsSidebar({
                     )}
                   </div>
                   {isExpanded && email.body_text && (
-                    <p className="text-xs text-[#6B6B6B] mt-2 line-clamp-4 whitespace-pre-wrap">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-4 whitespace-pre-wrap">
                       {email.body_text}
                     </p>
                   )}

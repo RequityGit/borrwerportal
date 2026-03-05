@@ -23,31 +23,31 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
   return (
     <div className="flex flex-col gap-5">
       {/* Loans & Opportunities */}
-      <Card className="rounded-xl border-[#E5E5E7] overflow-hidden">
-        <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-          <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+      <Card className="rounded-xl border-border overflow-hidden">
+        <CardHeader className="px-5 py-3.5 border-b border-border/60">
+          <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
             <Landmark
               size={16}
-              className="text-[#6B6B6B]"
+              className="text-muted-foreground"
               strokeWidth={1.5}
             />
             Loans & Opportunities
           </CardTitle>
         </CardHeader>
         {loans.length === 0 ? (
-          <CardContent className="p-8 text-center text-sm text-[#6B6B6B]">
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
             No loans or opportunities found.
           </CardContent>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E5E7]">
+                <tr className="border-b border-border">
                   {["Deal", "Stage", "Amount", "Rate", "LTV", "Type"].map(
                     (h) => (
                       <th
                         key={h}
-                        className="px-4 py-2.5 text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wide"
+                        className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
                         style={{
                           textAlign: ["Amount", "Rate", "LTV"].includes(h)
                             ? "right"
@@ -71,9 +71,9 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
                   return (
                     <tr
                       key={d.id}
-                      className="border-b border-[#F7F7F8] hover:bg-[#FAFAFA] cursor-pointer"
+                      className="border-b border-border/40 hover:bg-muted/50 cursor-pointer"
                     >
-                      <td className="px-4 py-3 text-[13px] font-medium text-[#1A1A1A]">
+                      <td className="px-4 py-3 text-[13px] font-medium text-foreground">
                         {d.property_address || d.loan_number || "Untitled"}
                       </td>
                       <td className="px-4 py-3">
@@ -110,7 +110,7 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
                           {d.ltv != null ? `${d.ltv}%` : "—"}
                         </MonoValue>
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-[#6B6B6B] capitalize">
+                      <td className="px-4 py-3 text-[13px] text-muted-foreground capitalize">
                         {d.type || "—"}
                       </td>
                     </tr>
@@ -118,7 +118,7 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
                 })}
               </tbody>
             </table>
-            <div className="px-4 py-2.5 border-t border-[#E5E5E7] flex justify-between text-xs text-[#8B8B8B]">
+            <div className="px-4 py-2.5 border-t border-border flex justify-between text-xs text-muted-foreground">
               <span>
                 {loans.length} deal{loans.length !== 1 ? "s" : ""}
               </span>
@@ -132,12 +132,12 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
 
       {/* Investor Commitments */}
       {commitments.length > 0 && (
-        <Card className="rounded-xl border-[#E5E5E7] overflow-hidden">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-            <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <Card className="rounded-xl border-border overflow-hidden">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
               <TrendingUp
                 size={16}
-                className="text-[#6B6B6B]"
+                className="text-muted-foreground"
                 strokeWidth={1.5}
               />
               Investor Commitments
@@ -146,7 +146,7 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E5E7]">
+                <tr className="border-b border-border">
                   {[
                     "Fund",
                     "Status",
@@ -158,7 +158,7 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-4 py-2.5 text-[11px] font-semibold text-[#8B8B8B] uppercase tracking-wide"
+                      className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
                       style={{
                         textAlign: ["Committed", "Funded", "Unfunded"].includes(
                           h
@@ -174,8 +174,8 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
               </thead>
               <tbody>
                 {commitments.map((c) => (
-                  <tr key={c.id} className="border-b border-[#F7F7F8]">
-                    <td className="px-4 py-3 text-[13px] font-medium text-[#1A1A1A]">
+                  <tr key={c.id} className="border-b border-border/40">
+                    <td className="px-4 py-3 text-[13px] font-medium text-foreground">
                       {c.fund_name || "Unknown Fund"}
                     </td>
                     <td className="px-4 py-3">
@@ -210,17 +210,17 @@ export function DetailDealsTab({ loans, commitments }: DetailDealsTabProps) {
                         {formatCurrency(c.unfunded_amount)}
                       </MonoValue>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#8B8B8B]">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
                       {formatDate(c.commitment_date)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#6B6B6B]">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
                       {c.entity_name || "—"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="px-4 py-2.5 border-t border-[#E5E5E7] flex justify-between text-xs text-[#8B8B8B]">
+            <div className="px-4 py-2.5 border-t border-border flex justify-between text-xs text-muted-foreground">
               <span>
                 {commitments.length} commitment
                 {commitments.length !== 1 ? "s" : ""}

@@ -61,20 +61,20 @@ export function CompanyNotesTab({
   return (
     <div className="flex flex-col gap-3">
       {/* Compose box */}
-      <div className="bg-white border border-[#E5E5E7] rounded-xl p-4">
+      <div className="bg-card border border-border rounded-xl p-4">
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write a note... use @mention to tag team members"
           rows={3}
-          className="border-[#E5E5E7] rounded-lg resize-none mb-2.5 bg-[#FAFAFA] focus:border-[#1A1A1A] focus:ring-0"
+          className="border-border rounded-lg resize-none mb-2.5 bg-muted/50 focus:border-foreground focus:ring-0"
         />
         <div className="flex justify-end">
           <Button
             size="sm"
             onClick={handlePost}
             disabled={saving || !content.trim()}
-            className="gap-1.5 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90 text-xs"
+            className="gap-1.5 rounded-lg bg-foreground text-background hover:bg-foreground/90 text-xs"
           >
             <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
             {saving ? "Saving..." : "Post Note"}
@@ -85,16 +85,16 @@ export function CompanyNotesTab({
       {/* Notes list */}
       {notes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
             <MessageSquare
-              className="h-6 w-6 text-[#9A9A9A]"
+              className="h-6 w-6 text-muted-foreground"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             No notes yet
           </h3>
-          <p className="text-sm text-[#6B6B6B]">
+          <p className="text-sm text-muted-foreground">
             Add your first note above.
           </p>
         </div>
@@ -112,7 +112,7 @@ export function CompanyNotesTab({
           return (
             <div
               key={note.id}
-              className="bg-white border border-[#E5E5E7] rounded-xl p-4 relative"
+              className="bg-card border border-border rounded-xl p-4 relative"
             >
               {note.is_pinned && (
                 <div className="absolute top-2.5 right-3">
@@ -125,18 +125,18 @@ export function CompanyNotesTab({
               )}
               <div className="flex items-center gap-2 mb-2">
                 <Avatar className="h-6 w-6 rounded-md">
-                  <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[10px] font-semibold">
+                  <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[10px] font-semibold">
                     {authorInitials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-[13px] font-semibold text-[#1A1A1A]">
+                <span className="text-[13px] font-semibold text-foreground">
                   {note.author_name || "Unknown"}
                 </span>
-                <span className="text-[11px] text-[#8B8B8B]">
+                <span className="text-[11px] text-muted-foreground">
                   {relTime(note.created_at)}
                 </span>
               </div>
-              <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap">
+              <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
                 {note.body}
               </p>
             </div>

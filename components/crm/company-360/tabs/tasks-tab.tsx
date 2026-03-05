@@ -63,13 +63,13 @@ export function CompanyTasksTab({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[13px] text-[#8B8B8B]">
+        <span className="text-[13px] text-muted-foreground">
           {openCount} open task{openCount !== 1 ? "s" : ""}
         </span>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-[#E5E5E7] text-xs"
+          className="gap-1.5 rounded-lg border-border text-xs"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
           New Task
@@ -78,16 +78,16 @@ export function CompanyTasksTab({
 
       {tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
             <CheckCircle2
-              className="h-6 w-6 text-[#9A9A9A]"
+              className="h-6 w-6 text-muted-foreground"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             No tasks
           </h3>
-          <p className="text-sm text-[#6B6B6B]">
+          <p className="text-sm text-muted-foreground">
             Create a task to track to-dos for this company.
           </p>
         </div>
@@ -106,7 +106,7 @@ export function CompanyTasksTab({
           return (
             <div
               key={t.id}
-              className="bg-white border border-[#E5E5E7] rounded-xl p-4 flex items-center gap-3.5"
+              className="bg-card border border-border rounded-xl p-4 flex items-center gap-3.5"
               style={{ opacity: isCompleted ? 0.6 : 1 }}
             >
               {/* Checkbox */}
@@ -129,7 +129,7 @@ export function CompanyTasksTab({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div
-                  className="text-[13px] font-medium text-[#1A1A1A]"
+                  className="text-[13px] font-medium text-foreground"
                   style={{
                     textDecoration: isCompleted ? "line-through" : "none",
                   }}
@@ -144,17 +144,14 @@ export function CompanyTasksTab({
                     {sc.label}
                   </span>
                   <span
-                    className="text-[11px]"
-                    style={{
-                      color: isOverdue ? "#E5453D" : "#8B8B8B",
-                    }}
+                    className={`text-[11px] ${isOverdue ? "text-[#E5453D]" : "text-muted-foreground"}`}
                   >
                     Due {formatDate(t.due_date)}
                   </span>
-                  <span className="text-[11px] text-[#C5C5C5]">
+                  <span className="text-[11px] text-muted-foreground/50">
                     &middot;
                   </span>
-                  <span className="text-[11px] text-[#8B8B8B]">
+                  <span className="text-[11px] text-muted-foreground">
                     {t.assigned_to_name || "Unassigned"}
                   </span>
                 </div>

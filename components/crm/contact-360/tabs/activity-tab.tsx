@@ -118,7 +118,7 @@ export function ActivityTab({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[160px] h-8 text-xs rounded-lg border-[#E5E5E7]">
+            <SelectTrigger className="w-[160px] h-8 text-xs rounded-lg border-border">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +134,7 @@ export function ActivityTab({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-[#E5E5E7]"
+          className="gap-1.5 rounded-lg border-border"
           onClick={() => setShowForm(!showForm)}
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -146,16 +146,16 @@ export function ActivityTab({
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-[#E5E5E7] bg-white p-4 space-y-4"
+          className="rounded-xl border border-border bg-card p-4 space-y-4"
         >
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs text-[#6B6B6B]">Activity Type</Label>
+              <Label className="text-xs text-muted-foreground">Activity Type</Label>
               <Select
                 value={form.activity_type}
                 onValueChange={(v) => updateField("activity_type", v)}
               >
-                <SelectTrigger className="rounded-lg border-[#E5E5E7]">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,23 +168,23 @@ export function ActivityTab({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs text-[#6B6B6B]">Subject</Label>
+              <Label className="text-xs text-muted-foreground">Subject</Label>
               <Input
                 value={form.subject}
                 onChange={(e) => updateField("subject", e.target.value)}
                 placeholder="Brief summary..."
-                className="rounded-lg border-[#E5E5E7]"
+                className="rounded-lg border-border"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs text-[#6B6B6B]">Description</Label>
+            <Label className="text-xs text-muted-foreground">Description</Label>
             <Textarea
               value={form.description}
               onChange={(e) => updateField("description", e.target.value)}
               rows={3}
               placeholder="Details about the interaction..."
-              className="rounded-lg border-[#E5E5E7] resize-none"
+              className="rounded-lg border-border resize-none"
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -192,7 +192,7 @@ export function ActivityTab({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-lg border-[#E5E5E7]"
+              className="rounded-lg border-border"
               onClick={() => setShowForm(false)}
             >
               Cancel
@@ -201,7 +201,7 @@ export function ActivityTab({
               type="submit"
               size="sm"
               disabled={loading}
-              className="rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+              className="rounded-lg bg-foreground text-white hover:bg-foreground/90"
             >
               {loading ? "Saving..." : "Save Activity"}
             </Button>
@@ -221,7 +221,7 @@ export function ActivityTab({
           icon={Activity}
         />
       ) : (
-        <div className="rounded-xl border border-[#E5E5E7] bg-white p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
           {filteredActivities.map((activity, i) => {
             const config =
               activityIconConfig[activity.activity_type] ||

@@ -120,12 +120,11 @@ export function CompanyActivityTab({
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className="px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all duration-150"
-              style={{
-                borderColor: filter === t ? "#1A1A1A" : "#E5E5E7",
-                background: filter === t ? "#1A1A1A" : "#FFF",
-                color: filter === t ? "#FFF" : "#6B6B6B",
-              }}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all duration-150 ${
+                filter === t
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
@@ -134,7 +133,7 @@ export function CompanyActivityTab({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-[#E5E5E7] text-xs"
+          className="gap-1.5 rounded-lg border-border text-xs"
           onClick={() => setShowForm(!showForm)}
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -146,18 +145,18 @@ export function CompanyActivityTab({
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-[#E5E5E7] bg-white p-4 space-y-4 mb-5"
+          className="rounded-xl border border-border bg-card p-4 space-y-4 mb-5"
         >
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs text-[#6B6B6B]">Activity Type</Label>
+              <Label className="text-xs text-muted-foreground">Activity Type</Label>
               <Select
                 value={form.activity_type}
                 onValueChange={(v) =>
                   setForm((p) => ({ ...p, activity_type: v }))
                 }
               >
-                <SelectTrigger className="rounded-lg border-[#E5E5E7]">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -170,19 +169,19 @@ export function CompanyActivityTab({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs text-[#6B6B6B]">Subject</Label>
+              <Label className="text-xs text-muted-foreground">Subject</Label>
               <Input
                 value={form.subject}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, subject: e.target.value }))
                 }
                 placeholder="Brief summary..."
-                className="rounded-lg border-[#E5E5E7]"
+                className="rounded-lg border-border"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs text-[#6B6B6B]">Description</Label>
+            <Label className="text-xs text-muted-foreground">Description</Label>
             <Textarea
               value={form.description}
               onChange={(e) =>
@@ -190,7 +189,7 @@ export function CompanyActivityTab({
               }
               rows={3}
               placeholder="Details..."
-              className="rounded-lg border-[#E5E5E7] resize-none"
+              className="rounded-lg border-border resize-none"
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -198,7 +197,7 @@ export function CompanyActivityTab({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-lg border-[#E5E5E7]"
+              className="rounded-lg border-border"
               onClick={() => setShowForm(false)}
             >
               Cancel
@@ -207,7 +206,7 @@ export function CompanyActivityTab({
               type="submit"
               size="sm"
               disabled={loading}
-              className="rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+              className="rounded-lg bg-foreground text-background hover:bg-foreground/90"
             >
               {loading ? "Saving..." : "Save Activity"}
             </Button>
@@ -218,16 +217,16 @@ export function CompanyActivityTab({
       {/* Timeline */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
             <Activity
-              className="h-6 w-6 text-[#9A9A9A]"
+              className="h-6 w-6 text-muted-foreground"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             No activities
           </h3>
-          <p className="text-sm text-[#6B6B6B]">
+          <p className="text-sm text-muted-foreground">
             {filter !== "all"
               ? `No ${filter} activities. Try changing the filter.`
               : "Log your first activity to start the timeline."}
@@ -245,7 +244,7 @@ export function CompanyActivityTab({
               <div key={a.id} className="flex gap-3.5 relative pb-5">
                 {i < filtered.length - 1 && (
                   <div
-                    className="absolute w-px bg-[#E5E5E7]"
+                    className="absolute w-px bg-border"
                     style={{ left: 15, top: 36, bottom: 0 }}
                   />
                 )}
@@ -260,26 +259,26 @@ export function CompanyActivityTab({
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[13px] text-[#1A1A1A] font-medium leading-snug">
+                  <div className="text-[13px] text-foreground font-medium leading-snug">
                     {a.subject || a.activity_type.replace(/_/g, " ")}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-[11px] text-[#8B8B8B]">
+                    <span className="text-[11px] text-muted-foreground">
                       {relTime(a.created_at)}
                     </span>
-                    <span className="text-[11px] text-[#C5C5C5]">
+                    <span className="text-[11px] text-muted-foreground/50">
                       &middot;
                     </span>
-                    <span className="text-[11px] text-[#8B8B8B]">
+                    <span className="text-[11px] text-muted-foreground">
                       {a.performed_by_name || "System"}
                     </span>
                     {a.call_duration_seconds != null &&
                       a.call_duration_seconds > 0 && (
                         <>
-                          <span className="text-[11px] text-[#C5C5C5]">
+                          <span className="text-[11px] text-muted-foreground/50">
                             &middot;
                           </span>
-                          <span className="text-[11px] text-[#8B8B8B]">
+                          <span className="text-[11px] text-muted-foreground">
                             {formatDuration(a.call_duration_seconds)}
                           </span>
                         </>

@@ -125,11 +125,11 @@ export function ContactHeader({
   const location = [contact.city, contact.state].filter(Boolean).join(", ");
 
   return (
-    <div className="rounded-xl border border-[#E5E5E7] bg-white p-6">
+    <div className="rounded-xl border border-border bg-card p-6">
       <div className="flex items-start gap-4">
         {/* Avatar */}
         <Avatar className="h-14 w-14 rounded-[14px]">
-          <AvatarFallback className="rounded-[14px] bg-[#F7F7F8] text-[#1A1A1A] text-lg font-semibold">
+          <AvatarFallback className="rounded-[14px] bg-muted text-foreground text-lg font-semibold">
             {initials || "?"}
           </AvatarFallback>
         </Avatar>
@@ -137,14 +137,14 @@ export function ContactHeader({
         {/* Name + Badges + Contact Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h1 className="text-xl font-semibold text-[#1A1A1A]">{fullName}</h1>
+            <h1 className="text-xl font-semibold text-foreground">{fullName}</h1>
             {activeRelationships.map((rel) => (
               <RelationshipBadge key={rel} type={rel} />
             ))}
           </div>
 
           {/* Contact meta line */}
-          <div className="flex items-center gap-3 text-sm text-[#6B6B6B] flex-wrap">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
             {company && (
               <span className="flex items-center gap-1">
                 <Building2 className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -185,8 +185,8 @@ export function ContactHeader({
                   size="sm"
                   className={`gap-1.5 rounded-lg text-xs ${
                     action.primary
-                      ? "bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
-                      : "border-[#E5E5E7] text-[#1A1A1A] hover:bg-[#F7F7F8]"
+                      ? "bg-foreground text-white hover:bg-foreground/90"
+                      : "border-border text-foreground hover:bg-muted"
                   }`}
                   onClick={() => handleAction(action.id)}
                   disabled={logging && action.id === "log_call"}

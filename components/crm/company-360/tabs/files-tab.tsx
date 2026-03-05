@@ -102,12 +102,11 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className="px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all duration-150"
-              style={{
-                borderColor: filter === t ? "#1A1A1A" : "#E5E5E7",
-                background: filter === t ? "#1A1A1A" : "#FFF",
-                color: filter === t ? "#FFF" : "#6B6B6B",
-              }}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all duration-150 ${
+                filter === t
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
             >
               {t === "all" ? "All" : FILE_TYPE_LABELS[t] || t}
             </button>
@@ -116,7 +115,7 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-[#E5E5E7] text-xs"
+          className="gap-1.5 rounded-lg border-border text-xs"
           onClick={() => setShowUpload(!showUpload)}
         >
           <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -126,22 +125,22 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
 
       {/* Upload form */}
       {showUpload && (
-        <div className="rounded-xl border border-[#E5E5E7] bg-white p-4 space-y-4 mb-4">
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4 mb-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs text-[#6B6B6B]">File</Label>
+              <Label className="text-xs text-muted-foreground">File</Label>
               <Input
                 type="file"
                 onChange={(e) =>
                   setSelectedFile(e.target.files?.[0] || null)
                 }
-                className="rounded-lg border-[#E5E5E7] text-xs"
+                className="rounded-lg border-border text-xs"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs text-[#6B6B6B]">File Type</Label>
+              <Label className="text-xs text-muted-foreground">File Type</Label>
               <Select value={fileType} onValueChange={setFileType}>
-                <SelectTrigger className="rounded-lg border-[#E5E5E7]">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,7 +157,7 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-lg border-[#E5E5E7]"
+              className="rounded-lg border-border"
               onClick={() => {
                 setShowUpload(false);
                 setSelectedFile(null);
@@ -170,7 +169,7 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
               size="sm"
               disabled={uploading || !selectedFile}
               onClick={handleUpload}
-              className="rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+              className="rounded-lg bg-foreground text-background hover:bg-foreground/90"
             >
               {uploading ? "Uploading..." : "Upload"}
             </Button>
@@ -181,16 +180,16 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
       {/* Files list */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
             <FileText
-              className="h-6 w-6 text-[#9A9A9A]"
+              className="h-6 w-6 text-muted-foreground"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             No files
           </h3>
-          <p className="text-sm text-[#6B6B6B]">
+          <p className="text-sm text-muted-foreground">
             {filter !== "all"
               ? `No ${FILE_TYPE_LABELS[filter] || filter} files. Try changing the filter.`
               : "Upload your first file to get started."}
@@ -207,7 +206,7 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
             return (
               <div
                 key={f.id}
-                className="bg-white border border-[#E5E5E7] rounded-xl p-4 flex items-center gap-3.5 transition-all duration-150"
+                className="bg-card border border-border rounded-xl p-4 flex items-center gap-3.5 transition-all duration-150"
               >
                 <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
                   <FileText
@@ -217,10 +216,10 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-[#1A1A1A] truncate">
+                  <div className="text-[13px] font-medium text-foreground truncate">
                     {f.file_name}
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#8B8B8B]">
+                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
                     <span
                       className="inline-flex items-center rounded-full px-2 py-px text-[11px] font-medium"
                       style={{
@@ -231,29 +230,29 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
                       {typeLabel}
                     </span>
                     <span>{formatBytes(f.file_size)}</span>
-                    <span className="text-[#D5D5D5]">&middot;</span>
+                    <span className="text-muted-foreground/50">&middot;</span>
                     <span>{f.uploaded_by_name || "Unknown"}</span>
-                    <span className="text-[#D5D5D5]">&middot;</span>
+                    <span className="text-muted-foreground/50">&middot;</span>
                     <span>{relTime(f.uploaded_at)}</span>
                   </div>
                 </div>
                 {f.notes && (
-                  <span className="text-[11px] text-[#8B8B8B] italic shrink-0">
+                  <span className="text-[11px] text-muted-foreground italic shrink-0">
                     {f.notes}
                   </span>
                 )}
                 <div className="flex gap-1 shrink-0">
-                  <button className="w-[30px] h-[30px] rounded-md border border-[#E5E5E7] flex items-center justify-center cursor-pointer hover:bg-[#F7F7F8]">
+                  <button className="w-[30px] h-[30px] rounded-md border border-border flex items-center justify-center cursor-pointer hover:bg-muted">
                     <Download
                       size={13}
-                      className="text-[#6B6B6B]"
+                      className="text-muted-foreground"
                       strokeWidth={1.5}
                     />
                   </button>
-                  <button className="w-[30px] h-[30px] rounded-md border border-[#E5E5E7] flex items-center justify-center cursor-pointer hover:bg-[#F7F7F8]">
+                  <button className="w-[30px] h-[30px] rounded-md border border-border flex items-center justify-center cursor-pointer hover:bg-muted">
                     <MoreHorizontal
                       size={13}
-                      className="text-[#6B6B6B]"
+                      className="text-muted-foreground"
                       strokeWidth={1.5}
                     />
                   </button>
