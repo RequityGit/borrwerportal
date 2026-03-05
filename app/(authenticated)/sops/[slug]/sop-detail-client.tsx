@@ -139,59 +139,55 @@ export function SOPDetailClient({
           )}
         </div>
 
-        {/* Content + Sidebar */}
-        <div className="flex gap-8">
-          <div className="min-w-0 flex-1">
-            <div className="rounded-xl border border-border bg-card p-6 lg:p-8">
-              <SOPContent content={sop.content} />
+        {/* Content */}
+        <div className="rounded-xl border border-border bg-card p-6 lg:p-8">
+          <SOPContent content={sop.content} />
+        </div>
+
+        {/* Bottom section: Tags, Version History, Related SOPs */}
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {/* Tags */}
+          {sop.tags && sop.tags.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Tags
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {sop.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Right sidebar */}
-          <div className="hidden w-64 shrink-0 space-y-4 xl:block">
-            {/* Tags */}
-            {sop.tags && sop.tags.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Tags
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {sop.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+          {/* Version History */}
+          <SOPVersionHistory versions={versions} />
+
+          {/* Related SOPs */}
+          {relatedSops.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <FileText className="h-3.5 w-3.5" />
+                Related SOPs
+              </h4>
+              <div className="space-y-2">
+                {relatedSops.map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/sops/${r.slug}`}
+                    className="block rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  >
+                    {r.title}
+                  </Link>
+                ))}
               </div>
-            )}
-
-            {/* Version History */}
-            <SOPVersionHistory versions={versions} />
-
-            {/* Related SOPs */}
-            {relatedSops.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <FileText className="h-3.5 w-3.5" />
-                  Related SOPs
-                </h4>
-                <div className="space-y-2">
-                  {relatedSops.map((r) => (
-                    <Link
-                      key={r.id}
-                      href={`/sops/${r.slug}`}
-                      className="block rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                    >
-                      {r.title}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
