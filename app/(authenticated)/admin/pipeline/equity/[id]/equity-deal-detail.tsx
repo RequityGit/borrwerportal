@@ -89,7 +89,7 @@ interface EquityDealDetailProps {
   equityUw: any;
   commercialUw: any;
   pipelineData: any;
-  assignedToProfile: { full_name: string; id: string } | null;
+  assignedToProfile: { full_name: string | null; id: string } | null;
   adminProfiles: { id: string; full_name: string }[];
   currentUserId: string;
 }
@@ -372,10 +372,10 @@ export function EquityDealDetail({
                 Assigned To
               </span>
               <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-bold">
-                {getInitials(assignedToProfile.full_name)}
+                {getInitials(assignedToProfile.full_name ?? "")}
               </div>
               <span className="text-[13px] text-foreground font-medium">
-                {assignedToProfile.full_name}
+                {assignedToProfile.full_name ?? "Unknown"}
               </span>
             </div>
           )}
@@ -657,7 +657,7 @@ export function EquityDealDetail({
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                       {assignedToProfile
-                        ? getInitials(assignedToProfile.full_name)
+                        ? getInitials(assignedToProfile.full_name ?? "")
                         : "?"}
                     </div>
                     <div>
