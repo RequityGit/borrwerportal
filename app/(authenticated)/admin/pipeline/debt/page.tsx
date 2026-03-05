@@ -3,9 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { DebtPipelineView } from "@/components/admin/pipeline/debt-pipeline-view";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -119,14 +116,6 @@ export default async function DebtPipelinePage() {
       <PageHeader
         title="Debt Pipeline"
         description="Track and manage debt deals from sourcing through close."
-        action={
-          <Link href="/admin/originations/new">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Deal
-            </Button>
-          </Link>
-        }
       />
       <DebtPipelineView
         stageConfigs={stageConfigs}

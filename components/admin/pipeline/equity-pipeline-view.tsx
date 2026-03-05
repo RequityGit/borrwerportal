@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { KpiCard } from "@/components/shared/kpi-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,9 +14,6 @@ import {
 } from "@/components/ui/select";
 import { EquityKanbanBoard } from "./equity-kanban-board";
 import {
-  Building2,
-  DollarSign,
-  TrendingUp,
   Search,
   LayoutGrid,
   List,
@@ -43,20 +39,6 @@ export function EquityPipelineView({
   const [assignedFilter, setAssignedFilter] = useState("all");
   const [view, setView] = useState<"board" | "list">("board");
 
-  // Stats
-  const equityTerminalStages = ["dead"];
-  const activeEquityDeals = equityDeals.filter(
-    (d) => !equityTerminalStages.includes(d.stage)
-  );
-  const equityCount = activeEquityDeals.length;
-  const equityVolume = activeEquityDeals.reduce(
-    (sum, d) => sum + (d.purchase_price || d.offer_price || d.asking_price || 0),
-    0
-  );
-  const underContractPlus = activeEquityDeals.filter((d) =>
-    ["under_contract", "closing", "closed"].includes(d.stage)
-  ).length;
-
   // Filtering
   const filteredEquityDeals = useMemo(() => {
     let result = equityDeals;
@@ -79,8 +61,8 @@ export function EquityPipelineView({
 
   return (
     <div className="space-y-6">
-      {/* View Toggle + New Deal */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      {/* Toolbar: View Toggle + Search + Filter + New Deal */}
+      <div className="flex items-center gap-2.5 flex-wrap">
         <div className="flex items-center gap-1 border rounded-md p-0.5">
           <button
             onClick={() => setView("board")}
@@ -107,45 +89,17 @@ export function EquityPipelineView({
             <List className="h-4 w-4" />
           </button>
         </div>
-        <Link href="/admin/equity-pipeline/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-1" /> New Deal
-          </Button>
-        </Link>
-      </div>
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          title="Active Deals"
-          value={equityCount}
-          icon={<Building2 className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Total Volume"
-          value={`$${(equityVolume / 1000000).toFixed(1)}M`}
-          icon={<DollarSign className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Under Contract+"
-          value={underContractPlus}
-          icon={<TrendingUp className="h-5 w-5" />}
-        />
-      </div>
-
-      {/* Filter Bar */}
-      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search deals by name, address, or number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-9"
           />
         </div>
         <Select value={assignedFilter} onValueChange={setAssignedFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] h-9 text-xs">
             <SelectValue placeholder="Assigned To" />
           </SelectTrigger>
           <SelectContent>
@@ -157,6 +111,13 @@ export function EquityPipelineView({
             ))}
           </SelectContent>
         </Select>
+        <div className="flex-1" />
+        <Link href="/admin/equity-pipeline/new">
+          <Button size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            New Deal
+          </Button>
+        </Link>
       </div>
 
       {/* Pipeline Board */}
