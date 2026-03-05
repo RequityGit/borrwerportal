@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { KpiCard } from "@/components/shared/kpi-card";
 import { AddCompanyDialog } from "@/components/crm/add-company-dialog";
 import {
   CRM_COMPANY_TYPES,
@@ -18,8 +17,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  CheckCircle2,
-  DollarSign,
   Briefcase,
 } from "lucide-react";
 import { CompanyStatusDot } from "./crm-primitives";
@@ -35,12 +32,6 @@ export function CompaniesView({ companies }: CompaniesViewProps) {
   const [companySearch, setCompanySearch] = useState("");
   const [companySortKey, setCompanySortKey] = useState<string>("name");
   const [companySortDir, setCompanySortDir] = useState<"asc" | "desc">("asc");
-
-  const companyStats = useMemo(() => {
-    const active = companies.filter((c) => c.is_active !== false).length;
-    const inactive = companies.length - active;
-    return { active, inactive };
-  }, [companies]);
 
   const filteredCompanies = useMemo(() => {
     let result = [...companies];
@@ -119,56 +110,27 @@ export function CompaniesView({ companies }: CompaniesViewProps) {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div />
-        <AddCompanyDialog />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          title="Total Companies"
-          value={companies.length.toString()}
-          description="Across all types"
-          icon={<Building2 className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Active"
-          value={companyStats.active.toString()}
-          description="Active relationships"
-          icon={<CheckCircle2 className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Lenders"
-          value={companies.filter((c) => c.company_type === "lender").length.toString()}
-          description="Lending partners"
-          icon={<Building2 className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Total Files"
-          value={companies.reduce((s, c) => s + c.file_count, 0).toString()}
-          description="Uploaded documents"
-          icon={<DollarSign className="h-5 w-5" />}
-        />
-      </div>
-
-      <div className="space-y-3">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={companySearch}
-            onChange={(e) => setCompanySearch(e.target.value)}
-            placeholder="Search companies..."
-            className="pl-9 h-9"
-          />
-          {companySearch && (
-            <button
-              onClick={() => setCompanySearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
-            >
-              <X className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          )}
+    <div className="space-y-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="relative flex-1 min-w-[240px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={companySearch}
+              onChange={(e) => setCompanySearch(e.target.value)}
+              placeholder="Search companies..."
+              className="pl-9 h-9"
+            />
+            {companySearch && (
+              <button
+                onClick={() => setCompanySearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+          <div className="flex-1" />
+          <AddCompanyDialog />
         </div>
 
         <div className="rounded-xl border bg-card overflow-hidden">
@@ -249,7 +211,6 @@ export function CompaniesView({ companies }: CompaniesViewProps) {
             </span>
           </div>
         </div>
-      </div>
     </div>
   );
 }
