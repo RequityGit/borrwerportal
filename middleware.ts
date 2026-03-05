@@ -63,11 +63,16 @@ export async function middleware(request: NextRequest) {
   if (user && isPublicRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, allowed_roles")
+      .select("role, allowed_roles, activation_status")
       .eq("id", user.id)
       .single();
 
-    if (profile?.role) {
+    // Don't redirect unauthorized users to dashboard — let them stay on login
+    if (!profile || profile.activation_status === "unauthorized") {
+      return supabaseResponse;
+    }
+
+    if (profile.role) {
       // Use the active_role cookie if it's valid, otherwise use the default role
       const activeRoleCookie = request.cookies.get("active_role")?.value;
       const allowedRoles: string[] = profile.allowed_roles || [profile.role];
@@ -120,11 +125,19 @@ export async function middleware(request: NextRequest) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, allowed_roles")
+        .select("role, allowed_roles, activation_status")
         .eq("id", user.id)
         .single();
 
-      if (profile?.role) {
+      // Block unauthorized profiles from accessing any role routes
+      if (!profile || profile.activation_status === "unauthorized") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("error", "no_access");
+        return NextResponse.redirect(url);
+      }
+
+      if (profile.role) {
         const allowedRoles: string[] = profile.allowed_roles || [profile.role];
 
         // Determine which role prefix the user is trying to access

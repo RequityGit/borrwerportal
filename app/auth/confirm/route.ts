@@ -58,7 +58,13 @@ export async function GET(request: NextRequest) {
           .eq("id", user.id)
           .single();
 
-        if (profile?.role) {
+        // Block unauthorized or missing profiles
+        if (!profile || profile.activation_status === "unauthorized") {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/login?error=no_access`);
+        }
+
+        if (profile.role) {
           // Mark portal as activated on first sign-in
           if (profile.activation_status && profile.activation_status !== "activated") {
             await supabase
@@ -71,7 +77,9 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return NextResponse.redirect(`${origin}/investor/dashboard`);
+      // No user or no profile role — block access
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/login?error=no_access`);
     }
   }
 
