@@ -144,12 +144,12 @@ export function DetailOverviewTab({
     <div className="flex flex-col gap-5">
       {/* Borrower Summary */}
       {hasBorrower && loans.length > 0 && (
-        <Card className="rounded-xl border-[#E5E5E7]">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-            <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <Card className="rounded-xl border-border">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
               <Landmark
                 size={16}
-                className="text-[#6B6B6B]"
+                className="text-muted-foreground"
                 strokeWidth={1.5}
               />
               Borrower Summary
@@ -184,12 +184,12 @@ export function DetailOverviewTab({
 
       {/* Investor Summary */}
       {hasInvestor && commitments.length > 0 && (
-        <Card className="rounded-xl border-[#E5E5E7]">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-            <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <Card className="rounded-xl border-border">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
               <TrendingUp
                 size={16}
-                className="text-[#6B6B6B]"
+                className="text-muted-foreground"
                 strokeWidth={1.5}
               />
               Investor Summary
@@ -220,12 +220,12 @@ export function DetailOverviewTab({
 
       {/* Borrower Profile */}
       {hasBorrower && (
-        <Card className="rounded-xl border-[#E5E5E7]">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-            <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <Card className="rounded-xl border-border">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
               <User
                 size={16}
-                className="text-[#6B6B6B]"
+                className="text-muted-foreground"
                 strokeWidth={1.5}
               />
               Borrower Profile
@@ -363,12 +363,12 @@ export function DetailOverviewTab({
 
       {/* Investor Profile */}
       {hasInvestor && (
-        <Card className="rounded-xl border-[#E5E5E7]">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-            <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <Card className="rounded-xl border-border">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
               <Shield
                 size={16}
-                className="text-[#6B6B6B]"
+                className="text-muted-foreground"
                 strokeWidth={1.5}
               />
               Investor Profile
@@ -439,12 +439,12 @@ export function DetailOverviewTab({
       )}
 
       {/* Contact Profile */}
-      <Card className="rounded-xl border-[#E5E5E7]">
-        <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-          <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+      <Card className="rounded-xl border-border">
+        <CardHeader className="px-5 py-3.5 border-b border-border/60">
+          <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
             <FileText
               size={16}
-              className="text-[#6B6B6B]"
+              className="text-muted-foreground"
               strokeWidth={1.5}
             />
             Contact Profile
@@ -583,19 +583,19 @@ export function DetailOverviewTab({
 
       {/* Internal Notes */}
       {contact.notes && (
-        <Card className="rounded-xl border-[#E5E5E7]">
-          <CardHeader className="px-5 py-3.5 border-b border-[#F0F0F0]">
-            <CardTitle className="text-[13px] font-semibold text-[#1A1A1A] flex items-center gap-2">
+        <Card className="rounded-xl border-border">
+          <CardHeader className="px-5 py-3.5 border-b border-border/60">
+            <CardTitle className="text-[13px] font-semibold text-foreground flex items-center gap-2">
               <FileText
                 size={16}
-                className="text-[#6B6B6B]"
+                className="text-muted-foreground"
                 strokeWidth={1.5}
               />
               Internal Notes
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5">
-            <p className="text-[13px] text-[#6B6B6B] leading-relaxed whitespace-pre-wrap">
+            <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {contact.notes}
             </p>
           </CardContent>

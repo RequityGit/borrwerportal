@@ -189,23 +189,23 @@ export function Contact360Client({
         <div className="flex items-center gap-2 text-sm">
           <Link
             href="/admin/crm"
-            className="text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors flex items-center gap-1"
+            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
           >
             <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
             Contacts
           </Link>
-          <span className="text-[#9A9A9A]">/</span>
-          <span className="text-[#1A1A1A] font-medium">{fullName}</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-foreground font-medium">{fullName}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-lg border-[#E5E5E7]">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-lg border-border">
             <MoreHorizontal className="h-4 w-4" strokeWidth={1.5} />
           </Button>
           <Link href={`/admin/crm/${contact.id}?edit=true`}>
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 rounded-lg border-[#E5E5E7]"
+              className="gap-1.5 rounded-lg border-border"
             >
               <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
               Edit
@@ -239,14 +239,14 @@ export function Contact360Client({
         {/* Main content area */}
         <div className="flex-1 min-w-0">
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="w-full justify-start bg-transparent border-b border-[#E5E5E7] rounded-none p-0 h-auto gap-0">
+            <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto gap-0">
               {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#1A1A1A] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#1A1A1A] text-[#6B6B6B] px-4 py-2.5 gap-1.5 text-sm font-medium"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-foreground text-muted-foreground px-4 py-2.5 gap-1.5 text-sm font-medium"
                   >
                     <Icon className="h-4 w-4" strokeWidth={1.5} />
                     {tab.label}

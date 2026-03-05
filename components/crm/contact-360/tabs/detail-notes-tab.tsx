@@ -154,21 +154,21 @@ export function DetailNotesTab({
   return (
     <div className="flex flex-col gap-3">
       {/* Compose box */}
-      <Card className="rounded-xl border-[#E5E5E7]">
+      <Card className="rounded-xl border-border">
         <CardContent className="p-4">
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write a note... use @mention to tag team members"
           rows={3}
-          className="border-[#E5E5E7] rounded-lg resize-none mb-2.5 bg-[#FAFAFA] focus:border-[#1A1A1A] focus:ring-0"
+          className="border-border rounded-lg resize-none mb-2.5 bg-muted/50 focus:border-foreground focus:ring-0"
         />
         <div className="flex justify-end">
           <Button
             size="sm"
             onClick={handleSave}
             disabled={saving || !content.trim()}
-            className="gap-1.5 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90 text-xs"
+            className="gap-1.5 rounded-lg bg-foreground text-background hover:bg-foreground/90 text-xs"
           >
             <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
             {saving ? "Saving..." : "Post Note"}
@@ -180,16 +180,16 @@ export function DetailNotesTab({
       {/* Notes list */}
       {!loaded ? (
         <div className="space-y-3">
-          <div className="h-16 rounded-xl bg-[#F7F7F8] animate-pulse" />
-          <div className="h-16 rounded-xl bg-[#F7F7F8] animate-pulse" />
+          <div className="h-16 rounded-xl bg-muted animate-pulse" />
+          <div className="h-16 rounded-xl bg-muted animate-pulse" />
         </div>
       ) : notes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
-            <MessageSquare className="h-6 w-6 text-[#9A9A9A]" strokeWidth={1.5} />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+            <MessageSquare className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">No notes yet</h3>
-          <p className="text-sm text-[#6B6B6B]">Add your first note above.</p>
+          <h3 className="text-sm font-semibold text-foreground mb-1">No notes yet</h3>
+          <p className="text-sm text-muted-foreground">Add your first note above.</p>
         </div>
       ) : (
         notes.map((note) => {
@@ -205,18 +205,18 @@ export function DetailNotesTab({
             : "?";
 
           return (
-            <Card key={note.id} className="rounded-xl border-[#E5E5E7]">
+            <Card key={note.id} className="rounded-xl border-border">
               <CardContent className="p-4 relative">
               <div className="flex items-center gap-2 mb-2">
                 <Avatar className="h-6 w-6 rounded-md">
-                  <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[10px] font-semibold">
+                  <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[10px] font-semibold">
                     {authorInitials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-[13px] font-semibold text-[#1A1A1A]">
+                <span className="text-[13px] font-semibold text-foreground">
                   {note.created_by_name || "Unknown"}
                 </span>
-                <span className="text-[11px] text-[#8B8B8B]">{relTime(note.created_at)}</span>
+                <span className="text-[11px] text-muted-foreground">{relTime(note.created_at)}</span>
                 {isOwn && !isEditing && (
                   <div className="flex items-center gap-1 ml-auto">
                     <Button
@@ -228,7 +228,7 @@ export function DetailNotesTab({
                         setEditContent(note.content);
                       }}
                     >
-                      <Pencil className="h-3.5 w-3.5 text-[#6B6B6B]" strokeWidth={1.5} />
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -248,13 +248,13 @@ export function DetailNotesTab({
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     rows={3}
-                    className="border-[#E5E5E7] rounded-lg resize-none"
+                    className="border-border rounded-lg resize-none"
                   />
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-lg border-[#E5E5E7]"
+                      className="rounded-lg border-border"
                       onClick={() => {
                         setEditingId(null);
                         setEditContent("");
@@ -264,7 +264,7 @@ export function DetailNotesTab({
                     </Button>
                     <Button
                       size="sm"
-                      className="rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+                      className="rounded-lg bg-foreground text-background hover:bg-foreground/90"
                       onClick={() => handleUpdate(note.id)}
                     >
                       Save
@@ -272,7 +272,7 @@ export function DetailNotesTab({
                   </div>
                 </div>
               ) : (
-                <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap">
+                <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
                   {note.content}
                 </p>
               )}

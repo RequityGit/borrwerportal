@@ -23,7 +23,7 @@ export function InvestmentsTab({ commitments, contactId }: InvestmentsTabProps) 
           <Button
             variant="default"
             size="sm"
-            className="gap-1.5 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+            className="gap-1.5 rounded-lg bg-foreground text-white hover:bg-foreground/90"
           >
             <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.5} />
             New Investment
@@ -50,26 +50,26 @@ export function InvestmentsTab({ commitments, contactId }: InvestmentsTabProps) 
     <div className="space-y-4">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="rounded-xl border-[#E5E5E7] bg-white">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="p-4">
-            <p className="text-xs text-[#6B6B6B] mb-1">Total Committed</p>
-            <MonoValue className="text-lg font-semibold text-[#1A1A1A]">
+            <p className="text-xs text-muted-foreground mb-1">Total Committed</p>
+            <MonoValue className="text-lg font-semibold text-foreground">
               {formatCurrency(totalCommitted)}
             </MonoValue>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-[#E5E5E7] bg-white">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="p-4">
-            <p className="text-xs text-[#6B6B6B] mb-1">Total Funded</p>
-            <MonoValue className="text-lg font-semibold text-[#1A1A1A]">
+            <p className="text-xs text-muted-foreground mb-1">Total Funded</p>
+            <MonoValue className="text-lg font-semibold text-foreground">
               {formatCurrency(totalFunded)}
             </MonoValue>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-[#E5E5E7] bg-white">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="p-4">
-            <p className="text-xs text-[#6B6B6B] mb-1">Unfunded</p>
-            <MonoValue className="text-lg font-semibold text-[#1A1A1A]">
+            <p className="text-xs text-muted-foreground mb-1">Unfunded</p>
+            <MonoValue className="text-lg font-semibold text-foreground">
               {formatCurrency(totalUnfunded)}
             </MonoValue>
           </CardContent>
@@ -78,18 +78,18 @@ export function InvestmentsTab({ commitments, contactId }: InvestmentsTabProps) 
 
       {/* Commitment Cards */}
       <div className="space-y-3">
-        <p className="text-xs font-medium text-[#6B6B6B] uppercase tracking-wider">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Fund Commitments ({commitments.length})
         </p>
         {commitments.map((c) => (
           <Card
             key={c.id}
-            className="rounded-xl border-[#E5E5E7] bg-white hover:bg-[#F7F7F8] transition-colors"
+            className="rounded-xl border-border bg-card hover:bg-muted transition-colors"
           >
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <p className="text-sm font-semibold text-[#1A1A1A]">
+                  <p className="text-sm font-semibold text-foreground">
                     {c.fund_name || "Unknown Fund"}
                   </p>
                 </div>
@@ -97,20 +97,20 @@ export function InvestmentsTab({ commitments, contactId }: InvestmentsTabProps) 
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-xs text-[#6B6B6B]">Committed</p>
-                  <MonoValue className="text-sm font-medium text-[#1A1A1A]">
+                  <p className="text-xs text-muted-foreground">Committed</p>
+                  <MonoValue className="text-sm font-medium text-foreground">
                     {formatCurrency(c.commitment_amount)}
                   </MonoValue>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6B6B6B]">Funded</p>
-                  <MonoValue className="text-sm font-medium text-[#1A1A1A]">
+                  <p className="text-xs text-muted-foreground">Funded</p>
+                  <MonoValue className="text-sm font-medium text-foreground">
                     {formatCurrency(c.funded_amount)}
                   </MonoValue>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6B6B6B]">Unfunded</p>
-                  <MonoValue className="text-sm font-medium text-[#1A1A1A]">
+                  <p className="text-xs text-muted-foreground">Unfunded</p>
+                  <MonoValue className="text-sm font-medium text-foreground">
                     {formatCurrency(c.unfunded_amount)}
                   </MonoValue>
                 </div>

@@ -174,21 +174,21 @@ export function NotesTab({
   return (
     <div className="space-y-4">
       {/* Compose box */}
-      <Card className="rounded-xl border-[#E5E5E7] bg-white">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="p-4">
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Add a note..."
             rows={3}
-            className="border-[#E5E5E7] rounded-lg resize-none mb-3 focus:border-[#1A1A1A] focus:ring-0"
+            className="border-border rounded-lg resize-none mb-3 focus:border-foreground focus:ring-0"
           />
           <div className="flex justify-end">
             <Button
               size="sm"
               onClick={handleSave}
               disabled={saving || !content.trim()}
-              className="gap-1.5 rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+              className="gap-1.5 rounded-lg bg-foreground text-white hover:bg-foreground/90"
             >
               <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
               {saving ? "Saving..." : "Save Note"}
@@ -200,9 +200,9 @@ export function NotesTab({
       {/* Notes list */}
       {!loaded ? (
         <div className="space-y-3">
-          <p className="text-xs text-[#9A9A9A]">Loading notes...</p>
-          <div className="h-16 rounded-xl bg-[#F7F7F8] animate-pulse" />
-          <div className="h-16 rounded-xl bg-[#F7F7F8] animate-pulse" />
+          <p className="text-xs text-muted-foreground">Loading notes...</p>
+          <div className="h-16 rounded-xl bg-muted animate-pulse" />
+          <div className="h-16 rounded-xl bg-muted animate-pulse" />
         </div>
       ) : notes.length === 0 ? (
         <EmptyState
@@ -219,19 +219,16 @@ export function NotesTab({
             return (
               <Card
                 key={note.id}
-                className="rounded-xl border-[#E5E5E7] bg-white"
+                className="rounded-xl border-border bg-card"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[#1A1A1A]">
+                      <span className="text-sm font-medium text-foreground">
                         {note.created_by_name || "Unknown"}
                       </span>
                       <span
-                        className="text-xs text-[#9A9A9A]"
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                        }}
+                        className="text-xs text-muted-foreground font-mono num"
                       >
                         {formatDate(note.created_at)}
                       </span>
@@ -248,7 +245,7 @@ export function NotesTab({
                           }}
                         >
                           <Pencil
-                            className="h-3.5 w-3.5 text-[#6B6B6B]"
+                            className="h-3.5 w-3.5 text-muted-foreground"
                             strokeWidth={1.5}
                           />
                         </Button>
@@ -273,13 +270,13 @@ export function NotesTab({
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         rows={3}
-                        className="border-[#E5E5E7] rounded-lg resize-none"
+                        className="border-border rounded-lg resize-none"
                       />
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-lg border-[#E5E5E7]"
+                          className="rounded-lg border-border"
                           onClick={() => {
                             setEditingId(null);
                             setEditContent("");
@@ -289,7 +286,7 @@ export function NotesTab({
                         </Button>
                         <Button
                           size="sm"
-                          className="rounded-lg bg-[#1A1A1A] text-white hover:bg-[#1A1A1A]/90"
+                          className="rounded-lg bg-foreground text-white hover:bg-foreground/90"
                           onClick={() => handleUpdate(note.id)}
                         >
                           Save
@@ -297,7 +294,7 @@ export function NotesTab({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap">
+                    <p className="text-sm text-foreground whitespace-pre-wrap">
                       {note.content}
                     </p>
                   )}

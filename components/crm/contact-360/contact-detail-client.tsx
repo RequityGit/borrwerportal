@@ -151,23 +151,23 @@ export function ContactDetailClient({
   }, [searchParams, tabs, activeTab]);
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8]">
+    <div className="min-h-screen bg-muted">
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-[#E5E5E7] px-7 py-2.5 flex items-center gap-2">
+      <div className="bg-card border-b border-border px-7 py-2.5 flex items-center gap-2">
         <Link
           href="/admin/crm"
-          className="text-[#8B8B8B] hover:text-[#1A1A1A] transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft size={16} strokeWidth={1.5} />
         </Link>
         <Link
           href="/admin/crm"
-          className="text-xs text-[#8B8B8B] hover:text-[#1A1A1A] transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Contacts
         </Link>
-        <ChevronRight size={12} className="text-[#C5C5C5]" />
-        <span className="text-xs text-[#1A1A1A] font-medium">{fullName}</span>
+        <ChevronRight size={12} className="text-muted-foreground/50" />
+        <span className="text-xs text-foreground font-medium">{fullName}</span>
       </div>
 
       <div className="flex max-w-[1400px] mx-auto">
@@ -184,7 +184,7 @@ export function ContactDetailClient({
 
           {/* Tabs Card — shadcn underline pattern */}
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="bg-transparent h-auto p-0 gap-0 rounded-none flex justify-start min-w-max border-b border-[#E5E5E7] w-full">
+            <TabsList className="bg-transparent h-auto p-0 gap-0 rounded-none flex justify-start min-w-max border-b border-border w-full">
               {tabs.map((t) => (
                 <TabsTrigger
                   key={t.id}

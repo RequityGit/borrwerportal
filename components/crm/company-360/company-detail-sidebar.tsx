@@ -142,9 +142,9 @@ export function CompanyDetailSidebar({
             <button
               key={label}
               onClick={onClick}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-[#F0F0F0] bg-[#FAFAFA] cursor-pointer text-[13px] text-[#1A1A1A] font-normal transition-all duration-150 hover:bg-[#F0F0F0]"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border/60 bg-muted/50 cursor-pointer text-[13px] text-foreground font-normal transition-all duration-150 hover:bg-muted"
             >
-              <I size={14} className="text-[#6B6B6B]" strokeWidth={1.5} />
+              <I size={14} className="text-muted-foreground" strokeWidth={1.5} />
               {label}
             </button>
           ))}
@@ -159,7 +159,7 @@ export function CompanyDetailSidebar({
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1 text-xs h-7 text-[#6B6B6B]"
+            className="gap-1 text-xs h-7 text-muted-foreground"
           >
             <Plus size={12} strokeWidth={1.5} /> Add
           </Button>
@@ -167,7 +167,7 @@ export function CompanyDetailSidebar({
       >
         <div className="flex gap-2 flex-wrap">
           {followers.length === 0 ? (
-            <span className="text-xs text-[#8B8B8B]">No followers</span>
+            <span className="text-xs text-muted-foreground">No followers</span>
           ) : (
             followers.map((f) => {
               const initials = f.user_name
@@ -181,10 +181,10 @@ export function CompanyDetailSidebar({
               return (
                 <div
                   key={f.id}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F7F7F8]"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted"
                 >
                   <Avatar className="h-[22px] w-[22px] rounded-md">
-                    <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[9px] font-semibold">
+                    <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[9px] font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -213,7 +213,7 @@ export function CompanyDetailSidebar({
       >
         <div className="flex flex-col gap-2.5">
           {topContacts.length === 0 ? (
-            <span className="text-xs text-[#8B8B8B]">No contacts linked</span>
+            <span className="text-xs text-muted-foreground">No contacts linked</span>
           ) : (
             topContacts.map((ct) => {
               const name = [ct.first_name, ct.last_name]
@@ -227,30 +227,30 @@ export function CompanyDetailSidebar({
                 <Link
                   key={ct.id}
                   href={`/admin/crm/${ct.id}`}
-                  className="flex items-center gap-2.5 cursor-pointer hover:bg-[#F7F7F8] -mx-1 px-1 py-1 rounded-lg transition-colors"
+                  className="flex items-center gap-2.5 cursor-pointer hover:bg-muted -mx-1 px-1 py-1 rounded-lg transition-colors"
                 >
                   <Avatar className="h-7 w-7 rounded-md">
-                    <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[9px] font-semibold">
+                    <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[9px] font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-medium">{name}</div>
                     {ct.user_function && (
-                      <div className="text-[11px] text-[#8B8B8B]">
+                      <div className="text-[11px] text-muted-foreground">
                         {ct.user_function}
                       </div>
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {ct.email && (
-                      <div className="w-[26px] h-[26px] rounded-md border border-[#E5E5E7] flex items-center justify-center">
-                        <Mail size={12} className="text-[#6B6B6B]" strokeWidth={1.5} />
+                      <div className="w-[26px] h-[26px] rounded-md border border-border flex items-center justify-center">
+                        <Mail size={12} className="text-muted-foreground" strokeWidth={1.5} />
                       </div>
                     )}
                     {ct.phone && (
-                      <div className="w-[26px] h-[26px] rounded-md border border-[#E5E5E7] flex items-center justify-center">
-                        <Phone size={12} className="text-[#6B6B6B]" strokeWidth={1.5} />
+                      <div className="w-[26px] h-[26px] rounded-md border border-border flex items-center justify-center">
+                        <Phone size={12} className="text-muted-foreground" strokeWidth={1.5} />
                       </div>
                     )}
                   </div>
@@ -294,20 +294,16 @@ export function CompanyDetailSidebar({
           ].map((doc, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 py-1.5"
-              style={{
-                borderBottom: i < 3 ? "1px solid #F7F7F8" : "none",
-              }}
+              className={`flex items-center gap-2 py-1.5${i < 3 ? " border-b border-border/40" : ""}`}
             >
               <div
-                className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor: doc.status
+                className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                  doc.status
                     ? doc.warning
-                      ? "#FFF7ED"
-                      : "#F0FDF4"
-                    : "#FEF2F2",
-                }}
+                      ? "bg-amber-50 dark:bg-amber-900/20"
+                      : "bg-green-50 dark:bg-green-900/20"
+                    : "bg-red-50 dark:bg-red-900/20"
+                }`}
               >
                 {doc.status ? (
                   doc.warning ? (
@@ -320,11 +316,11 @@ export function CompanyDetailSidebar({
                 )}
               </div>
               <div className="flex-1">
-                <div className="text-xs font-medium text-[#1A1A1A]">
+                <div className="text-xs font-medium text-foreground">
                   {doc.label}
                 </div>
                 {doc.detail && (
-                  <div className="text-[10px] text-[#8B8B8B]">{doc.detail}</div>
+                  <div className="text-[10px] text-muted-foreground">{doc.detail}</div>
                 )}
               </div>
             </div>

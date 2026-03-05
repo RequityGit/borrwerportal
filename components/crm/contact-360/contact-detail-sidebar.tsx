@@ -27,6 +27,7 @@ import {
   PhoneCall,
   Plus,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { MonoValue, relTime } from "./contact-detail-shared";
 import { EmailComposeSheet } from "@/components/crm/email-compose-sheet";
 import { formatDate } from "@/lib/format";
@@ -121,10 +122,10 @@ export function ContactDetailSidebar({
   return (
     <div className="flex flex-col gap-3">
       {/* Quick Actions */}
-      <Card className="rounded-xl border-[#E5E5E7]">
+      <Card className="rounded-xl border-border">
         <CardHeader className="px-4 py-3 pb-0">
-          <CardTitle className="text-xs font-semibold text-[#1A1A1A] flex items-center gap-1.5">
-            <Activity size={14} className="text-[#6B6B6B]" strokeWidth={1.5} />
+          <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Activity size={14} className="text-muted-foreground" strokeWidth={1.5} />
             Quick Actions
           </CardTitle>
         </CardHeader>
@@ -137,11 +138,11 @@ export function ContactDetailSidebar({
                 size="sm"
                 onClick={onClick}
                 disabled={logging && label === "Log Call"}
-                className="justify-start gap-2 h-8 px-2.5 text-[13px] font-normal text-[#1A1A1A] hover:bg-[#F7F7F8] rounded-lg w-full"
+                className="justify-start gap-2 h-8 px-2.5 text-[13px] font-normal text-foreground hover:bg-muted rounded-lg w-full"
               >
                 <Icon
                   size={14}
-                  className="text-[#6B6B6B]"
+                  className="text-muted-foreground"
                   strokeWidth={1.5}
                 />
                 {label}
@@ -152,17 +153,17 @@ export function ContactDetailSidebar({
       </Card>
 
       {/* Followers */}
-      <Card className="rounded-xl border-[#E5E5E7]">
+      <Card className="rounded-xl border-border">
         <CardHeader className="px-4 py-3 pb-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-semibold text-[#1A1A1A] flex items-center gap-1.5">
-              <Bell size={14} className="text-[#6B6B6B]" strokeWidth={1.5} />
+            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Bell size={14} className="text-muted-foreground" strokeWidth={1.5} />
               Followers
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1 text-xs h-6 text-[#6B6B6B] px-1.5"
+              className="gap-1 text-xs h-6 text-muted-foreground px-1.5"
             >
               <Plus size={12} strokeWidth={1.5} /> Add
             </Button>
@@ -173,9 +174,9 @@ export function ContactDetailSidebar({
             {assignedToName && (
               <HoverCard>
                 <HoverCardTrigger asChild>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#F7F7F8] cursor-pointer">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted cursor-pointer">
                     <Avatar className="h-[22px] w-[22px] rounded-md">
-                      <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[9px] font-semibold">
+                      <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[9px] font-semibold">
                         {assignedInitials}
                       </AvatarFallback>
                     </Avatar>
@@ -191,36 +192,36 @@ export function ContactDetailSidebar({
                 >
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-xs font-semibold">
+                      <AvatarFallback className="rounded-lg bg-foreground/[0.06] text-foreground text-xs font-semibold">
                         {assignedInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">{assignedToName}</p>
-                      <p className="text-xs text-[#8B8B8B]">Assigned Owner</p>
+                      <p className="text-xs text-muted-foreground">Assigned Owner</p>
                     </div>
                   </div>
                 </HoverCardContent>
               </HoverCard>
             )}
             {!assignedToName && (
-              <p className="text-xs text-[#8B8B8B]">No followers yet.</p>
+              <p className="text-xs text-muted-foreground">No followers yet.</p>
             )}
           </div>
         </CardContent>
       </Card>
 
       {/* Relationships */}
-      <Card className="rounded-xl border-[#E5E5E7]">
+      <Card className="rounded-xl border-border">
         <CardHeader className="px-4 py-3 pb-0">
-          <CardTitle className="text-xs font-semibold text-[#1A1A1A] flex items-center gap-1.5">
-            <Users size={14} className="text-[#6B6B6B]" strokeWidth={1.5} />
+          <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Users size={14} className="text-muted-foreground" strokeWidth={1.5} />
             Relationships
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 py-3">
           {relationships.length === 0 ? (
-            <p className="text-xs text-[#8B8B8B]">
+            <p className="text-xs text-muted-foreground">
               No relationships defined.
             </p>
           ) : (
@@ -246,7 +247,7 @@ export function ContactDetailSidebar({
                             style={{
                               backgroundColor: r.is_active
                                 ? colors.dot
-                                : "#8B8B8B",
+                                : "hsl(var(--muted-foreground))",
                             }}
                           />
                           {r.relationship_type.charAt(0).toUpperCase() +
@@ -258,12 +259,12 @@ export function ContactDetailSidebar({
                             r.relationship_type.slice(1)}
                         </Badge>
                       )}
-                      <span className="text-[10px] text-[#8B8B8B]">
+                      <span className="text-[10px] text-muted-foreground">
                         Since {formatDate(r.started_at)}
                       </span>
                     </div>
                     {i < relationships.length - 1 && (
-                      <Separator className="bg-[#F7F7F8]" />
+                      <Separator className="bg-muted" />
                     )}
                   </div>
                 );
@@ -274,10 +275,10 @@ export function ContactDetailSidebar({
       </Card>
 
       {/* Communication */}
-      <Card className="rounded-xl border-[#E5E5E7]">
+      <Card className="rounded-xl border-border">
         <CardHeader className="px-4 py-3 pb-0">
-          <CardTitle className="text-xs font-semibold text-[#1A1A1A] flex items-center gap-1.5">
-            <Globe size={14} className="text-[#6B6B6B]" strokeWidth={1.5} />
+          <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Globe size={14} className="text-muted-foreground" strokeWidth={1.5} />
             Communication
           </CardTitle>
         </CardHeader>
@@ -316,10 +317,10 @@ export function ContactDetailSidebar({
       </Card>
 
       {/* System Info */}
-      <Card className="rounded-xl border-[#E5E5E7]">
+      <Card className="rounded-xl border-border">
         <CardHeader className="px-4 py-3 pb-0">
-          <CardTitle className="text-xs font-semibold text-[#1A1A1A] flex items-center gap-1.5">
-            <Hash size={14} className="text-[#6B6B6B]" strokeWidth={1.5} />
+          <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Hash size={14} className="text-muted-foreground" strokeWidth={1.5} />
             System Info
           </CardTitle>
         </CardHeader>
@@ -334,10 +335,10 @@ export function ContactDetailSidebar({
               value={relTime(contact.updated_at)}
             />
             <div className="flex justify-between items-center py-1.5">
-              <Label className="text-[11px] text-[#8B8B8B] font-normal">
+              <Label className="text-[11px] text-muted-foreground font-normal">
                 Contact ID
               </Label>
-              <MonoValue className="text-[11px] text-[#1A1A1A]">
+              <MonoValue className="text-[11px] text-foreground">
                 {contact.id.slice(0, 8)}...
               </MonoValue>
             </div>
@@ -370,10 +371,9 @@ function SidebarFieldRow({
 }) {
   return (
     <div className="flex justify-between items-center py-1.5">
-      <Label className="text-[11px] text-[#8B8B8B] font-normal">{label}</Label>
+      <Label className="text-[11px] text-muted-foreground font-normal">{label}</Label>
       <span
-        className="text-[11px] font-medium"
-        style={{ color: danger ? "#E5453D" : "#1A1A1A" }}
+        className={cn("text-[11px] font-medium text-foreground", danger && "text-[#E5453D]")}
       >
         {value}
       </span>

@@ -81,13 +81,18 @@ export interface UpdateCompanyInput {
   email?: string | null;
   website?: string | null;
   address_line1?: string | null;
+  address_line2?: string | null;
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  country?: string | null;
   primary_contact_id?: string | null;
   notes?: string | null;
   source?: string | null;
+  other_names?: string | null;
   fee_agreement_on_file?: boolean;
+  title_company_verified?: boolean;
+  is_active?: boolean;
   nda_created_date?: string | null;
   nda_expiration_date?: string | null;
   asset_types?: string[];
@@ -114,15 +119,24 @@ export async function updateCompanyAction(input: UpdateCompanyInput) {
     if (input.website !== undefined) updateData.website = input.website || null;
     if (input.address_line1 !== undefined)
       updateData.address_line1 = input.address_line1 || null;
+    if (input.address_line2 !== undefined)
+      updateData.address_line2 = input.address_line2 || null;
     if (input.city !== undefined) updateData.city = input.city || null;
     if (input.state !== undefined) updateData.state = input.state || null;
     if (input.zip !== undefined) updateData.zip = input.zip || null;
+    if (input.country !== undefined) updateData.country = input.country || null;
     if (input.primary_contact_id !== undefined)
       updateData.primary_contact_id = input.primary_contact_id || null;
     if (input.notes !== undefined) updateData.notes = input.notes || null;
     if (input.source !== undefined) updateData.source = input.source || null;
+    if (input.other_names !== undefined)
+      updateData.other_names = input.other_names || null;
     if (input.fee_agreement_on_file !== undefined)
       updateData.fee_agreement_on_file = input.fee_agreement_on_file;
+    if (input.title_company_verified !== undefined)
+      updateData.title_company_verified = input.title_company_verified;
+    if (input.is_active !== undefined)
+      updateData.is_active = input.is_active;
     if (input.nda_created_date !== undefined)
       updateData.nda_created_date = input.nda_created_date || null;
     if (input.nda_expiration_date !== undefined)

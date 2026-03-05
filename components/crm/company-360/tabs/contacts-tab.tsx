@@ -30,13 +30,13 @@ export function CompanyContactsTab({
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <span className="text-[13px] text-[#8B8B8B]">
+        <span className="text-[13px] text-muted-foreground">
           {contacts.length} contact{contacts.length !== 1 ? "s" : ""}
         </span>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-[#E5E5E7] text-xs"
+          className="gap-1.5 rounded-lg border-border text-xs"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
           Add Contact
@@ -45,13 +45,13 @@ export function CompanyContactsTab({
 
       {contacts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F7F7F8] mb-4">
-            <Phone className="h-6 w-6 text-[#9A9A9A]" strokeWidth={1.5} />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+            <Phone className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             No contacts
           </h3>
-          <p className="text-sm text-[#6B6B6B]">
+          <p className="text-sm text-muted-foreground">
             Link contacts to this company to track your relationships.
           </p>
         </div>
@@ -71,16 +71,16 @@ export function CompanyContactsTab({
               <Link
                 key={ct.id}
                 href={`/admin/crm/${ct.id}`}
-                className="bg-white border border-[#E5E5E7] rounded-xl p-4 flex items-center gap-3.5 cursor-pointer hover:border-[#D0D0D0] transition-all duration-150"
+                className="bg-card border border-border rounded-xl p-4 flex items-center gap-3.5 cursor-pointer hover:border-[#D0D0D0] transition-all duration-150"
               >
                 <Avatar className="h-10 w-10 rounded-lg shrink-0">
-                  <AvatarFallback className="rounded-lg bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-xs font-semibold">
+                  <AvatarFallback className="rounded-lg bg-foreground/[0.06] text-foreground text-xs font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-[#1A1A1A]">
+                    <span className="text-sm font-semibold text-foreground">
                       {name}
                     </span>
                     {isPrimary && (
@@ -88,11 +88,11 @@ export function CompanyContactsTab({
                     )}
                   </div>
                   {ct.user_function && (
-                    <div className="text-xs text-[#6B6B6B] mb-1">
+                    <div className="text-xs text-muted-foreground mb-1">
                       {ct.user_function}
                     </div>
                   )}
-                  <div className="flex items-center gap-3.5 text-xs text-[#8B8B8B]">
+                  <div className="flex items-center gap-3.5 text-xs text-muted-foreground">
                     {ct.email && (
                       <span className="flex items-center gap-1">
                         <Mail size={11} strokeWidth={1.5} /> {ct.email}
@@ -104,12 +104,12 @@ export function CompanyContactsTab({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[11px] text-[#8B8B8B]">Last contact</div>
+                  <div className="text-[11px] text-muted-foreground">Last contact</div>
                   <div className="text-xs font-medium">
                     {relTime(ct.last_contacted_at)}
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-[#C5C5C5] shrink-0" />
+                <ChevronRight size={16} className="text-muted-foreground/50 shrink-0" />
               </Link>
             );
           })}

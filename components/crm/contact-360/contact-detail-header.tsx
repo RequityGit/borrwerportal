@@ -59,12 +59,12 @@ export function ContactDetailHeader({
     new Date(contact.next_follow_up_date) < new Date();
 
   return (
-    <Card className="rounded-xl border-[#E5E5E7] bg-white mb-5">
+    <Card className="rounded-xl border-border bg-card mb-5">
       <CardContent className="p-6">
         <div className="flex gap-4 items-start">
           {/* Avatar */}
           <Avatar className="h-11 w-11 rounded-lg shrink-0">
-            <AvatarFallback className="rounded-lg bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-sm font-bold">
+            <AvatarFallback className="rounded-lg bg-foreground/[0.06] text-foreground text-sm font-bold">
               {initials || "?"}
             </AvatarFallback>
           </Avatar>
@@ -73,7 +73,7 @@ export function ContactDetailHeader({
           <div className="flex-1 min-w-0">
             {/* Row 1: Name + Status Badge */}
             <div className="flex items-center gap-2.5 flex-wrap mb-1">
-              <h1 className="text-lg font-bold text-[#1A1A1A] tracking-tight m-0">
+              <h1 className="text-lg font-bold text-foreground tracking-tight m-0">
                 {fullName}
               </h1>
               {isActive ? (
@@ -122,7 +122,7 @@ export function ContactDetailHeader({
 
             {/* Row 2: Email */}
             {contact.email && (
-              <div className="flex items-center gap-1.5 text-sm text-[#6B6B6B] mb-1.5">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-1.5">
                 <Mail className="h-3.5 w-3.5" strokeWidth={1.5} />
                 {contact.email}
               </div>
@@ -146,7 +146,7 @@ export function ContactDetailHeader({
                 </span>
               )}
               {(contact.city || contact.state) && (
-                <span className="flex items-center gap-1.5 text-xs text-[#6B6B6B]">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} />
                   {[contact.city, contact.state].filter(Boolean).join(", ")}
                 </span>
@@ -186,22 +186,22 @@ export function ContactDetailHeader({
 
           {/* Right side — Assigned To */}
           <div className="text-right shrink-0 hidden md:block">
-            <Label className="text-[10px] uppercase tracking-widest text-[#8B8B8B]">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Assigned To
             </Label>
             <div className="flex items-center gap-1.5 justify-end mt-1 mb-2.5">
               {assignedInitials && (
                 <Avatar className="h-6 w-6 rounded-md">
-                  <AvatarFallback className="rounded-md bg-[#1A1A1A]/[0.06] text-[#1A1A1A] text-[10px] font-semibold">
+                  <AvatarFallback className="rounded-md bg-foreground/[0.06] text-foreground text-[10px] font-semibold">
                     {assignedInitials}
                   </AvatarFallback>
                 </Avatar>
               )}
-              <span className="text-[13px] font-medium text-[#1A1A1A]">
+              <span className="text-[13px] font-medium text-foreground">
                 {assignedToName || "Unassigned"}
               </span>
             </div>
-            <div className="text-[11px] text-[#8B8B8B]">
+            <div className="text-[11px] text-muted-foreground">
               Last Contact:{" "}
               <span className="font-semibold">
                 {relTime(contact.last_contacted_at)}
