@@ -295,7 +295,7 @@ All column names below are the **actual database columns**. Always use these exa
 - The project deploys to Netlify using `@netlify/plugin-nextjs`
 - Supabase migrations are applied via MCP and tracked in the database
 - The authenticated layout sets `dynamic = "force-dynamic"` to prevent static generation
-- When creating new pages, follow existing patterns: server component with data fetching, use `PageHeader`, `KpiCard`, shared components
+- When creating new pages, follow existing patterns: server component with data fetching, use `PageHeader`, shared components (see Page Layout section for KPI card guidance)
 - Server actions should always verify authentication and admin role before performing mutations
 - All financial amounts use `formatCurrency()` or `formatCurrencyDetailed()` from `lib/format.ts`
 - Storage buckets: `loan-documents` (structure: `{loan_id}/{filename}`) and `investor-documents` (structure: `{investor_id}/{filename}`)
@@ -442,3 +442,16 @@ import { NumericTick } from "@/components/ui/charts/numeric-tick"
 These typography rules apply to **all internal app pages and components**.
 
 Do not apply to pages under the Requity Group external site (marketing/public pages) — those follow their own design system.
+
+## Page Layout
+
+### No KPI cards on content pages
+
+Do not add KPI summary cards (e.g. "Total Contacts", "Pipeline Volume") at the top of pages whose primary purpose is a data table, kanban board, or list view. They push actionable content below the fold for no benefit.
+
+Standard content page layout:
+1. PageHeader (title + description)
+2. Toolbar row: [view toggles] [search] [filters] [flex spacer] [primary action button]
+3. Data view (table, board, list) — must be visible without scrolling on a 900px-tall viewport
+
+KPI cards belong on the Dashboard, not on working pages.
