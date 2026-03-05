@@ -2,7 +2,7 @@
 
 import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationItem } from "./notification-item";
-import { CheckCheck, Bell } from "lucide-react";
+import { Archive, Bell } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,19 +22,17 @@ export function NotificationDropdown({
   const {
     notifications,
     loading,
-    markAsRead,
-    markAllAsRead,
+    archiveNotification,
+    archiveAll,
   } = useNotifications(userId, { limit: 15 });
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  async function handleMarkAsRead(id: string) {
-    await markAsRead([id]);
+  async function handleArchive(id: string) {
+    await archiveNotification(id);
     onCountChange?.();
   }
 
-  async function handleMarkAllAsRead() {
-    await markAllAsRead();
+  async function handleArchiveAll() {
+    await archiveAll();
     onCountChange?.();
   }
 
@@ -43,20 +41,20 @@ export function NotificationDropdown({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
-          {unreadCount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-              {unreadCount} new
+          <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+          {notifications.length > 0 && (
+            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 num">
+              {notifications.length}
             </span>
           )}
         </div>
-        {unreadCount > 0 && (
+        {notifications.length > 0 && (
           <button
-            onClick={handleMarkAllAsRead}
+            onClick={handleArchiveAll}
             className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
           >
-            <CheckCheck className="h-3.5 w-3.5" />
-            Mark all read
+            <Archive className="h-3.5 w-3.5" />
+            Archive all
           </button>
         )}
       </div>
@@ -80,11 +78,11 @@ export function NotificationDropdown({
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
               <Bell className="h-6 w-6 text-green-600" />
             </div>
-            <p className="mt-3 text-sm font-medium text-gray-900">
+            <p className="mt-3 text-sm font-medium text-foreground">
               You&apos;re all caught up!
             </p>
-            <p className="mt-1 text-xs text-gray-500">
-              No new notifications to show.
+            <p className="mt-1 text-xs text-muted-foreground">
+              No active notifications.
             </p>
           </div>
         ) : (
@@ -94,7 +92,7 @@ export function NotificationDropdown({
                 key={notification.id}
                 notification={notification}
                 activeRole={activeRole}
-                onMarkAsRead={handleMarkAsRead}
+                onArchive={handleArchive}
                 variant="compact"
               />
             ))}

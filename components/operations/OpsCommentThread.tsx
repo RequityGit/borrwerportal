@@ -5,21 +5,15 @@ import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { MentionInput } from "@/components/shared/mention-input";
 import { parseComment, relativeTime } from "@/lib/comment-utils";
-import { extractMentionIds } from "@/lib/comment-utils";
 import { useToast } from "@/components/ui/use-toast";
 import {
   MessageCircle,
   Send,
   Pencil,
   Trash2,
-  ChevronDown,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 // ---------- Types ----------
-
-type TaskCommentType = "update" | "blocker" | "question" | "decision" | "handoff";
-type ProjectCommentType = "update" | "blocker" | "question" | "decision" | "milestone";
 
 interface OpsComment {
   id: string;
@@ -28,7 +22,6 @@ interface OpsComment {
   author_id: string | null;
   author_name: string | null;
   comment: string;
-  comment_type: string;
   mentions: string[] | null;
   is_edited: boolean;
   edited_at: string | null;
@@ -40,42 +33,6 @@ interface TaskComment extends OpsComment {
 
 interface ProjectComment extends OpsComment {
   project_id: string;
-}
-
-// ---------- Badge config ----------
-
-const TASK_COMMENT_TYPES: { value: TaskCommentType; label: string }[] = [
-  { value: "update", label: "Update" },
-  { value: "blocker", label: "Blocker" },
-  { value: "question", label: "Question" },
-  { value: "decision", label: "Decision" },
-  { value: "handoff", label: "Handoff" },
-];
-
-const PROJECT_COMMENT_TYPES: { value: ProjectCommentType; label: string }[] = [
-  { value: "update", label: "Update" },
-  { value: "blocker", label: "Blocker" },
-  { value: "question", label: "Question" },
-  { value: "decision", label: "Decision" },
-  { value: "milestone", label: "Milestone" },
-];
-
-const BADGE_COLORS: Record<string, string> = {
-  update: "bg-gray-100 text-gray-700 border-gray-200",
-  blocker: "bg-red-100 text-red-700 border-red-200",
-  question: "bg-amber-100 text-amber-700 border-amber-200",
-  decision: "bg-green-100 text-green-700 border-green-200",
-  handoff: "bg-blue-100 text-blue-700 border-blue-200",
-  milestone: "bg-purple-100 text-purple-700 border-purple-200",
-};
-
-function CommentTypeBadge({ type }: { type: string }) {
-  const colors = BADGE_COLORS[type] ?? BADGE_COLORS.update;
-  return (
-    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 capitalize", colors)}>
-      {type}
-    </Badge>
-  );
 }
 
 // ---------- Single comment renderer ----------
@@ -117,7 +74,6 @@ function OpsCommentItem({
           <span className="text-xs font-semibold text-foreground">
             {isOwn ? "You" : comment.author_name ?? "Team"}
           </span>
-          <CommentTypeBadge type={comment.comment_type} />
           {comment.is_edited && (
             <span className="text-muted-foreground text-[10px]">(edited)</span>
           )}
@@ -185,12 +141,9 @@ export function OpsCommentThread({
 }: OpsCommentThreadProps) {
   const tableName = entityType === "task" ? "ops_task_comments" : "ops_project_comments";
   const fkColumn = entityType === "task" ? "task_id" : "project_id";
-  const commentTypes = entityType === "task" ? TASK_COMMENT_TYPES : PROJECT_COMMENT_TYPES;
-
   const [comments, setComments] = useState<OpsComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
-  const [commentType, setCommentType] = useState<string>("update");
   const [posting, setPosting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -274,7 +227,6 @@ export function OpsCommentThread({
       author_id: currentUserId,
       author_name: authorName,
       comment: text,
-      comment_type: commentType,
       mentions: mentionIds.length > 0 ? mentionIds : [],
     };
 
@@ -291,7 +243,6 @@ export function OpsCommentThread({
         prev.some((c) => c.id === (data as OpsComment).id) ? prev : [data as OpsComment, ...prev]
       );
       setCommentText("");
-      setCommentType("update");
 
       // Create notifications for @mentioned users
       if (mentionIds.length > 0) {
@@ -375,22 +326,6 @@ export function OpsCommentThread({
           submitLabel={posting ? "Posting..." : "Post"}
           submitIcon={<Send className="h-3 w-3" />}
           rows={2}
-          extraControls={
-            <div className="relative">
-              <select
-                value={commentType}
-                onChange={(e) => setCommentType(e.target.value)}
-                className="appearance-none text-xs border rounded-md pl-2 pr-6 py-1 bg-card cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {commentTypes.map((ct) => (
-                  <option key={ct.value} value={ct.value}>
-                    {ct.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="h-3 w-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
-            </div>
-          }
         />
       </div>
 

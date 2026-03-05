@@ -61,7 +61,7 @@ export function NotificationBell({ userId, activeRole }: NotificationBellProps) 
             ? "bg-muted text-foreground"
             : "text-muted-foreground hover:bg-muted hover:text-foreground"
         )}
-        aria-label={`Notifications${count > 0 ? ` (${count} unread)` : ""}`}
+        aria-label={`Notifications${count > 0 ? ` (${count} active)` : ""}`}
       >
         <Bell className="h-5 w-5" />
 

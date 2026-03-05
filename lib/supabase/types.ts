@@ -9346,7 +9346,6 @@ export type Database = {
           entity_label: string | null
           entity_type: string | null
           id: string
-          is_archived: boolean
           notification_slug: string
           notification_type_id: string | null
           priority: string
@@ -9365,7 +9364,6 @@ export type Database = {
           entity_label?: string | null
           entity_type?: string | null
           id?: string
-          is_archived?: boolean
           notification_slug: string
           notification_type_id?: string | null
           priority?: string
@@ -9384,7 +9382,6 @@ export type Database = {
           entity_label?: string | null
           entity_type?: string | null
           id?: string
-          is_archived?: boolean
           notification_slug?: string
           notification_type_id?: string | null
           priority?: string

@@ -7,14 +7,14 @@ import { NotificationPriorityBadge } from "./notification-priority-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
-  CheckCheck,
   Archive,
   Bell,
   Filter,
   ChevronDown,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { NotificationCategory, NotificationPriority } from "@/lib/notifications";
+import type { NotificationPriority } from "@/lib/notifications";
 import { categoryDisplayNames } from "@/lib/notifications";
 
 interface NotificationsPageClientProps {
@@ -38,12 +38,6 @@ const priorities: { value: string; label: string }[] = [
   { value: "low", label: "Low" },
 ];
 
-const statusFilters: { value: "all" | "unread" | "read"; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "unread", label: "Unread" },
-  { value: "read", label: "Read" },
-];
-
 const dateRanges: { value: "today" | "week" | "month" | "all"; label: string }[] = [
   { value: "all", label: "All Time" },
   { value: "today", label: "Today" },
@@ -57,7 +51,7 @@ export function NotificationsPageClient({
 }: NotificationsPageClientProps) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "unread" | "read">("all");
+  const [view, setView] = useState<"active" | "archived">("active");
   const [dateRange, setDateRange] = useState<"today" | "week" | "month" | "all">("all");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -66,28 +60,58 @@ export function NotificationsPageClient({
     loading,
     hasMore,
     loadMore,
-    markAsRead,
-    markAllAsRead,
     archiveNotification,
-    archiveAllRead,
+    archiveAll,
+    unarchiveNotification,
   } = useNotifications(userId, {
     limit: 20,
     category: categoryFilter !== "all" ? categoryFilter : undefined,
     priority: priorityFilter !== "all" ? priorityFilter : undefined,
-    status: statusFilter,
+    view,
     dateRange,
   });
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
       {/* Sidebar filters (desktop) */}
       <aside className="hidden lg:block w-64 flex-shrink-0">
         <div className="sticky top-20 space-y-6">
+          {/* Active / Archived toggle */}
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              View
+            </h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => setView("active")}
+                className={cn(
+                  "w-full text-left rounded-md px-3 py-2 text-sm flex items-center gap-2 transition-colors",
+                  view === "active"
+                    ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-950 dark:text-blue-300"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Inbox className="h-4 w-4" />
+                Active
+              </button>
+              <button
+                onClick={() => setView("archived")}
+                className={cn(
+                  "w-full text-left rounded-md px-3 py-2 text-sm flex items-center gap-2 transition-colors",
+                  view === "archived"
+                    ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-950 dark:text-blue-300"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Archive className="h-4 w-4" />
+                Archived
+              </button>
+            </div>
+          </div>
+
           {/* Category filter */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Category
             </h3>
             <div className="space-y-1">
@@ -98,7 +122,7 @@ export function NotificationsPageClient({
                   className={cn(
                     "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
                     categoryFilter === cat.value
-                      ? "bg-blue-50 text-blue-700 font-medium"
+                      ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-950 dark:text-blue-300"
                       : "text-muted-foreground hover:bg-muted"
                   )}
                 >
@@ -110,7 +134,7 @@ export function NotificationsPageClient({
 
           {/* Priority filter */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Priority
             </h3>
             <div className="space-y-1">
@@ -121,7 +145,7 @@ export function NotificationsPageClient({
                   className={cn(
                     "w-full text-left rounded-md px-3 py-2 text-sm flex items-center gap-2 transition-colors",
                     priorityFilter === p.value
-                      ? "bg-blue-50 text-blue-700 font-medium"
+                      ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-950 dark:text-blue-300"
                       : "text-muted-foreground hover:bg-muted"
                   )}
                 >
@@ -136,32 +160,9 @@ export function NotificationsPageClient({
             </div>
           </div>
 
-          {/* Status filter */}
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Status
-            </h3>
-            <div className="space-y-1">
-              {statusFilters.map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => setStatusFilter(s.value)}
-                  className={cn(
-                    "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
-                    statusFilter === s.value
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Date range */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Date Range
             </h3>
             <div className="space-y-1">
@@ -172,7 +173,7 @@ export function NotificationsPageClient({
                   className={cn(
                     "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
                     dateRange === d.value
-                      ? "bg-blue-50 text-blue-700 font-medium"
+                      ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-950 dark:text-blue-300"
                       : "text-muted-foreground hover:bg-muted"
                   )}
                 >
@@ -189,10 +190,10 @@ export function NotificationsPageClient({
         {/* Top bar with actions */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">
-              {unreadCount > 0
-                ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
-                : "No unread notifications"}
+            <span className="text-sm text-muted-foreground">
+              {view === "active"
+                ? `${notifications.length} active notification${notifications.length !== 1 ? "s" : ""}`
+                : `${notifications.length} archived notification${notifications.length !== 1 ? "s" : ""}`}
             </span>
           </div>
 
@@ -214,26 +215,17 @@ export function NotificationsPageClient({
               />
             </Button>
 
-            {unreadCount > 0 && (
+            {view === "active" && notifications.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={markAllAsRead}
+                onClick={archiveAll}
               >
-                <CheckCheck className="h-4 w-4" />
-                Mark all read
+                <Archive className="h-4 w-4" />
+                Archive all
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={archiveAllRead}
-            >
-              <Archive className="h-4 w-4" />
-              Archive read
-            </Button>
           </div>
         </div>
 
@@ -242,13 +234,28 @@ export function NotificationsPageClient({
           <div className="mb-4 rounded-lg border border-border bg-card p-4 lg:hidden">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  View
+                </label>
+                <select
+                  value={view}
+                  onChange={(e) =>
+                    setView(e.target.value as "active" | "archived")
+                  }
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                >
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Category
                 </label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
                   {categories.map((c) => (
                     <option key={c.value} value={c.value}>
@@ -258,13 +265,13 @@ export function NotificationsPageClient({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Priority
                 </label>
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
                   {priorities.map((p) => (
                     <option key={p.value} value={p.value}>
@@ -274,27 +281,7 @@ export function NotificationsPageClient({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
-                  Status
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(
-                      e.target.value as "all" | "unread" | "read"
-                    )
-                  }
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                >
-                  {statusFilters.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Date Range
                 </label>
                 <select
@@ -304,7 +291,7 @@ export function NotificationsPageClient({
                       e.target.value as "today" | "week" | "month" | "all"
                     )
                   }
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
                   {dateRanges.map((d) => (
                     <option key={d.value} value={d.value}>
@@ -343,13 +330,21 @@ export function NotificationsPageClient({
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <Bell className="h-8 w-8 text-green-600" />
+              {view === "active" ? (
+                <Bell className="h-8 w-8 text-green-600" />
+              ) : (
+                <Archive className="h-8 w-8 text-green-600" />
+              )}
             </div>
-            <p className="mt-4 text-lg font-medium text-gray-900">
-              You&apos;re all caught up!
+            <p className="mt-4 text-lg font-medium text-foreground">
+              {view === "active"
+                ? "You\u2019re all caught up!"
+                : "No archived notifications"}
             </p>
-            <p className="mt-1 text-sm text-gray-500">
-              No notifications match your current filters.
+            <p className="mt-1 text-sm text-muted-foreground">
+              {view === "active"
+                ? "No active notifications match your current filters."
+                : "Notifications you archive will appear here."}
             </p>
           </div>
         ) : (
@@ -360,8 +355,8 @@ export function NotificationsPageClient({
                   key={notification.id}
                   notification={notification}
                   activeRole={activeRole}
-                  onMarkAsRead={(id) => markAsRead([id])}
-                  onArchive={archiveNotification}
+                  onArchive={view === "active" ? archiveNotification : undefined}
+                  onUnarchive={view === "archived" ? unarchiveNotification : undefined}
                   variant="full"
                 />
               ))}

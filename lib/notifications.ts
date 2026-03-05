@@ -47,9 +47,6 @@ export interface Notification {
   entity_id: string | null;
   entity_label: string | null;
   action_url: string | null;
-  is_read: boolean;
-  read_at: string | null;
-  is_archived: boolean;
   archived_at: string | null;
 }
 
