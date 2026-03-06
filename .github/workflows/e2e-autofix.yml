@@ -1,0 +1,68 @@
+name: E2E Auto-Diagnose
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  diagnose:
+    name: Claude Code E2E Diagnosis
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'e2e-failure')
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Diagnose and fix E2E failures
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          BORROWER_EMAIL: ${{ secrets.E2E_BORROWER_EMAIL }}
+          BORROWER_PASSWORD: ${{ secrets.E2E_BORROWER_PASSWORD }}
+          INVESTOR_EMAIL: ${{ secrets.E2E_INVESTOR_EMAIL }}
+          INVESTOR_PASSWORD: ${{ secrets.E2E_INVESTOR_PASSWORD }}
+          ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+        run: |
+          # Re-run tests to capture fresh failure output
+          npx playwright test --reporter=json 2>&1 | tee test-output.json || true
+
+          claude --print "
+            An E2E test failure triggered this run. GitHub Issue: #${{ github.event.issue.number }}
+
+            1. Read test-output.json to understand which tests failed and why.
+            2. Read the failing test files in tests/ to understand what they expect.
+            3. Read the relevant app source code in apps/requity-os/ to find the root cause.
+            4. If the fix is in app code (not test flakiness), create a branch, fix it, and open a draft PR referencing issue #${{ github.event.issue.number }}.
+            5. If it's test flakiness or an environment issue, comment on the issue with your diagnosis instead.
+            6. Do not fix anything you are not confident about.
+          "
+
+      - name: Upload diagnosis traces
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diagnosis-traces
+          path: test-results/
+          retention-days: 7
