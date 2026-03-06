@@ -50,7 +50,10 @@ import {
   Send,
   Pencil,
 } from "lucide-react";
-import type { LoanCondition, LoanDocument } from "@/lib/supabase/types";
+import type { Tables } from "@/lib/supabase/types";
+
+type LoanCondition = Tables<"loan_conditions">;
+type LoanDocument = Tables<"loan_documents">;
 import { MentionInput } from "@/components/shared/mention-input";
 import { CommentRenderer } from "@/components/shared/comment-renderer";
 import { extractMentionIds } from "@/lib/comment-utils";
