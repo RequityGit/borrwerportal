@@ -259,6 +259,35 @@ Recharts axis labels use the `NumericTick` component (`components/ui/charts/nume
 
 ---
 
+## Page Composition
+
+### Standard Page Layout
+
+Every content page follows: **PageHeader → Toolbar → Data view**. The data view (table, kanban, detail) must be visible without scrolling at 900px viewport height.
+
+### Page Patterns
+
+| Page Type | Structure |
+|-----------|-----------|
+| Dashboard | PageHeader → KPI row → Charts / summary cards |
+| List / Table | PageHeader → Toolbar (filters, search, add button) → DataTable |
+| Detail | PageHeader (with back nav) → Content sections |
+| Form | PageHeader → Form fields (max 5 visible, step if more) → Submit bar |
+
+### KPI Card Placement
+
+- **Dashboard only.** Do not add KPI cards to content pages (data tables, kanban boards, detail views).
+- KPI cards belong on overview/dashboard pages where aggregate metrics are the primary content.
+
+### Spacing
+
+- Gap between PageHeader and content: `space-y-6`
+- Gap between toolbar and data view: `space-y-4`
+- Internal card padding: `p-6` (desktop), `p-4` (mobile)
+- Section spacing within detail pages: `space-y-8`
+
+---
+
 ## Shared Components
 
 ### PageHeader (`components/shared/page-header.tsx`)
