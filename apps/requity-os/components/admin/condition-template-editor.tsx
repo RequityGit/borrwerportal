@@ -39,7 +39,9 @@ import {
   X,
   Filter,
 } from "lucide-react";
-import type { LoanConditionTemplate } from "@/lib/supabase/types";
+import type { Tables } from "@/lib/supabase/types";
+
+type LoanConditionTemplate = Tables<"loan_condition_templates">;
 
 interface ConditionTemplateEditorProps {
   templates: LoanConditionTemplate[];
