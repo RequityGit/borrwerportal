@@ -58,6 +58,52 @@ export async function advanceStage(
   }
 }
 
+export async function advanceOpportunityStage(
+  opportunityId: string,
+  fromStage: string,
+  toStage: string,
+  userId: string,
+  userName: string
+) {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+    const now = new Date().toISOString();
+
+    // Update opportunity stage
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: updateError } = await (admin as any)
+      .from("opportunities")
+      .update({
+        stage: toStage,
+        stage_changed_at: now,
+        stage_changed_by: userId,
+      })
+      .eq("id", opportunityId);
+
+    if (updateError) {
+      console.error("advanceOpportunityStage update error:", updateError);
+      return { error: updateError.message };
+    }
+
+    // Log stage history
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).from("opportunity_stage_history").insert({
+      opportunity_id: opportunityId,
+      from_stage: fromStage,
+      to_stage: toStage,
+      changed_by: userId,
+    });
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("advanceOpportunityStage exception:", err);
+    return { error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
 export async function createUWVersion(
   loanId: string,
   userId: string,
