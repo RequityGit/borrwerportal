@@ -13,6 +13,7 @@ import { DocumentsTab } from "./tabs/DocumentsTab";
 import { ActivityTab } from "./tabs/ActivityTab";
 import { CommentsTab } from "./tabs/CommentsTab";
 import { UnderwritingTab } from "./tabs/UnderwritingTab";
+import { DealChatTab } from "@/components/deal/deal-chat-tab";
 import { TasksTab, type DealTask } from "./tabs/TasksTab";
 import { updateDealField, updateRelatedField } from "./update-deal-action";
 import { advanceStage, advanceOpportunityStage } from "./actions";
@@ -166,6 +167,7 @@ export function DealDetail({
     { key: "tasks", label: "Tasks", count: openTaskCount || undefined },
     { key: "activity", label: "Activity" },
     { key: "comments", label: "Comments", count: comments.length || undefined },
+    { key: "chat", label: "Chat" },
   ];
 
   const termMonths = deal.loan_term_months || deal.term_months;
@@ -209,6 +211,14 @@ export function DealDetail({
             currentUserName={currentUserName}
             currentUserInitials={currentUserInitials}
             isOpportunity={isOpportunity}
+          />
+        );
+      case "chat":
+        return (
+          <DealChatTab
+            loanId={deal.id}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
           />
         );
       default:
