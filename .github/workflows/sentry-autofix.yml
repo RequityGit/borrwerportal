@@ -19,7 +19,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          claude --headless "
+          claude --print "
             Using Sentry MCP, fetch the top 5 unresolved issues by user impact.
             For each one: analyze the stack trace, fix the code, create a branch, and open a draft PR.
             Do not touch anything you are not confident about — skip it instead.
