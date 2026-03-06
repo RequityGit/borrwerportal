@@ -15,9 +15,10 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Configure Sentry MCP
-        run: claude mcp add --scope project sentry "npx -y @sentry/mcp-server@latest"
+        run: claude mcp add --scope project -e SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN -e SENTRY_ORG=requity sentry "npx -y @sentry/mcp-server@latest"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Run Sentry fixes
         env:
