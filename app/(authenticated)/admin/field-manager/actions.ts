@@ -13,6 +13,9 @@ interface FieldUpdate {
   display_order: number;
   is_visible: boolean;
   is_locked: boolean;
+  is_admin_created?: boolean;
+  is_archived?: boolean;
+  dropdown_options?: string[] | null;
 }
 
 export async function publishFieldConfigurations(
@@ -37,6 +40,9 @@ export async function publishFieldConfigurations(
         display_order: f.display_order,
         is_visible: f.is_visible,
         is_locked: f.is_locked,
+        is_admin_created: f.is_admin_created ?? false,
+        is_archived: f.is_archived ?? false,
+        dropdown_options: f.dropdown_options ?? null,
       })),
       { onConflict: "module,field_key" }
     );
@@ -49,6 +55,54 @@ export async function publishFieldConfigurations(
     return { success: true };
   } catch (err: unknown) {
     console.error("publishFieldConfigurations error:", err);
+    return { error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function archiveField(fieldId: string) {
+  try {
+    const auth = await requireSuperAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("field_configurations")
+      .update({ is_archived: true, is_visible: false })
+      .eq("id", fieldId)
+      .eq("is_admin_created", true);
+
+    if (error) {
+      console.error("archiveField error:", error);
+      return { error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("archiveField error:", err);
+    return { error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function restoreField(fieldId: string) {
+  try {
+    const auth = await requireSuperAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("field_configurations")
+      .update({ is_archived: false, is_visible: true })
+      .eq("id", fieldId)
+      .eq("is_admin_created", true);
+
+    if (error) {
+      console.error("restoreField error:", error);
+      return { error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("restoreField error:", err);
     return { error: err instanceof Error ? err.message : "Unknown error" };
   }
 }

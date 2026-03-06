@@ -7068,10 +7068,13 @@ export type Database = {
           column_position: string
           created_at: string | null
           display_order: number
+          dropdown_options: Json | null
           field_key: string
           field_label: string
           field_type: string
           id: string
+          is_admin_created: boolean
+          is_archived: boolean
           is_locked: boolean
           is_visible: boolean
           module: string
@@ -7081,10 +7084,13 @@ export type Database = {
           column_position?: string
           created_at?: string | null
           display_order?: number
+          dropdown_options?: Json | null
           field_key: string
           field_label: string
           field_type: string
           id?: string
+          is_admin_created?: boolean
+          is_archived?: boolean
           is_locked?: boolean
           is_visible?: boolean
           module: string
@@ -7094,10 +7100,13 @@ export type Database = {
           column_position?: string
           created_at?: string | null
           display_order?: number
+          dropdown_options?: Json | null
           field_key?: string
           field_label?: string
           field_type?: string
           id?: string
+          is_admin_created?: boolean
+          is_archived?: boolean
           is_locked?: boolean
           is_visible?: boolean
           module?: string
