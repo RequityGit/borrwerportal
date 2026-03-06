@@ -21,14 +21,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { RTLDSCRForm } from "./rtl-dscr-form";
-import { CommercialForm } from "./commercial-form";
+import { CommercialTabs } from "./commercial-tabs";
 import { ModelHealthPanel } from "./model-health-panel";
 import { computeOutputs } from "@/lib/underwriting/calculator";
-import { computeCommercialOutputs } from "@/lib/underwriting/commercial-calculator";
+import { computeUW } from "@/components/commercial-uw/use-calcs";
+import { useCommercialUWStore, getDefaultState } from "@/components/commercial-uw/store";
 import type { UnderwritingInputs } from "@/lib/underwriting/types";
 import { DEFAULT_INPUTS } from "@/lib/underwriting/types";
-import type { CommercialInputs } from "@/lib/underwriting/commercial-types";
-import { COMMERCIAL_SANDBOX_DEFAULTS } from "@/lib/underwriting/commercial-types";
+import type { CommercialUWState } from "@/components/commercial-uw/types";
 import type { UWModelType } from "@/app/(authenticated)/admin/pipeline/debt/[id]/components";
 import { UW_MODEL_LABELS } from "@/app/(authenticated)/admin/pipeline/debt/[id]/components";
 
@@ -123,8 +123,8 @@ export function UWEditorClient({
   const [inputs, setInputs] = useState<UnderwritingInputs>(
     isCommercial ? { ...DEFAULT_INPUTS } : parseInputs(initialVersion?.calculator_inputs)
   );
-  const [commercialInputs, setCommercialInputs] = useState<CommercialInputs>(
-    isCommercial ? parseCommercialInputs(initialVersion?.calculator_inputs) : { ...COMMERCIAL_SANDBOX_DEFAULTS }
+  const [commercialState, setCommercialState] = useState<CommercialUWState>(
+    isCommercial ? parseCommercialState(initialVersion?.calculator_inputs, dealId, initialVersion?.id || "") : getDefaultState()
   );
   const [saving, setSaving] = useState(false);
   const [cloning, setCloning] = useState(false);
@@ -136,19 +136,20 @@ export function UWEditorClient({
   const handleSelectVersion = useCallback((version: UWVersionData) => {
     setSelectedVersion(version);
     if (isCommercial) {
-      setCommercialInputs(parseCommercialInputs(version.calculator_inputs));
+      setCommercialState(parseCommercialState(version.calculator_inputs, dealId, version.id));
     } else {
       setInputs(parseInputs(version.calculator_inputs));
     }
-  }, [isCommercial]);
+  }, [isCommercial, dealId]);
 
   const handleSave = useCallback(async (markActive: boolean) => {
     if (!selectedVersion || !isEditable) return;
     setSaving(true);
     try {
-      const currentInputs = isCommercial ? commercialInputs : inputs;
+      const storeState = isCommercial ? useCommercialUWStore.getState().state : null;
+      const currentInputs = isCommercial ? storeState! : inputs;
       const outputs = isCommercial
-        ? computeCommercialOutputs(commercialInputs)
+        ? computeUW(storeState!)
         : computeOutputs(inputs);
       const result = await saveVersionAction(
         selectedVersion.id,
@@ -173,7 +174,7 @@ export function UWEditorClient({
     } finally {
       setSaving(false);
     }
-  }, [selectedVersion, isEditable, inputs, commercialInputs, isCommercial, dealId, currentUserId, currentUserName, saveVersionAction, isOpportunity, toast, router]);
+  }, [selectedVersion, isEditable, inputs, isCommercial, dealId, currentUserId, currentUserName, saveVersionAction, isOpportunity, toast, router]);
 
   const handleClone = useCallback(async (sourceVersion: UWVersionData) => {
     setCloning(true);
@@ -347,7 +348,7 @@ export function UWEditorClient({
         <div className="flex-1 overflow-y-auto p-6" style={{ height: "calc(100vh - 57px)" }}>
           {selectedVersion ? (
             modelType === "commercial" ? (
-              <div className="max-w-5xl">
+              <div className="max-w-[1100px]">
                 {isSandbox && (
                   <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 text-amber-500 shrink-0" />
@@ -356,11 +357,7 @@ export function UWEditorClient({
                     </span>
                   </div>
                 )}
-                <CommercialForm
-                  inputs={commercialInputs}
-                  onChange={setCommercialInputs}
-                  readOnly={!isEditable}
-                />
+                <CommercialTabs initialState={commercialState} />
               </div>
             ) : (
               <div className="max-w-4xl">
@@ -495,9 +492,14 @@ function parseInputs(raw: Record<string, unknown> | null | undefined): Underwrit
   return { ...DEFAULT_INPUTS, ...raw } as UnderwritingInputs;
 }
 
-function parseCommercialInputs(raw: Record<string, unknown> | null | undefined): CommercialInputs {
-  if (!raw || Object.keys(raw).length === 0) return { ...COMMERCIAL_SANDBOX_DEFAULTS };
-  return { ...COMMERCIAL_SANDBOX_DEFAULTS, ...raw } as CommercialInputs;
+function parseCommercialState(
+  raw: Record<string, unknown> | null | undefined,
+  dealId: string,
+  versionId: string
+): CommercialUWState {
+  const defaults = getDefaultState(dealId, versionId);
+  if (!raw || Object.keys(raw).length === 0) return defaults;
+  return { ...defaults, ...raw, dealId, versionId } as CommercialUWState;
 }
 
 function formatDate(d: string | null | undefined): string {
