@@ -15737,3 +15737,22 @@ export const Constants = {
   },
 } as const
 
+// Convenience type aliases used across the codebase
+export type BorrowerEntity = Tables<"borrower_entities">
+export type Loan = Tables<"loans">
+export type LoanCondition = Tables<"loan_conditions">
+export type LoanDocument = Tables<"loan_documents">
+export type LoanPayment = Tables<"loan_payments">
+export type LoanConditionTemplate = Tables<"loan_condition_templates">
+export type Document = Tables<"documents">
+export type CrmContact = Tables<"crm_contacts">
+// Tables not yet in generated types — use permissive type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LenderQuote = Record<string, any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PricingProgram = Record<string, any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LeverageAdjuster = Record<string, any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PricingProgramVersion = Record<string, any>
+
