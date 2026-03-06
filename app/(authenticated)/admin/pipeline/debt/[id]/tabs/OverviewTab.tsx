@@ -28,6 +28,7 @@ import {
 } from "@/lib/constants";
 import { PROPERTY_TYPE_OPTIONS } from "@/lib/constants";
 import { useFieldConfigurations, type FieldConfigEntry } from "@/hooks/useFieldConfigurations";
+import { DynamicField } from "@/components/shared/DynamicField";
 
 interface OverviewTabProps {
   deal: DealData;
@@ -172,9 +173,13 @@ function interleaveFields(
 function ConfiguredSection({
   module,
   fieldMap,
+  deal,
+  onSave,
 }: {
   module: string;
   fieldMap: Record<string, FieldRenderProps>;
+  deal?: DealData;
+  onSave?: (field: string, value: string | number | null) => Promise<boolean>;
 }) {
   const { leftFields, rightFields, isLoading } = useFieldConfigurations(module);
 
@@ -201,6 +206,29 @@ function ConfiguredSection({
         if (cfg.field_key.startsWith("__empty_")) {
           return <div key={cfg.id} />;
         }
+
+        // Admin-created fields: render with DynamicField
+        if (cfg.is_admin_created && deal) {
+          const dealRecord = deal as unknown as Record<string, unknown>;
+          const currentValue = dealRecord[cfg.field_key] ?? null;
+          return (
+            <DynamicField
+              key={cfg.field_key}
+              fieldKey={cfg.field_key}
+              fieldType={cfg.field_type}
+              label={cfg.field_label}
+              value={currentValue}
+              onChange={async (newValue) => {
+                if (onSave) {
+                  await onSave(cfg.field_key, newValue as string | number | null);
+                }
+              }}
+              dropdownOptions={cfg.dropdown_options}
+            />
+          );
+        }
+
+        // System fields: render with EditableFieldRow
         const props = fieldMap[cfg.field_key];
         if (!props) return null;
         return (
@@ -296,7 +324,7 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
         icon={FileText}
         right={isEditable ? <EditButton onClick={() => setEditLoanOpen(true)} /> : undefined}
       >
-        <ConfiguredSection module="loan_details" fieldMap={loanFieldMap} />
+        <ConfiguredSection module="loan_details" fieldMap={loanFieldMap} deal={d} onSave={onSave} />
       </SectionCard>
 
       {/* Property */}
@@ -305,7 +333,7 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
         icon={Building2}
         right={isEditable ? <EditButton onClick={() => setEditPropertyOpen(true)} /> : undefined}
       >
-        <ConfiguredSection module="property" fieldMap={propertyFieldMap} />
+        <ConfiguredSection module="property" fieldMap={propertyFieldMap} deal={d} onSave={onSave} />
       </SectionCard>
 
       {/* Borrower Entity */}
@@ -314,7 +342,7 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
         icon={Shield}
         right={isEditable ? <EditButton onClick={() => setEditBorrowerOpen(true)} /> : undefined}
       >
-        <ConfiguredSection module="borrower_entity" fieldMap={borrowerFieldMap} />
+        <ConfiguredSection module="borrower_entity" fieldMap={borrowerFieldMap} deal={d} onSave={onSave} />
       </SectionCard>
 
       {/* Edit Dialogs */}

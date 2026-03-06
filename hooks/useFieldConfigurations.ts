@@ -16,39 +16,42 @@ export interface FieldConfigEntry {
   display_order: number;
   is_visible: boolean;
   is_locked: boolean;
+  is_admin_created: boolean;
+  dropdown_options: string[] | null;
+  is_archived: boolean;
 }
 
 // Hardcoded fallback field order matching the original OverviewTab layout
 const FALLBACK_FIELDS: Record<string, FieldConfigEntry[]> = {
   loan_details: [
-    { id: "f-ld-0", module: "loan_details", field_key: "loan_number", field_label: "Loan Number", field_type: "text", column_position: "left", display_order: 0, is_visible: true, is_locked: true },
-    { id: "f-ld-1", module: "loan_details", field_key: "type", field_label: "Type", field_type: "dropdown", column_position: "right", display_order: 1, is_visible: true, is_locked: false },
-    { id: "f-ld-2", module: "loan_details", field_key: "purpose", field_label: "Purpose", field_type: "dropdown", column_position: "left", display_order: 2, is_visible: true, is_locked: false },
-    { id: "f-ld-3", module: "loan_details", field_key: "funding_channel", field_label: "Channel", field_type: "dropdown", column_position: "right", display_order: 3, is_visible: true, is_locked: false },
-    { id: "f-ld-4", module: "loan_details", field_key: "strategy", field_label: "Strategy", field_type: "dropdown", column_position: "left", display_order: 4, is_visible: true, is_locked: false },
-    { id: "f-ld-5", module: "loan_details", field_key: "financing", field_label: "Financing", field_type: "dropdown", column_position: "right", display_order: 5, is_visible: true, is_locked: false },
-    { id: "f-ld-6", module: "loan_details", field_key: "debt_tranche", field_label: "Tranche", field_type: "dropdown", column_position: "left", display_order: 6, is_visible: true, is_locked: false },
-    { id: "f-ld-7", module: "loan_details", field_key: "deal_programs", field_label: "Programs", field_type: "text", column_position: "right", display_order: 7, is_visible: true, is_locked: false },
+    { id: "f-ld-0", module: "loan_details", field_key: "loan_number", field_label: "Loan Number", field_type: "text", column_position: "left", display_order: 0, is_visible: true, is_locked: true, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-1", module: "loan_details", field_key: "type", field_label: "Type", field_type: "dropdown", column_position: "right", display_order: 1, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-2", module: "loan_details", field_key: "purpose", field_label: "Purpose", field_type: "dropdown", column_position: "left", display_order: 2, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-3", module: "loan_details", field_key: "funding_channel", field_label: "Channel", field_type: "dropdown", column_position: "right", display_order: 3, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-4", module: "loan_details", field_key: "strategy", field_label: "Strategy", field_type: "dropdown", column_position: "left", display_order: 4, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-5", module: "loan_details", field_key: "financing", field_label: "Financing", field_type: "dropdown", column_position: "right", display_order: 5, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-6", module: "loan_details", field_key: "debt_tranche", field_label: "Tranche", field_type: "dropdown", column_position: "left", display_order: 6, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-ld-7", module: "loan_details", field_key: "deal_programs", field_label: "Programs", field_type: "text", column_position: "right", display_order: 7, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
   ],
   property: [
-    { id: "f-p-0", module: "property", field_key: "property_address_line1", field_label: "Address", field_type: "text", column_position: "left", display_order: 0, is_visible: true, is_locked: false },
-    { id: "f-p-1", module: "property", field_key: "property_city", field_label: "City", field_type: "text", column_position: "right", display_order: 1, is_visible: true, is_locked: false },
-    { id: "f-p-2", module: "property", field_key: "property_state", field_label: "State", field_type: "text", column_position: "left", display_order: 2, is_visible: true, is_locked: false },
-    { id: "f-p-3", module: "property", field_key: "property_zip", field_label: "Zip", field_type: "text", column_position: "right", display_order: 3, is_visible: true, is_locked: false },
-    { id: "f-p-4", module: "property", field_key: "property_type", field_label: "Property Type", field_type: "dropdown", column_position: "left", display_order: 4, is_visible: true, is_locked: false },
-    { id: "f-p-5", module: "property", field_key: "property_units", field_label: "Units", field_type: "number", column_position: "right", display_order: 5, is_visible: true, is_locked: false },
-    { id: "f-p-6", module: "property", field_key: "_property_year_built", field_label: "Year Built", field_type: "number", column_position: "left", display_order: 6, is_visible: true, is_locked: false },
-    { id: "f-p-7", module: "property", field_key: "_property_sqft", field_label: "Sq Ft", field_type: "number", column_position: "right", display_order: 7, is_visible: true, is_locked: false },
-    { id: "f-p-8", module: "property", field_key: "appraised_value", field_label: "Appraised Value", field_type: "currency", column_position: "left", display_order: 8, is_visible: true, is_locked: true },
-    { id: "f-p-9", module: "property", field_key: "purchase_price", field_label: "Purchase Price", field_type: "currency", column_position: "right", display_order: 9, is_visible: true, is_locked: false },
+    { id: "f-p-0", module: "property", field_key: "property_address_line1", field_label: "Address", field_type: "text", column_position: "left", display_order: 0, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-1", module: "property", field_key: "property_city", field_label: "City", field_type: "text", column_position: "right", display_order: 1, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-2", module: "property", field_key: "property_state", field_label: "State", field_type: "text", column_position: "left", display_order: 2, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-3", module: "property", field_key: "property_zip", field_label: "Zip", field_type: "text", column_position: "right", display_order: 3, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-4", module: "property", field_key: "property_type", field_label: "Property Type", field_type: "dropdown", column_position: "left", display_order: 4, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-5", module: "property", field_key: "property_units", field_label: "Units", field_type: "number", column_position: "right", display_order: 5, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-6", module: "property", field_key: "_property_year_built", field_label: "Year Built", field_type: "number", column_position: "left", display_order: 6, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-7", module: "property", field_key: "_property_sqft", field_label: "Sq Ft", field_type: "number", column_position: "right", display_order: 7, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-8", module: "property", field_key: "appraised_value", field_label: "Appraised Value", field_type: "currency", column_position: "left", display_order: 8, is_visible: true, is_locked: true, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-p-9", module: "property", field_key: "purchase_price", field_label: "Purchase Price", field_type: "currency", column_position: "right", display_order: 9, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
   ],
   borrower_entity: [
-    { id: "f-be-0", module: "borrower_entity", field_key: "entity_name", field_label: "Entity Name", field_type: "text", column_position: "left", display_order: 0, is_visible: true, is_locked: false },
-    { id: "f-be-1", module: "borrower_entity", field_key: "entity_type", field_label: "Entity Type", field_type: "dropdown", column_position: "right", display_order: 1, is_visible: true, is_locked: false },
-    { id: "f-be-2", module: "borrower_entity", field_key: "first_name", field_label: "Guarantor", field_type: "text", column_position: "left", display_order: 2, is_visible: true, is_locked: true },
-    { id: "f-be-3", module: "borrower_entity", field_key: "credit_score", field_label: "FICO", field_type: "number", column_position: "right", display_order: 3, is_visible: true, is_locked: false },
-    { id: "f-be-4", module: "borrower_entity", field_key: "verified_liquidity", field_label: "Liquidity", field_type: "currency", column_position: "left", display_order: 4, is_visible: true, is_locked: false },
-    { id: "f-be-5", module: "borrower_entity", field_key: "experience_count", field_label: "Experience", field_type: "number", column_position: "right", display_order: 5, is_visible: true, is_locked: false },
+    { id: "f-be-0", module: "borrower_entity", field_key: "entity_name", field_label: "Entity Name", field_type: "text", column_position: "left", display_order: 0, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-be-1", module: "borrower_entity", field_key: "entity_type", field_label: "Entity Type", field_type: "dropdown", column_position: "right", display_order: 1, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-be-2", module: "borrower_entity", field_key: "first_name", field_label: "Guarantor", field_type: "text", column_position: "left", display_order: 2, is_visible: true, is_locked: true, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-be-3", module: "borrower_entity", field_key: "credit_score", field_label: "FICO", field_type: "number", column_position: "right", display_order: 3, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-be-4", module: "borrower_entity", field_key: "verified_liquidity", field_label: "Liquidity", field_type: "currency", column_position: "left", display_order: 4, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
+    { id: "f-be-5", module: "borrower_entity", field_key: "experience_count", field_label: "Experience", field_type: "number", column_position: "right", display_order: 5, is_visible: true, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false },
   ],
 };
 
@@ -75,6 +78,9 @@ function mapRow(row: FieldConfig): FieldConfigEntry {
     display_order: row.display_order,
     is_visible: row.is_visible,
     is_locked: row.is_locked,
+    is_admin_created: row.is_admin_created ?? false,
+    dropdown_options: Array.isArray(row.dropdown_options) ? (row.dropdown_options as string[]) : null,
+    is_archived: row.is_archived ?? false,
   };
 }
 
@@ -123,7 +129,7 @@ export function useFieldConfigurations(module: string) {
     fetchConfig();
   }, [fetchConfig]);
 
-  const visibleFields = allFields.filter((f) => f.is_visible);
+  const visibleFields = allFields.filter((f) => f.is_visible && !f.is_archived);
   const leftFields = visibleFields
     .filter((f) => f.column_position === "left")
     .sort((a, b) => a.display_order - b.display_order);
