@@ -24,6 +24,7 @@ import {
   MessageSquare,
   Columns3,
   FlaskConical,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useViewAs } from "@/contexts/view-as-context";
@@ -353,6 +354,21 @@ export function Sidebar({
           >
             <BookOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.5} />
             {!collapsed && <span>Knowledge Base</span>}
+          </Link>
+        )}
+        {showControlCenter && (
+          <Link
+            href="/admin/field-manager"
+            className={cn(
+              "flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] transition-colors",
+              pathname.startsWith("/admin/field-manager")
+                ? "bg-sidebar-active text-sidebar-foreground font-semibold"
+                : "text-sidebar-foreground/60 hover:bg-sidebar-hover hover:text-sidebar-foreground font-medium"
+            )}
+            title={collapsed ? "Field Manager" : undefined}
+          >
+            <SlidersHorizontal className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.5} />
+            {!collapsed && <span>Field Manager</span>}
           </Link>
         )}
         {showControlCenter && (
