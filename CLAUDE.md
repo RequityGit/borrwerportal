@@ -157,3 +157,54 @@ If `gh` is not authenticated, provide: `https://github.com/RequityGit/borrwerpor
 - No KPI cards on content pages (data tables, kanban boards)
 - Standard: PageHeader → Toolbar → Data view (visible without scrolling at 900px)
 - KPI cards belong on Dashboard only
+
+## Code Quality & Reliability (MANDATORY)
+
+Every feature, fix, or refactor MUST follow these rules. No exceptions.
+
+### Testing Requirements
+- **Every form submission** must have a test that verifies: fields render, required validation fires, submit calls the correct Supabase RPC/mutation with the correct payload, and success/error states display properly.
+- **Every button that triggers a mutation** (insert, update, delete, RPC call) must have a test confirming it fires correctly and handles errors gracefully.
+- **Every new page or route** must have a basic smoke test: renders without crashing, required data loads, role-based access is enforced.
+- Use **Vitest** for unit/integration tests. Use **Playwright** for E2E flows if the feature involves multi-step user interaction.
+- Test files live next to the component: `ComponentName.test.tsx` in the same directory.
+
+### Validation & Type Safety
+- **All form inputs** must be validated with **Zod schemas** before submission. Never trust raw form data.
+- Zod schemas must match the corresponding Supabase table types. If a column is `text NOT NULL`, the Zod field is `z.string().min(1)` — not `.optional()`.
+- **Never use `any` type.** If you don't know the type, look it up via MCP (`list_tables`, `execute_sql`) or reference the generated Supabase types.
+- When adding or modifying a form field, verify the field name matches the exact column name in Supabase. Mismatches between form fields and DB columns are the #1 source of portal bugs.
+
+### Error Handling
+- Every Supabase call must have explicit error handling: `const { data, error } = await supabase...` followed by an `if (error)` block.
+- Never silently swallow errors. At minimum: log to console, show a toast/alert to the user, and if Sentry is configured, let it capture the error.
+- API/edge function calls must have try/catch with meaningful error messages — not generic "Something went wrong."
+
+### Pre-Commit Checklist (Before Every PR)
+1. `npm run build` passes with zero errors and zero warnings.
+2. `npm run lint` passes clean.
+3. All new/modified mutations have corresponding tests.
+4. All forms validate inputs with Zod before submission.
+5. No hardcoded values that should come from the database or env vars.
+6. No `console.log` left in production code (use Sentry or structured logging).
+7. Test the feature manually in the browser — click every button, submit every form, check every state (empty, loading, error, success).
+
+### When Modifying Existing Features
+- **Read the existing tests first** before changing anything. If tests exist, update them to match the new behavior.
+- **If no tests exist for the feature you're modifying, write them first** (covering current behavior), then make your changes. This prevents regressions.
+- Run the full test suite after changes. If anything breaks, fix it before proceeding.
+
+### Database Changes
+- Every schema change (new table, new column, altered type) must be done via a **Supabase migration** through MCP — never raw SQL in the dashboard.
+- After any schema change, regenerate TypeScript types immediately: `npx supabase gen types typescript --project-id edhlkknvlczhbowasjna > src/types/supabase.ts`
+- Update any affected Zod schemas to match the new types.
+- If you add a new table, add RLS policies. No table ships without RLS.
+
+### Forbidden Patterns
+- ❌ `as any` — find the real type
+- ❌ Optional chaining as a band-aid (`data?.something?.nested?.value`) when the data should be guaranteed — fix the data flow instead
+- ❌ Submitting forms without validation
+- ❌ Mutations without error handling
+- ❌ New tables without RLS policies
+- ❌ Pushing code that doesn't build
+- ❌ Skipping tests because "it's a small change"
