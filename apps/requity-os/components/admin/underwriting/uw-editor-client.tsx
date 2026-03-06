@@ -16,6 +16,8 @@ import {
   Eye,
   Lock,
   FlaskConical,
+  HardHat,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +93,8 @@ const MODEL_ICONS: Record<UWModelType, typeof Building2> = {
   commercial: Building2,
   rtl: Home,
   dscr: TrendingUp,
+  guc: HardHat,
+  equity: Landmark,
 };
 
 export function UWEditorClient({
