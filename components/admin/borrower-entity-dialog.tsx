@@ -27,7 +27,9 @@ import {
 } from "@/app/(authenticated)/admin/borrowers/new/actions";
 import { Loader2 } from "lucide-react";
 import { US_STATES, ENTITY_TYPES } from "@/lib/constants";
-import type { BorrowerEntity } from "@/lib/supabase/types";
+import type { Tables } from "@/lib/supabase/types";
+
+type BorrowerEntity = Tables<"borrower_entities">;
 
 interface BorrowerEntityDialogProps {
   borrowerId: string;
