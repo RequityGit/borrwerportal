@@ -8,6 +8,9 @@ on:
     - cron: "0 */6 * * *"
   workflow_dispatch:
 
+permissions:
+  issues: write
+
 env:
   BASE_URL: ${{ secrets.E2E_BASE_URL }}
   BORROWER_EMAIL: ${{ secrets.E2E_BORROWER_EMAIL }}
