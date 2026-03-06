@@ -15,6 +15,7 @@ import { CommentsTab } from "./tabs/CommentsTab";
 import { UnderwritingTab } from "./tabs/UnderwritingTab";
 import { TasksTab, type DealTask } from "./tabs/TasksTab";
 import { updateDealField, updateRelatedField } from "./update-deal-action";
+import { advanceStage, advanceOpportunityStage } from "./actions";
 import { EditableMetricCard } from "./EditableMetricCard";
 import {
   T,
@@ -79,6 +80,7 @@ export function DealDetail({
 }: DealDetailProps) {
   const [tab, setTab] = useState(getDefaultTab(initialDeal.stage));
   const [deal, setDeal] = useState<DealData>(initialDeal);
+  const [updatingStage, setUpdatingStage] = useState(false);
   const router = useRouter();
 
   const handleSave = useCallback(
@@ -121,6 +123,27 @@ export function DealDetail({
       return true;
     },
     [isOpportunity, router]
+  );
+
+  const handleStageClick = useCallback(
+    async (toStage: string) => {
+      if (updatingStage || toStage === deal.stage) return;
+      setUpdatingStage(true);
+      try {
+        const result = isOpportunity
+          ? await advanceOpportunityStage(deal.id, deal.stage, toStage, currentUserId, currentUserName)
+          : await advanceStage(deal.id, deal.stage, toStage, currentUserId, currentUserName);
+        if (result.error) {
+          console.error("Stage change error:", result.error);
+        } else {
+          setDeal((prev) => ({ ...prev, stage: toStage }));
+          router.refresh();
+        }
+      } finally {
+        setUpdatingStage(false);
+      }
+    },
+    [deal.id, deal.stage, isOpportunity, currentUserId, currentUserName, updatingStage, router]
   );
 
   const onSave = handleSave;
@@ -234,7 +257,7 @@ export function DealDetail({
 
         {/* Stage Tracker */}
         <div className="mt-5">
-          <Stepper deal={deal} stages={pipelineStages} />
+          <Stepper deal={deal} stages={pipelineStages} onStageClick={handleStageClick} updatingStage={updatingStage} />
         </div>
 
         {/* Loan Metrics - Editable */}

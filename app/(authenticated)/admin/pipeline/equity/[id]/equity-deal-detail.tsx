@@ -146,6 +146,7 @@ export function EquityDealDetail({
 
   // Stage advancement
   const [advancing, setAdvancing] = useState(false);
+  const [updatingStage, setUpdatingStage] = useState(false);
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
   const [lossReason, setLossReason] = useState("");
   const [markingLost, setMarkingLost] = useState(false);
@@ -239,6 +240,27 @@ export function EquityDealDetail({
       setAdvancing(false);
     }
   }, [deal.id, deal.stage, nextStage, advancing, currentUserId, router]);
+
+  const handleStageClick = useCallback(async (toStageKey: string) => {
+    if (updatingStage || toStageKey === deal.stage) return;
+    setUpdatingStage(true);
+    try {
+      const result = await advanceEquityStage(
+        deal.id,
+        deal.stage,
+        toStageKey,
+        currentUserId
+      );
+      if (result.error) {
+        console.error("Stage change error:", result.error);
+      } else {
+        setDeal((prev: any) => ({ ...prev, stage: toStageKey }));
+        router.refresh();
+      }
+    } finally {
+      setUpdatingStage(false);
+    }
+  }, [deal.id, deal.stage, updatingStage, currentUserId, router]);
 
   const handleMarkLost = useCallback(async () => {
     if (!lossReason || markingLost) return;
@@ -392,26 +414,44 @@ export function EquityDealDetail({
                 {EQUITY_STAGES.map((s, i) => {
                   const isPast = currentStageIdx >= 0 && i < currentStageIdx;
                   const isCurrent = i === currentStageIdx;
+                  const isClickable = !isCurrent && !updatingStage;
 
                   return (
                     <div key={s.key} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center">
+                      <div
+                        className={cn(
+                          "flex flex-col items-center",
+                          isClickable && "cursor-pointer"
+                        )}
+                        onClick={isClickable ? () => handleStageClick(s.key) : undefined}
+                        role={isClickable ? "button" : undefined}
+                        tabIndex={isClickable ? 0 : undefined}
+                        onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") handleStageClick(s.key); } : undefined}
+                      >
                         <div
                           className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-colors",
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-all",
                             isPast && "bg-green-600 border-green-600 text-white",
                             isCurrent && "bg-primary border-primary text-primary-foreground",
-                            !isPast && !isCurrent && "bg-background border-border text-muted-foreground"
+                            !isPast && !isCurrent && "bg-background border-border text-muted-foreground",
+                            isClickable && "hover:scale-110"
                           )}
                         >
-                          {isPast ? <Check className="h-4 w-4" /> : i + 1}
+                          {isCurrent && updatingStage ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isPast ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            i + 1
+                          )}
                         </div>
                         <span
                           className={cn(
                             "text-[10px] mt-1.5 text-center leading-tight max-w-[120px]",
                             isCurrent
                               ? "font-semibold text-foreground"
-                              : "text-muted-foreground"
+                              : "text-muted-foreground",
+                            isClickable && "hover:text-foreground"
                           )}
                         >
                           {s.label}
@@ -436,18 +476,35 @@ export function EquityDealDetail({
                 {EQUITY_STAGES.map((s, i) => {
                   const isPast = currentStageIdx >= 0 && i < currentStageIdx;
                   const isCurrent = i === currentStageIdx;
+                  const isClickable = !isCurrent && !updatingStage;
                   return (
                     <div key={s.key}>
-                      <div className="flex items-center gap-3 py-1.5">
+                      <div
+                        className={cn(
+                          "flex items-center gap-3 py-1.5",
+                          isClickable && "cursor-pointer"
+                        )}
+                        onClick={isClickable ? () => handleStageClick(s.key) : undefined}
+                        role={isClickable ? "button" : undefined}
+                        tabIndex={isClickable ? 0 : undefined}
+                        onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") handleStageClick(s.key); } : undefined}
+                      >
                         <div
                           className={cn(
-                            "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium border-2 transition-colors flex-shrink-0",
+                            "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium border-2 transition-all flex-shrink-0",
                             isPast && "bg-green-600 border-green-600 text-white",
                             isCurrent && "bg-primary border-primary text-primary-foreground",
-                            !isPast && !isCurrent && "bg-background border-border text-muted-foreground"
+                            !isPast && !isCurrent && "bg-background border-border text-muted-foreground",
+                            isClickable && "hover:scale-110"
                           )}
                         >
-                          {isPast ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                          {isCurrent && updatingStage ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : isPast ? (
+                            <Check className="h-3.5 w-3.5" />
+                          ) : (
+                            i + 1
+                          )}
                         </div>
                         <span
                           className={cn(

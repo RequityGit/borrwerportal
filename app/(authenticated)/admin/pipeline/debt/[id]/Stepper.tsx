@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import {
   T,
   TERMINAL_DEAL_STAGES,
@@ -13,9 +13,11 @@ import {
 interface StepperProps {
   deal: DealData;
   stages: PipelineStage[];
+  onStageClick?: (stageKey: string) => void;
+  updatingStage?: boolean;
 }
 
-export function Stepper({ deal, stages }: StepperProps) {
+export function Stepper({ deal, stages, onStageClick, updatingStage }: StepperProps) {
   // Terminal stages => show as a single pill badge
   if (
     TERMINAL_DEAL_STAGES.includes(
@@ -58,6 +60,7 @@ export function Stepper({ deal, stages }: StepperProps) {
           const isComplete = i < ci;
           const isCurrent = i === ci;
           const isUpcoming = i > ci;
+          const isClickable = !!onStageClick && !isCurrent && !updatingStage;
           const dotColor = isComplete
             ? T.accent.green
             : isCurrent
@@ -66,10 +69,16 @@ export function Stepper({ deal, stages }: StepperProps) {
 
           return (
             <div key={stg.stage_key} className="flex flex-1 items-center">
-              <div className="flex flex-col items-center gap-1.5 min-w-0">
+              <div
+                className={`flex flex-col items-center gap-1.5 min-w-0${isClickable ? " cursor-pointer" : ""}`}
+                onClick={isClickable ? () => onStageClick(stg.stage_key) : undefined}
+                role={isClickable ? "button" : undefined}
+                tabIndex={isClickable ? 0 : undefined}
+                onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") onStageClick(stg.stage_key); } : undefined}
+              >
                 {/* Circle */}
                 <div
-                  className="flex items-center justify-center rounded-full transition-all duration-200"
+                  className={`flex items-center justify-center rounded-full transition-all duration-200${isClickable ? " hover:scale-110" : ""}`}
                   style={{
                     width: isCurrent ? 28 : 20,
                     height: isCurrent ? 28 : 20,
@@ -82,8 +91,11 @@ export function Stepper({ deal, stages }: StepperProps) {
                     boxShadow: isCurrent ? `0 0 0 4px ${stg.color}18` : "none",
                   }}
                 >
-                  {isComplete && <Check size={12} color="#fff" strokeWidth={2.5} />}
-                  {isCurrent && (
+                  {isCurrent && updatingStage ? (
+                    <Loader2 size={12} className="animate-spin" style={{ color: stg.color }} />
+                  ) : isComplete ? (
+                    <Check size={12} color="#fff" strokeWidth={2.5} />
+                  ) : isCurrent ? (
                     <div
                       className="rounded-full"
                       style={{
@@ -92,11 +104,11 @@ export function Stepper({ deal, stages }: StepperProps) {
                         backgroundColor: stg.color,
                       }}
                     />
-                  )}
+                  ) : null}
                 </div>
                 {/* Label */}
                 <span
-                  className="text-[11px] text-center whitespace-nowrap"
+                  className={`text-[11px] text-center whitespace-nowrap${isClickable ? " hover:text-white" : ""}`}
                   style={{
                     fontWeight: isCurrent ? 600 : 400,
                     color: isUpcoming
