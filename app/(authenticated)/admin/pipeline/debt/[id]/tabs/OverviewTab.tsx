@@ -167,9 +167,9 @@ function interleaveFields(
   const maxLen = Math.max(leftFields.length, rightFields.length);
   for (let i = 0; i < maxLen; i++) {
     if (i < leftFields.length) result.push(leftFields[i]);
-    else result.push({ id: `empty-left-${i}`, module: "", field_key: `__empty_left_${i}`, field_label: "", field_type: "", column_position: "left", display_order: i, is_visible: false, is_locked: false });
+    else result.push({ id: `empty-left-${i}`, module: "", field_key: `__empty_left_${i}`, field_label: "", field_type: "", column_position: "left", display_order: i, is_visible: false, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false });
     if (i < rightFields.length) result.push(rightFields[i]);
-    else result.push({ id: `empty-right-${i}`, module: "", field_key: `__empty_right_${i}`, field_label: "", field_type: "", column_position: "right", display_order: i, is_visible: false, is_locked: false });
+    else result.push({ id: `empty-right-${i}`, module: "", field_key: `__empty_right_${i}`, field_label: "", field_type: "", column_position: "right", display_order: i, is_visible: false, is_locked: false, is_admin_created: false, dropdown_options: null, is_archived: false });
   }
   return result;
 }
