@@ -35,8 +35,8 @@ import type {
   BorrowerData,
   InvestorProfileData,
   EntityData,
-  TaskData,
 } from "./types";
+import type { OpsTask, Profile } from "@/lib/tasks";
 
 interface ContactDetailClientProps {
   contact: ContactData;
@@ -46,11 +46,12 @@ interface ContactDetailClientProps {
   loans: LoanData[];
   investorCommitments: InvestorCommitmentData[];
   teamMembers: TeamMember[];
+  profiles: Profile[];
   company: CompanyData | null;
   borrower: BorrowerData | null;
   investor: InvestorProfileData | null;
   entities: EntityData[];
-  tasks: TaskData[];
+  tasks: OpsTask[];
   currentUserId: string;
   currentUserName: string;
   assignedToName: string | null;
@@ -66,6 +67,7 @@ export function ContactDetailClient({
   loans,
   investorCommitments,
   teamMembers,
+  profiles,
   company,
   borrower,
   investor,
@@ -85,7 +87,7 @@ export function ContactDetailClient({
     "Unnamed Contact";
 
   const openTasks = useMemo(
-    () => tasks.filter((t) => t.status !== "completed"),
+    () => tasks.filter((t) => t.status !== "Complete"),
     [tasks]
   );
 
@@ -253,6 +255,16 @@ export function ContactDetailClient({
 
             <TabsContent value="entities" className="mt-4">
               <DetailEntitiesTab entities={entities} />
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-4">
+              <DetailTasksTab
+                tasks={tasks}
+                contactId={contact.id}
+                contactName={fullName}
+                profiles={profiles}
+                currentUserId={currentUserId}
+              />
             </TabsContent>
 
             <TabsContent value="emails" className="mt-4">
