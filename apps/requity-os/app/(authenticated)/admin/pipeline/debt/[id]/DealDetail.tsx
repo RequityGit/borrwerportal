@@ -212,7 +212,7 @@ export function DealDetail({
         if (isCommercial && commercialUW) {
           return <CommercialOverviewTab data={commercialUW} dealId={deal.id} currentUserId={currentUserId} propertyFinancials={propertyFinancials} propertyId={propertyId ?? null} />;
         }
-        return <OverviewTab deal={deal} onSave={onSave} onSaveRelated={onSaveRelated} />;
+        return <OverviewTab deal={deal} onSave={onSave} onSaveRelated={onSaveRelated} propertyFinancials={propertyFinancials} propertyId={propertyId ?? null} currentUserId={currentUserId} />;
       case "underwriting":
         if (isCommercial && commercialUW) {
           return <CommercialUnderwritingTab data={commercialUW} />;

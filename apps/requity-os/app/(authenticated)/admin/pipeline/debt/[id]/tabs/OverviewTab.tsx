@@ -6,6 +6,9 @@ import {
   Building2,
   Shield,
   Pencil,
+  Upload,
+  ChevronDown,
+  Clock,
 } from "lucide-react";
 import {
   SectionCard,
@@ -28,6 +31,30 @@ import {
 import { PROPERTY_TYPE_OPTIONS } from "@/lib/constants";
 import { useFieldConfigurations, type FieldConfigEntry } from "@/hooks/useFieldConfigurations";
 import { DynamicField } from "@/components/shared/DynamicField";
+import { UploadPropertyRentRollDialog } from "@/components/admin/property-financials/upload-property-rent-roll-dialog";
+import { UploadPropertyT12Dialog } from "@/components/admin/property-financials/upload-property-t12-dialog";
+import {
+  PropertyFinancialVersions,
+  type RentRollVersion,
+  type T12Version,
+} from "@/components/admin/property-financials/property-financial-versions";
+import {
+  setCurrentRentRoll,
+  setCurrentT12,
+  deletePropertyRentRoll,
+  deletePropertyT12,
+} from "../property-financial-actions";
+
+interface PropertyFinancialsData {
+  rentRolls: RentRollVersion[];
+  currentRentRoll: RentRollVersion | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentRentRollUnits: any[];
+  t12s: T12Version[];
+  currentT12: T12Version | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentT12LineItems: any[];
+}
 
 interface OverviewTabProps {
   deal: DealData;
@@ -38,6 +65,9 @@ interface OverviewTabProps {
     field: string,
     value: string | number | null
   ) => Promise<boolean>;
+  propertyFinancials?: PropertyFinancialsData | null;
+  propertyId?: string | null;
+  currentUserId?: string;
 }
 
 // Helper to convert const arrays to SelectOption[]
@@ -213,13 +243,19 @@ function ReadOnlyConfiguredSection({
   );
 }
 
-export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
+export function OverviewTab({ deal, onSave, onSaveRelated, propertyFinancials, propertyId, currentUserId }: OverviewTabProps) {
   const d = deal;
   const isEditable = Boolean(onSave);
 
   const [editLoanOpen, setEditLoanOpen] = useState(false);
   const [editPropertyOpen, setEditPropertyOpen] = useState(false);
   const [editBorrowerOpen, setEditBorrowerOpen] = useState(false);
+  const [uploadRROpen, setUploadRROpen] = useState(false);
+  const [uploadT12Open, setUploadT12Open] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+
+  const pf = propertyFinancials;
+  const hasPropertyFinancials = pf && (pf.rentRolls.length > 0 || pf.t12s.length > 0);
 
   const loanDisplayMap = useMemo(() => buildLoanDisplayMap(d), [d]);
   const propertyDisplayMap = useMemo(() => buildPropertyDisplayMap(d), [d]);
@@ -302,6 +338,113 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
         <ReadOnlyConfiguredSection module="property" displayMap={propertyDisplayMap} deal={d} />
       </SectionCard>
 
+      {/* Property Financials — Upload Buttons + Version History */}
+      {propertyId && currentUserId && (
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ border: `1px solid ${T.bg.border}`, backgroundColor: T.bg.surface }}
+        >
+          <div className="px-5 py-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText size={16} color={T.text.muted} strokeWidth={1.5} />
+                <span className="text-sm font-semibold" style={{ color: T.text.primary }}>
+                  Property Financials
+                </span>
+                {pf?.currentRentRoll && (
+                  <span className="rounded px-1.5 py-px text-[10px] font-medium num" style={{ backgroundColor: "rgba(59,130,246,0.12)", color: T.accent.blue }}>
+                    RR: {new Date(pf.currentRentRoll.as_of_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                )}
+                {pf?.currentT12 && (
+                  <span className="rounded px-1.5 py-px text-[10px] font-medium num" style={{ backgroundColor: "rgba(34,197,94,0.12)", color: T.accent.green }}>
+                    T12: {new Date(pf.currentT12.period_start + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" })} – {new Date(pf.currentT12.period_end + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setUploadRROpen(true)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer border-0"
+                  style={{ backgroundColor: T.bg.elevated, color: T.text.secondary, border: `1px solid ${T.bg.border}` }}
+                >
+                  <Upload size={10} />
+                  Rent Roll
+                </button>
+                <button
+                  onClick={() => setUploadT12Open(true)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer border-0"
+                  style={{ backgroundColor: T.bg.elevated, color: T.text.secondary, border: `1px solid ${T.bg.border}` }}
+                >
+                  <Upload size={10} />
+                  T12
+                </button>
+              </div>
+            </div>
+
+            {/* Summary row when we have current data */}
+            {(pf?.currentRentRollUnits?.length || pf?.currentT12LineItems?.length) ? (
+              <div className="mt-3 grid grid-cols-2 gap-x-8">
+                {pf?.currentRentRollUnits && pf.currentRentRollUnits.length > 0 && (
+                  <div className="flex items-center justify-between py-1.5" style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                    <span className="text-[13px]" style={{ color: T.text.secondary }}>Rent Roll Units</span>
+                    <span className="text-[13px] font-medium num" style={{ color: T.text.primary }}>{pf.currentRentRollUnits.length}</span>
+                  </div>
+                )}
+                {pf?.currentT12LineItems && pf.currentT12LineItems.length > 0 && (
+                  <div className="flex items-center justify-between py-1.5" style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                    <span className="text-[13px]" style={{ color: T.text.secondary }}>T12 Line Items</span>
+                    <span className="text-[13px] font-medium num" style={{ color: T.text.primary }}>{pf.currentT12LineItems.length}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-2 text-[13px]" style={{ color: T.text.muted }}>
+                No rent roll or T12 uploaded yet. Use the buttons above to upload.
+              </div>
+            )}
+          </div>
+
+          {/* Version history (collapsible) */}
+          {hasPropertyFinancials && (
+            <>
+              <div
+                className="flex items-center justify-between px-5 py-2 cursor-pointer"
+                style={{ borderTop: `1px solid ${T.bg.borderSubtle}` }}
+                onClick={() => setShowVersions(!showVersions)}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Clock size={12} color={T.text.muted} strokeWidth={1.5} />
+                  <span className="text-[11px] font-medium" style={{ color: T.text.muted }}>
+                    Version History ({pf!.rentRolls.length + pf!.t12s.length})
+                  </span>
+                </div>
+                <ChevronDown
+                  size={14}
+                  color={T.text.muted}
+                  strokeWidth={1.5}
+                  style={{ transform: showVersions ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                />
+              </div>
+              {showVersions && (
+                <div className="px-5 py-3" style={{ borderTop: `1px solid ${T.bg.borderSubtle}` }}>
+                  <PropertyFinancialVersions
+                    rentRolls={pf!.rentRolls}
+                    t12s={pf!.t12s}
+                    onSetCurrentRR={setCurrentRentRoll}
+                    onSetCurrentT12={setCurrentT12}
+                    onDeleteRR={deletePropertyRentRoll}
+                    onDeleteT12={deletePropertyT12}
+                    onUploadRR={() => setUploadRROpen(true)}
+                    onUploadT12={() => setUploadT12Open(true)}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Borrower Entity */}
       <SectionCard
         title="Borrower Entity"
@@ -310,6 +453,24 @@ export function OverviewTab({ deal, onSave, onSaveRelated }: OverviewTabProps) {
       >
         <ReadOnlyConfiguredSection module="borrower_entity" displayMap={borrowerDisplayMap} deal={d} />
       </SectionCard>
+
+      {/* Upload Dialogs */}
+      {propertyId && currentUserId && (
+        <>
+          <UploadPropertyRentRollDialog
+            open={uploadRROpen}
+            onOpenChange={setUploadRROpen}
+            propertyId={propertyId}
+            userId={currentUserId}
+          />
+          <UploadPropertyT12Dialog
+            open={uploadT12Open}
+            onOpenChange={setUploadT12Open}
+            propertyId={propertyId}
+            userId={currentUserId}
+          />
+        </>
+      )}
 
       {/* Edit Dialogs */}
       {isEditable && (
