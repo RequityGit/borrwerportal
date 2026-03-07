@@ -109,16 +109,16 @@ export function ContactDetailClient({
   const tabs = useMemo(
     () => [
       { id: "overview", label: "Overview" },
-      { id: "activity", label: "Activity", count: activities.length },
-      { id: "emails", label: "Emails", count: emails.length },
+      { id: "notes", label: "Notes", count: noteActivities.length },
+      { id: "tasks", label: "Tasks", count: openTasks.length },
       {
         id: "deals",
         label: "Deals & Loans",
         count: loans.length + investorCommitments.length,
       },
       { id: "entities", label: "Entities", count: entities.length },
-      { id: "tasks", label: "Tasks", count: openTasks.length },
-      { id: "notes", label: "Notes", count: noteActivities.length },
+      { id: "emails", label: "Emails", count: emails.length },
+      { id: "activity", label: "Activity", count: activities.length },
     ],
     [
       activities.length,
@@ -230,16 +230,20 @@ export function ContactDetailClient({
               />
             </TabsContent>
 
-            <TabsContent value="activity" className="mt-4">
-              <DetailActivityTab
-                contactId={contact.id}
-                activities={activities}
-                currentUserId={currentUserId}
+            <TabsContent value="notes" className="mt-4">
+              <UnifiedNotes
+                entityType="contact"
+                entityId={contact.id}
               />
             </TabsContent>
 
-            <TabsContent value="emails" className="mt-4">
-              <DetailEmailsTab emails={emails} />
+            <TabsContent value="tasks" className="mt-4">
+              <DetailTasksTab
+                tasks={tasks}
+                contactId={contact.id}
+                contactName={fullName}
+                currentUserId={currentUserId}
+              />
             </TabsContent>
 
             <TabsContent value="deals" className="mt-4">
@@ -263,10 +267,15 @@ export function ContactDetailClient({
               />
             </TabsContent>
 
-            <TabsContent value="notes" className="mt-4">
-              <UnifiedNotes
-                entityType="contact"
-                entityId={contact.id}
+            <TabsContent value="emails" className="mt-4">
+              <DetailEmailsTab emails={emails} />
+            </TabsContent>
+
+            <TabsContent value="activity" className="mt-4">
+              <DetailActivityTab
+                contactId={contact.id}
+                activities={activities}
+                currentUserId={currentUserId}
               />
             </TabsContent>
           </Tabs>

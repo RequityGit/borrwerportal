@@ -80,11 +80,11 @@ export function CompanyDetailClient({
     () => [
       { id: "overview", label: "Overview" },
       { id: "contacts", label: "Contacts", count: counts.contacts },
-      { id: "activity", label: "Activity", count: counts.activities },
+      { id: "notes", label: "Notes", count: counts.notes },
+      { id: "tasks", label: "Tasks", count: openTasks },
       { id: "deals", label: "Deals & Quotes", count: counts.deals || undefined },
       { id: "files", label: "Files", count: counts.files },
-      { id: "tasks", label: "Tasks", count: openTasks },
-      { id: "notes", label: "Notes", count: counts.notes },
+      { id: "activity", label: "Activity", count: counts.activities },
     ],
     [counts, openTasks]
   );
@@ -181,10 +181,16 @@ export function CompanyDetailClient({
               primaryContactId={company.primary_contact_id}
             />
           )}
-          {activeTab === "activity" && (
-            <CompanyActivityTab
+          {activeTab === "notes" && (
+            <UnifiedNotes
+              entityType="company"
+              entityId={company.id}
+            />
+          )}
+          {activeTab === "tasks" && (
+            <CompanyTasksTab
+              tasks={tasks}
               companyId={company.id}
-              activities={activities}
               currentUserId={currentUserId}
             />
           )}
@@ -197,17 +203,11 @@ export function CompanyDetailClient({
               companyId={company.id}
             />
           )}
-          {activeTab === "tasks" && (
-            <CompanyTasksTab
-              tasks={tasks}
+          {activeTab === "activity" && (
+            <CompanyActivityTab
               companyId={company.id}
+              activities={activities}
               currentUserId={currentUserId}
-            />
-          )}
-          {activeTab === "notes" && (
-            <UnifiedNotes
-              entityType="company"
-              entityId={company.id}
             />
           )}
         </div>
