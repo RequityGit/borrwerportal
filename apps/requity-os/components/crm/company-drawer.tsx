@@ -4,7 +4,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CRM_COMPANY_TYPES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { X, Building2 } from "lucide-react";
+import { Building2 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
 import type { CompanyRowV2 } from "./crm-v2-page";
 
@@ -17,26 +23,21 @@ interface CompanyDrawerProps {
 
 export function CompanyDrawer({ company, onClose }: CompanyDrawerProps) {
   return (
-    <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-card border-l z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
-      {/* Header */}
-      <div className="px-6 py-5 border-b">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="h-11 w-11 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-foreground">{company.name}</div>
-              <div className="text-sm text-muted-foreground">
-                {CRM_COMPANY_TYPES.find((t) => t.value === company.company_type)?.label ?? company.company_type}
-              </div>
+    <Sheet open onOpenChange={() => onClose()}>
+      <SheetContent side="right" className="w-full sm:w-[480px] sm:max-w-[480px] p-0 flex flex-col">
+      <SheetHeader className="px-6 py-5 border-b space-y-0">
+        <div className="flex items-center gap-3.5">
+          <div className="h-11 w-11 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 flex items-center justify-center">
+            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <SheetTitle className="text-lg font-bold">{company.name}</SheetTitle>
+            <div className="text-sm text-muted-foreground">
+              {CRM_COMPANY_TYPES.find((t) => t.value === company.company_type)?.label ?? company.company_type}
             </div>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
         </div>
-      </div>
+      </SheetHeader>
 
       {/* Quick Stats */}
       <div className="flex border-b">
@@ -102,6 +103,7 @@ export function CompanyDrawer({ company, onClose }: CompanyDrawerProps) {
           </Link>
         </Button>
       </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

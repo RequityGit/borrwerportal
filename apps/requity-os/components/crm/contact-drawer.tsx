@@ -11,16 +11,21 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import {
-  X,
   Mail,
   Phone,
   Briefcase,
   Activity,
   Send,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
 import type { CrmContactRow } from "./crm-v2-page";
-import { Avatar, RelPill, StageDot, getInitials, getNameInitials } from "./crm-primitives";
+import { CrmAvatar, RelPill, StageDot, getInitials, getNameInitials } from "./crm-primitives";
 
 // ── Contact Drawer ─────────────────────────────────────────────────────
 
@@ -108,22 +113,17 @@ export function ContactDrawer({
   const tabs = ["overview", "activity", "notes"] as const;
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-card border-l z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
-      {/* Header */}
-      <div className="px-6 py-5 border-b">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3.5">
-            <Avatar text={initials} size="lg" />
-            <div>
-              <div className="text-lg font-bold text-foreground">
-                {contact.first_name} {contact.last_name}
-              </div>
-              <div className="text-sm text-muted-foreground">{contact.company_name || "—"}</div>
-            </div>
+    <Sheet open onOpenChange={() => onClose()}>
+      <SheetContent side="right" className="w-full sm:w-[480px] sm:max-w-[480px] p-0 flex flex-col">
+      <SheetHeader className="px-6 py-5 border-b space-y-0">
+        <div className="flex items-center gap-3.5">
+          <CrmAvatar text={initials} size="lg" />
+          <div>
+            <SheetTitle className="text-lg font-bold">
+              {contact.first_name} {contact.last_name}
+            </SheetTitle>
+            <div className="text-sm text-muted-foreground">{contact.company_name || "—"}</div>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">
           {contact.relationships.map((r) => (
@@ -142,7 +142,7 @@ export function ContactDrawer({
             <ClickToCallNumber number={contact.phone} className="text-sm" />
           )}
         </div>
-      </div>
+      </SheetHeader>
 
       {/* Quick Stats */}
       <div className="flex border-b">
@@ -196,7 +196,7 @@ export function ContactDrawer({
               <div className="flex items-center justify-between py-2.5 border-b">
                 <span className="text-sm text-muted-foreground">Assigned To</span>
                 <div className="flex items-center gap-2">
-                  <Avatar text={contact.assigned_to_initials ?? getNameInitials(contact.assigned_to_name)} size="sm" />
+                  <CrmAvatar text={contact.assigned_to_initials ?? getNameInitials(contact.assigned_to_name)} size="sm" />
                   <span className="text-sm font-medium text-foreground">{contact.assigned_to_name}</span>
                 </div>
               </div>
@@ -336,6 +336,7 @@ export function ContactDrawer({
           </Link>
         </Button>
       </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

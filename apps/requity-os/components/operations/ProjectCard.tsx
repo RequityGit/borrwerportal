@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, MessageCircle, MoreHorizontal, Pause, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -14,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   PriorityBadge,
-  StatusBadge,
+  OpsStatusBadge,
   OwnerBadge,
   DueDateLabel,
   RecurringBadge,
@@ -125,7 +126,7 @@ export function ProjectCard({ project, tasks, onToggleTask, onStopRecurrence, on
                   {project.project_name}
                 </h3>
                 <PriorityBadge priority={project.priority} />
-                <StatusBadge status={project.status} />
+                <OpsStatusBadge status={project.status} />
               </div>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <OwnerBadge name={project.owner} />
@@ -139,12 +140,7 @@ export function ProjectCard({ project, tasks, onToggleTask, onStopRecurrence, on
               {/* Task progress bar */}
               {totalCount > 0 && (
                 <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-teal-500 rounded-full transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
+                  <Progress value={progress} className="flex-1 h-1.5 bg-muted [&>div]:bg-teal-500" />
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {completedCount}/{totalCount} tasks
                   </span>

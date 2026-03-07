@@ -26,7 +26,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import { Avatar, RelPill, StageDot } from "./crm-primitives";
+import { CrmAvatar, RelPill, StageDot } from "./crm-primitives";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
 import type { CrmContactRow } from "./crm-v2-page";
 
@@ -326,7 +326,7 @@ export function ContactsView({
                       <td className="px-4 py-3">
                         {c.assigned_to_name ? (
                           <div className="flex items-center gap-1.5">
-                            <Avatar text={c.assigned_to_initials ?? c.assigned_to_name.split(" ").map((p: string) => p[0]).join("").toUpperCase()} size="sm" />
+                            <CrmAvatar text={c.assigned_to_initials ?? c.assigned_to_name.split(" ").map((p: string) => p[0]).join("").toUpperCase()} size="sm" />
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {c.assigned_to_name.split(" ")[0]}
                             </span>

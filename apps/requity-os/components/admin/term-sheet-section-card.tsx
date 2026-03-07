@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   ChevronDown,
   ChevronRight,
   Eye,
@@ -73,6 +78,7 @@ export function TermSheetSectionCard({
   const totalFieldCount = section.fields.length;
 
   return (
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
     <div
       className={cn(
         "rounded-lg border transition-all",
@@ -128,32 +134,34 @@ export function TermSheetSectionCard({
         </button>
 
         {/* Expand / collapse toggle */}
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label={expanded ? "Collapse" : "Expand"}
-        >
-          {expanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label={expanded ? "Collapse" : "Expand"}
+          >
+            {expanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </CollapsibleTrigger>
 
         {/* Section label + description */}
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="flex-1 text-left min-w-0"
-        >
-          <span className="text-sm font-semibold text-foreground block truncate">
-            {section.label}
-          </span>
-          <span className="text-xs text-muted-foreground block truncate">
-            {section.description}
-          </span>
-        </button>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex-1 text-left min-w-0"
+          >
+            <span className="text-sm font-semibold text-foreground block truncate">
+              {section.label}
+            </span>
+            <span className="text-xs text-muted-foreground block truncate">
+              {section.description}
+            </span>
+          </button>
+        </CollapsibleTrigger>
 
         {/* Field counter badge */}
         {totalFieldCount > 0 && (
@@ -185,7 +193,7 @@ export function TermSheetSectionCard({
       {/* ----------------------------------------------------------------- */}
       {/* Expanded content — field list + preview                           */}
       {/* ----------------------------------------------------------------- */}
-      {expanded && (
+      <CollapsibleContent>
         <div className="border-t border-border">
           {/* Field list */}
           {section.fields.length > 0 && (
@@ -322,7 +330,8 @@ export function TermSheetSectionCard({
             </div>
           )}
         </div>
-      )}
+      </CollapsibleContent>
     </div>
+    </Collapsible>
   );
 }

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DocumentDownload } from "@/components/borrower/document-download";
 import {
@@ -299,12 +300,7 @@ function ProgressCard({
           {completed}/{total} ({pct}%)
         </span>
       </div>
-      <div className="w-full bg-muted rounded-full h-2">
-        <div
-          className="bg-green-600 dark:bg-green-500 h-2 rounded-full transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <Progress value={pct} className="h-2 bg-muted [&>div]:bg-green-600 dark:[&>div]:bg-green-500" />
     </div>
   );
 }

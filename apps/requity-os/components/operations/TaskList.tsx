@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   PriorityBadge,
-  StatusBadge,
+  OpsStatusBadge,
   RecurringBadge,
   DueDateLabel,
 } from "./badges";
@@ -94,7 +94,7 @@ export function TaskList({ tasks, projectNames, onToggleTask, onStopRecurrence, 
                   <PriorityBadge priority={task.priority} />
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={task.status} />
+                  <OpsStatusBadge status={task.status} />
                 </TableCell>
                 <TableCell>
                   {task.is_recurring ? (

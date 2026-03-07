@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   PriorityBadge,
-  StatusBadge,
+  OpsStatusBadge,
   RecurringBadge,
   DueDateLabel,
 } from "./badges";
@@ -48,7 +48,7 @@ export function TaskDetailDrawer({
         {/* Task metadata */}
         <div className="space-y-3 pb-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <StatusBadge status={task.status} />
+            <OpsStatusBadge status={task.status} />
             <PriorityBadge priority={task.priority} />
             {task.is_recurring && (
               <RecurringBadge

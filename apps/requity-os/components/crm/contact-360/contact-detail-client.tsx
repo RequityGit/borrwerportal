@@ -3,7 +3,15 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ContactDetailHeader } from "./contact-detail-header";
@@ -160,14 +168,19 @@ export function ContactDetailClient({
         >
           <ArrowLeft size={16} strokeWidth={1.5} />
         </Link>
-        <Link
-          href="/admin/crm"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Contacts
-        </Link>
-        <ChevronRight size={12} className="text-muted-foreground/50" />
-        <span className="text-xs text-foreground font-medium">{fullName}</span>
+        <Breadcrumb className="text-xs">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/admin/crm">Contacts</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium">{fullName}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
       <div className="flex max-w-[1400px] mx-auto">

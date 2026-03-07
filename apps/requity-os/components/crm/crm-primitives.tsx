@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 import { CRM_RELATIONSHIP_TYPES, CRM_LIFECYCLE_STAGES } from "@/lib/constants";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 // ── Color Maps ───────────────────────────────────────────────────────────
 
@@ -23,22 +25,19 @@ export const STAGE_COLORS: Record<string, { bg: string; text: string; dot: strin
 
 // ── Primitives ───────────────────────────────────────────────────────────
 
-export function Avatar({ text, size = "sm" }: { text: string; size?: "sm" | "md" | "lg" }) {
-  const sizeClasses = {
-    sm: "h-6 w-6 text-[9px]",
-    md: "h-8 w-8 text-[11px]",
-    lg: "h-11 w-11 text-sm",
-  };
+const crmAvatarSizes = {
+  sm: "h-6 w-6 text-[9px]",
+  md: "h-8 w-8 text-[11px]",
+  lg: "h-11 w-11 text-sm",
+};
+
+export function CrmAvatar({ text, size = "sm" }: { text: string; size?: "sm" | "md" | "lg" }) {
   return (
-    <div
-      className={cn(
-        "rounded-lg flex items-center justify-center font-semibold shrink-0",
-        "bg-foreground/5 border border-foreground/10 text-foreground",
-        sizeClasses[size]
-      )}
-    >
-      {text}
-    </div>
+    <Avatar className={cn(crmAvatarSizes[size], "border border-foreground/10")}>
+      <AvatarFallback className={cn(crmAvatarSizes[size], "bg-foreground/5 text-foreground font-semibold")}>
+        {text}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 
@@ -46,16 +45,17 @@ export function RelPill({ type }: { type: string }) {
   const label = CRM_RELATIONSHIP_TYPES.find((r) => r.value === type)?.label ?? type;
   const colors = REL_COLORS[type] ?? REL_COLORS.other;
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+        "rounded-full text-[11px] font-medium",
         colors.bg,
         colors.text,
         colors.border
       )}
     >
       {label}
-    </span>
+    </Badge>
   );
 }
 
@@ -63,29 +63,33 @@ export function StageDot({ stage }: { stage: string | null }) {
   const stageLabel = CRM_LIFECYCLE_STAGES.find((s) => s.value === stage)?.label ?? stage ?? "—";
   const colors = STAGE_COLORS[stage ?? ""] ?? STAGE_COLORS.uncontacted;
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+        "gap-1.5 rounded-full border-transparent text-[11px] font-medium",
         colors.bg,
         colors.text
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full", colors.dot)} />
       {stageLabel}
-    </span>
+    </Badge>
   );
 }
 
 export function CompanyStatusDot({ isActive }: { isActive: boolean | null }) {
   const active = isActive !== false;
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
-      active ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" : "bg-muted dark:bg-muted text-muted-foreground dark:text-muted-foreground"
-    )}>
+    <Badge
+      variant="outline"
+      className={cn(
+        "gap-1.5 rounded-full border-transparent text-[11px] font-medium",
+        active ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" : "bg-muted dark:bg-muted text-muted-foreground dark:text-muted-foreground"
+      )}
+    >
       <span className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-green-500" : "bg-gray-400")} />
       {active ? "Active" : "Inactive"}
-    </span>
+    </Badge>
   );
 }
 
