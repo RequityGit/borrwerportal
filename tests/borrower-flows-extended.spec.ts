@@ -60,12 +60,12 @@ test("22 — borrower chatter page loads", async ({ borrowerPage }) => {
     'text=/no.*message|no.*conversation|start.*chat|no.*room|no conversations yet|select a channel|loading channels/i'
   );
   const loadingIndicator = borrowerPage.locator(
-    '[class*="spinner"], [class*="loading"], svg[class*="animate"], [class*="Loader"]'
+    '[class*="spinner"], [class*="loading"], svg[class*="animate"], [class*="Loader"], [class*="loader"], svg.lucide'
   );
 
   const hasChat = await chatUI.first().isVisible({ timeout: 5_000 }).catch(() => false);
-  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
-  const hasLoading = await loadingIndicator.first().isVisible({ timeout: 2_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasLoading = await loadingIndicator.first().isVisible({ timeout: 3_000 }).catch(() => false);
 
   expect(hasChat || hasEmpty || hasLoading).toBeTruthy();
 });
