@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Zap,
   Mail,
-  Calendar,
   CheckCircle2,
   PhoneCall,
   Upload,
@@ -111,11 +110,6 @@ export function CompanyDetailSidebar({
             {
               icon: Mail,
               label: "Send Email",
-              onClick: () => toast({ title: "Coming soon" }),
-            },
-            {
-              icon: Calendar,
-              label: "Schedule Meeting",
               onClick: () => toast({ title: "Coming soon" }),
             },
             {

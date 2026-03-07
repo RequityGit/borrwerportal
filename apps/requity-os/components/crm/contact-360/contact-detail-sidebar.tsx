@@ -22,7 +22,6 @@ import {
   Globe,
   Hash,
   Mail,
-  Calendar,
   CheckCircle2,
   PhoneCall,
   Plus,
@@ -88,11 +87,6 @@ export function ContactDetailSidebar({
       icon: Mail,
       label: "Send Email",
       onClick: () => setEmailOpen(true),
-    },
-    {
-      icon: Calendar,
-      label: "Schedule Meeting",
-      onClick: () => toast({ title: "Coming soon" }),
     },
     {
       icon: CheckCircle2,
