@@ -46,6 +46,26 @@ import {
 } from "@/lib/tasks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+function composeRecurrencePattern(
+  pattern: string,
+  monthlyWhen: string,
+  dayOfMonth: number,
+  daysOfWeek: number[]
+): string {
+  if (pattern === "monthly") {
+    if (monthlyWhen === "nth_weekday") {
+      return `monthly_nth:${dayOfMonth}:${daysOfWeek[0] ?? 1}`;
+    }
+    if (monthlyWhen === "specific_day") {
+      return `monthly_day:${dayOfMonth}`;
+    }
+  }
+  if (pattern === "annually" && daysOfWeek.length > 0) {
+    return `annually_date:${daysOfWeek[0]}:${dayOfMonth}`;
+  }
+  return pattern;
+}
+
 interface TaskSheetProps {
   open: boolean;
   task: OpsTask | null;
@@ -116,13 +136,35 @@ export function TaskSheet({
       setLinkedEntityId(task.linked_entity_id ?? "");
       setLinkedEntityLabel(task.linked_entity_label ?? "");
       setIsRecurring(task.is_recurring ?? false);
-      setRecurrencePattern(task.recurrence_pattern ?? "weekly");
-      setRecurrenceDaysOfWeek(task.recurrence_days_of_week ?? []);
-      setRecurrenceDayOfMonth(task.recurrence_day_of_month ?? 1);
       setRecurrenceRepeatInterval(task.recurrence_repeat_interval ?? 1);
-      setRecurrenceMonthlyWhen(task.recurrence_monthly_when ?? "specific_day");
       setRecurrenceStartDate(task.recurrence_start_date ?? "");
       setRecurrenceEndDate(task.recurrence_end_date ?? "");
+
+      // Parse composed pattern back into structured fields
+      const pat = task.recurrence_pattern ?? "";
+      if (pat.startsWith("monthly_nth:")) {
+        const parts = pat.split(":");
+        setRecurrencePattern("monthly");
+        setRecurrenceMonthlyWhen("nth_weekday");
+        setRecurrenceDayOfMonth(parseInt(parts[1], 10) || 1);
+        setRecurrenceDaysOfWeek([parseInt(parts[2], 10) || 1]);
+      } else if (pat.startsWith("monthly_day:")) {
+        setRecurrencePattern("monthly");
+        setRecurrenceMonthlyWhen("specific_day");
+        setRecurrenceDayOfMonth(parseInt(pat.split(":")[1], 10) || 1);
+        setRecurrenceDaysOfWeek(task.recurrence_days_of_week ?? []);
+      } else if (pat.startsWith("annually_date:")) {
+        const parts = pat.split(":");
+        setRecurrencePattern("annually");
+        setRecurrenceDaysOfWeek([parseInt(parts[1], 10) || 0]);
+        setRecurrenceDayOfMonth(parseInt(parts[2], 10) || 1);
+        setRecurrenceMonthlyWhen(task.recurrence_monthly_when ?? "specific_day");
+      } else {
+        setRecurrencePattern(pat || "weekly");
+        setRecurrenceDaysOfWeek(task.recurrence_days_of_week ?? []);
+        setRecurrenceDayOfMonth(task.recurrence_day_of_month ?? 1);
+        setRecurrenceMonthlyWhen(task.recurrence_monthly_when ?? "specific_day");
+      }
     } else {
       setTitle("");
       setDescription("");
@@ -237,6 +279,15 @@ export function TaskSheet({
     const supabase = createClient();
     const assigneeProfile = profiles.find((p) => p.id === assignedTo);
 
+    // Compose the recurrence_pattern string from structured fields
+    // so the RPC can parse it for next-occurrence calculation
+    const composedPattern = composeRecurrencePattern(
+      recurrencePattern,
+      recurrenceMonthlyWhen,
+      recurrenceDayOfMonth,
+      recurrenceDaysOfWeek
+    );
+
     const payload: Record<string, unknown> = {
       title: title.trim(),
       description: description.trim() || null,
@@ -250,7 +301,7 @@ export function TaskSheet({
       linked_entity_id: linkedEntityId || null,
       linked_entity_label: linkedEntityLabel || null,
       is_recurring: isRecurring,
-      recurrence_pattern: isRecurring ? recurrencePattern : null,
+      recurrence_pattern: isRecurring ? composedPattern : null,
       recurrence_days_of_week: isRecurring ? recurrenceDaysOfWeek : [],
       recurrence_day_of_month: isRecurring ? recurrenceDayOfMonth : null,
       recurrence_repeat_interval: isRecurring ? recurrenceRepeatInterval : null,
