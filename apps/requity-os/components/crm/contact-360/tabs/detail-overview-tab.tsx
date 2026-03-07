@@ -61,6 +61,7 @@ export function DetailOverviewTab({
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editBorrowerOpen, setEditBorrowerOpen] = useState(false);
   const [editInvestorOpen, setEditInvestorOpen] = useState(false);
+  const [editDescriptionOpen, setEditDescriptionOpen] = useState(false);
 
   async function updateBorrowerField(
     field: string,
@@ -458,14 +459,12 @@ export function DetailOverviewTab({
         </div>
       </SectionCard>
 
-      {/* Internal Notes */}
-      {contact.notes && (
-        <SectionCard title="Internal Notes" icon={FileText}>
-          <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-            {contact.notes}
-          </p>
-        </SectionCard>
-      )}
+      {/* Description */}
+      <SectionCard title="Description" icon={FileText} action={<SectionEditButton onClick={() => setEditDescriptionOpen(true)} />}>
+        <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+          {contact.notes || "No description."}
+        </p>
+      </SectionCard>
 
       {/* Section Edit Dialogs */}
       <CrmEditSectionDialog
@@ -493,6 +492,13 @@ export function DetailOverviewTab({
           onSave={updateInvestorField}
         />
       )}
+      <CrmEditSectionDialog
+        open={editDescriptionOpen}
+        onOpenChange={setEditDescriptionOpen}
+        title="Description"
+        fields={[{ label: "Description", fieldName: "notes", fieldType: "textarea", value: contact.notes }]}
+        onSave={updateContactField}
+      />
     </div>
   );
 }

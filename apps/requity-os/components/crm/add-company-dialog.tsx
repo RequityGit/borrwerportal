@@ -303,14 +303,14 @@ export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Description */}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label>Description</Label>
             <Textarea
               value={form.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={3}
-              placeholder="Internal notes about this company..."
+              placeholder="Description of this company..."
             />
           </div>
 
