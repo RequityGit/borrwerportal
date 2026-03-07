@@ -15199,3 +15199,13 @@ export const Constants = {
   },
 } as const
 
+// ── Placeholder types for tables not yet in generated schema ──
+// These prevent build failures in components that reference them.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LenderQuote = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PricingProgram = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LeverageAdjuster = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PricingProgramVersion = Record<string, any>;
