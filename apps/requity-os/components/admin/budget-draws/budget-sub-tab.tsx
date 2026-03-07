@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DataTable, Column } from "@/components/shared/data-table";
@@ -526,12 +527,7 @@ function ActiveBudgetView({
         const pct = revised > 0 ? ((row.drawn_amount || 0) / revised) * 100 : 0;
         return (
           <div className="flex items-center gap-2">
-            <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full"
-                style={{ width: `${Math.min(pct, 100)}%` }}
-              />
-            </div>
+            <Progress value={Math.min(pct, 100)} className="w-12 h-1.5 bg-muted" />
             <span className="num text-xs text-muted-foreground">
               {pct.toFixed(1)}%
             </span>

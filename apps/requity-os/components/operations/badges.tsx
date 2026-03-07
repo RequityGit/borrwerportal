@@ -57,7 +57,7 @@ export function normalizeStatusDisplay(status: string): string {
   return statusDisplayMap[status] ?? status;
 }
 
-export function StatusBadge({ status }: { status: string | null }) {
+export function OpsStatusBadge({ status }: { status: string | null }) {
   if (!status) return null;
   const display = normalizeStatusDisplay(status);
   const config = statusConfig[display] ?? {

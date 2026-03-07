@@ -3,11 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ChevronRight,
   Pencil,
   AlertTriangle,
   FileText,
 } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { SOPContent } from "@/components/sops/SOPContent";
 import { SOPVersionHistory } from "@/components/sops/SOPVersionHistory";
@@ -73,19 +80,27 @@ export function SOPDetailClient({
     <div className="min-h-screen bg-background -m-4 md:-m-6 lg:-m-8 -mb-20 md:-mb-6 lg:-mb-8">
       <div className="mx-auto max-w-6xl px-6 py-8">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/sops" className="hover:text-foreground transition">
-            Knowledge Base
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          {categoryName && (
-            <>
-              <span>{categoryName}</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </>
-          )}
-          <span className="text-muted-foreground">{sop.title}</span>
-        </nav>
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/sops">Knowledge Base</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {categoryName && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <span className="text-muted-foreground">{categoryName}</span>
+                </BreadcrumbItem>
+              </>
+            )}
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{sop.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
         {/* Header */}
         <div className="mb-8 flex items-start justify-between gap-4">

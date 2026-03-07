@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useRouter } from "next/navigation";
 import { Header } from "./Header";
 import { Stepper } from "./Stepper";
@@ -244,28 +251,25 @@ export function DealDetail({
   return (
     <div className="min-h-screen">
       {/* Breadcrumb */}
-      <div
-        className="mb-3 flex items-center gap-1.5 text-[13px]"
-        style={{ color: T.text.muted }}
-      >
-        <Link
-          href="/admin/pipeline"
-          className="no-underline hover:underline"
-          style={{ color: T.accent.blue }}
-        >
-          Pipeline
-        </Link>
-        <ChevronRight size={12} color={T.text.muted} />
-        <Link
-          href="/admin/pipeline/debt"
-          className="no-underline hover:underline"
-          style={{ color: T.accent.blue }}
-        >
-          Debt
-        </Link>
-        <ChevronRight size={12} color={T.text.muted} />
-        <span style={{ color: T.text.secondary }}>{displayId}</span>
-      </div>
+      <Breadcrumb className="mb-3 text-[13px]">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/admin/pipeline">Pipeline</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/admin/pipeline/debt">Debt</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{displayId}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <div className="max-w-[1280px] mx-auto">
         {/* Header */}

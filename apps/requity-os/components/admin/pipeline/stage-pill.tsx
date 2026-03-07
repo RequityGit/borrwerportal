@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * StagePill — Requity Design System v2
@@ -131,15 +132,16 @@ interface StagePillProps {
 export function StagePill({ stage, className }: StagePillProps) {
   if (!stage) {
     return (
-      <span
+      <Badge
+        variant="outline"
         className={cn(
-          "inline-flex items-center rounded-[6px] px-2 py-[2px] text-[11px] font-semibold whitespace-nowrap",
+          "rounded-[6px] px-2 py-[2px] text-[11px] font-semibold whitespace-nowrap border-transparent",
           FALLBACK_STYLE,
           className
         )}
       >
         --
-      </span>
+      </Badge>
     );
   }
 
@@ -147,14 +149,15 @@ export function StagePill({ stage, className }: StagePillProps) {
   const label = config?.label ?? stage.replace(/_/g, " ");
 
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center rounded-[6px] px-2 py-[2px] text-[11px] font-semibold capitalize whitespace-nowrap",
+        "rounded-[6px] px-2 py-[2px] text-[11px] font-semibold capitalize whitespace-nowrap border-transparent",
         config?.className ?? FALLBACK_STYLE,
         className
       )}
     >
       {label}
-    </span>
+    </Badge>
   );
 }

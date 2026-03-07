@@ -3,7 +3,15 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { TabBtn } from "@/components/crm/contact-360/contact-detail-shared";
 import { CompanyEditDialog } from "@/components/crm/company-edit-dialog";
 import { CompanyDetailHeader } from "./company-detail-header";
@@ -121,16 +129,19 @@ export function CompanyDetailClient({
         >
           <ArrowLeft size={16} strokeWidth={1.5} />
         </Link>
-        <Link
-          href="/admin/crm?view=companies"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Companies
-        </Link>
-        <ChevronRight size={12} className="text-muted-foreground/50" />
-        <span className="text-xs text-foreground font-medium">
-          {company.name}
-        </span>
+        <Breadcrumb className="text-xs">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/admin/crm?view=companies">Companies</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium">{company.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
       <div className="flex max-w-[1400px] mx-auto">

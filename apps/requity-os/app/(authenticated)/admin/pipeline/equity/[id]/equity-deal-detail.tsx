@@ -3,6 +3,14 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +48,6 @@ import {
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import {
-  ChevronRight,
   Clock,
   Building2,
   Pencil,
@@ -338,23 +345,25 @@ export function EquityDealDetail({
   return (
     <div className="min-h-screen">
       {/* Breadcrumb */}
-      <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium">
-        <Link
-          href="/admin/pipeline"
-          className="no-underline hover:underline text-foreground"
-        >
-          Pipeline
-        </Link>
-        <ChevronRight size={14} strokeWidth={1.5} className="text-muted-foreground" />
-        <Link
-          href="/admin/pipeline/equity"
-          className="no-underline hover:underline text-foreground"
-        >
-          Equity
-        </Link>
-        <ChevronRight size={14} strokeWidth={1.5} className="text-muted-foreground" />
-        <span>{deal.deal_number || deal.id?.slice(0, 8)}</span>
-      </nav>
+      <Breadcrumb className="mb-3 text-[13px]">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/admin/pipeline">Pipeline</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/admin/pipeline/equity">Equity</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{deal.deal_number || deal.id?.slice(0, 8)}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <div className="max-w-[1400px] mx-auto">
         {/* ─── Header ─── */}
