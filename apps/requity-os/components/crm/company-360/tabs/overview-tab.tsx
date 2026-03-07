@@ -164,7 +164,7 @@ export function CompanyOverviewTab({
   ];
 
   const notesFields: CrmSectionField[] = [
-    { label: "Notes", fieldName: "notes", fieldType: "textarea", value: company.notes },
+    { label: "Description", fieldName: "notes", fieldType: "textarea", value: company.notes },
   ];
 
   function SectionEditButton({ onClick }: { onClick: () => void }) {
@@ -483,8 +483,8 @@ export function CompanyOverviewTab({
         )}
       </SectionCard>
 
-      {/* Internal Notes */}
-      <SectionCard title="Internal Notes" icon={FileText} action={<SectionEditButton onClick={() => setEditNotesOpen(true)} />}>
+      {/* Description */}
+      <SectionCard title="Description" icon={FileText} action={<SectionEditButton onClick={() => setEditNotesOpen(true)} />}>
         <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
           {company.notes || "No notes."}
         </p>
@@ -515,7 +515,7 @@ export function CompanyOverviewTab({
       <CrmEditSectionDialog
         open={editNotesOpen}
         onOpenChange={setEditNotesOpen}
-        title="Internal Notes"
+        title="Description"
         fields={notesFields}
         onSave={saveField}
       />
