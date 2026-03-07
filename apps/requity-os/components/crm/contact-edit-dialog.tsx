@@ -44,6 +44,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Pencil, X, Plus } from "lucide-react";
 import { DeleteContactButton } from "@/components/crm/delete-contact-button";
 import type { Tables } from "@/lib/supabase/types";
+import { formatPhoneInput } from "@/lib/format";
 
 type CrmContact = Tables<"crm_contacts">;
 
@@ -86,7 +87,7 @@ export function ContactEditDialog({
     first_name: contact.first_name ?? "",
     last_name: contact.last_name ?? "",
     email: contact.email || "",
-    phone: contact.phone || "",
+    phone: formatPhoneInput(contact.phone || ""),
     company_id: contact.company_id || "",
     company_name: contact.company_name || "",
     source: contact.source || "",
@@ -272,7 +273,8 @@ export function ContactEditDialog({
                 <Label>Phone</Label>
                 <Input
                   value={form.phone}
-                  onChange={(e) => updateField("phone", e.target.value)}
+                  onChange={(e) => updateField("phone", formatPhoneInput(e.target.value))}
+                  placeholder="(555) 123-4567"
                 />
               </div>
             </div>
