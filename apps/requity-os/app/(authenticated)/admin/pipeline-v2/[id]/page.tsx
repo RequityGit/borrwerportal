@@ -54,6 +54,8 @@ export default async function DealDetailRoute({ params }: PageProps) {
     activitiesRaw,
     teamResult,
     profileResult,
+    documentsRaw,
+    tasksRaw,
   ] = await Promise.all([
     admin
       .from("unified_card_types" as never)
@@ -85,6 +87,16 @@ export default async function DealDetailRoute({ params }: PageProps) {
       .select("id, full_name")
       .eq("id", user.id)
       .single(),
+    admin
+      .from("unified_deal_documents" as never)
+      .select("*")
+      .eq("deal_id" as never, id as never)
+      .order("created_at" as never, { ascending: false }),
+    admin
+      .from("unified_deal_tasks" as never)
+      .select("*")
+      .eq("deal_id" as never, id as never)
+      .order("created_at" as never, { ascending: false }),
   ]);
 
   const cardTypeResult = cardTypeRaw as unknown as {
@@ -97,6 +109,61 @@ export default async function DealDetailRoute({ params }: PageProps) {
   const stageConfigs = ((stageConfigsRaw as unknown as { data: StageConfig[] | null }).data ?? []);
   const checklistItems = ((checklistRaw as unknown as { data: ChecklistItem[] | null }).data ?? []);
   const activities = ((activitiesRaw as unknown as { data: DealActivity[] | null }).data ?? []);
+  const documents = ((documentsRaw as unknown as { data: Record<string, unknown>[] | null }).data ?? []);
+  const tasks = ((tasksRaw as unknown as { data: Record<string, unknown>[] | null }).data ?? []);
+
+  // ─── Fetch commercial UW data (for commercial deals) ───
+  let commercialUWData: {
+    uw: Record<string, unknown>;
+    income: Record<string, unknown>[];
+    expenses: Record<string, unknown>[];
+    rentRoll: Record<string, unknown>[];
+    scopeOfWork: Record<string, unknown>[];
+    sourcesUses: Record<string, unknown>[];
+    debt: Record<string, unknown>[];
+    waterfall: Record<string, unknown>[];
+    allVersions: Record<string, unknown>[];
+  } | null = null;
+
+  const isCommercial = cardType.slug === "comm_debt";
+  if (isCommercial) {
+    const uwRaw = await admin
+      .from("deal_commercial_uw" as never)
+      .select("*")
+      .eq("opportunity_id" as never, id as never)
+      .order("version" as never, { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const uwRecord = (uwRaw as unknown as { data: Record<string, unknown> | null }).data;
+
+    if (uwRecord) {
+      const uwId = uwRecord.id as string;
+      const [incomeRes, expensesRes, rentRollRes, scopeRes, suRes, debtRes, waterfallRes, versionsRes] =
+        await Promise.all([
+          admin.from("deal_commercial_income" as never).select("*").eq("uw_id" as never, uwId as never).order("sort_order" as never),
+          admin.from("deal_commercial_expenses" as never).select("*").eq("uw_id" as never, uwId as never).order("sort_order" as never),
+          admin.from("deal_commercial_rent_roll" as never).select("*").eq("uw_id" as never, uwId as never).order("sort_order" as never),
+          admin.from("deal_commercial_scope_of_work" as never).select("*").eq("uw_id" as never, uwId as never).order("sort_order" as never),
+          admin.from("deal_commercial_sources_uses" as never).select("*").eq("uw_id" as never, uwId as never).order("sort_order" as never),
+          admin.from("deal_commercial_debt" as never).select("*").eq("uw_id" as never, uwId as never).order("sort_order" as never),
+          admin.from("deal_commercial_waterfall" as never).select("*").eq("uw_id" as never, uwId as never).order("tier_order" as never),
+          admin.from("deal_commercial_uw" as never).select("id, version, status, created_at, created_by" as never).eq("opportunity_id" as never, id as never).order("version" as never, { ascending: false }),
+        ]);
+
+      commercialUWData = {
+        uw: uwRecord,
+        income: ((incomeRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        expenses: ((expensesRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        rentRoll: ((rentRollRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        scopeOfWork: ((scopeRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        sourcesUses: ((suRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        debt: ((debtRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        waterfall: ((waterfallRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+        allVersions: ((versionsRes as unknown as { data: Record<string, unknown>[] | null }).data ?? []),
+      };
+    }
+  }
 
   // Compute stage metrics
   const days = daysInStage(deal.stage_entered_at);
@@ -131,6 +198,9 @@ export default async function DealDetailRoute({ params }: PageProps) {
       teamMembers={teamMembers}
       currentUserId={user.id}
       currentUserName={currentProfile?.full_name ?? "Unknown"}
+      documents={documents}
+      tasks={tasks}
+      commercialUWData={commercialUWData}
     />
   );
 }

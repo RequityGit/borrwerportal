@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
-// Helper to bypass type checking for new tables not yet in generated types
+// Helper to bypass type checking for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function db(): any { return createAdminClient(); }
 
@@ -24,16 +24,15 @@ const DEFAULT_EXPENSE_ROWS = [
 ];
 
 export async function initCommercialUW(
-  opportunityId: string,
+  dealId: string,
   userId: string
 ): Promise<{ data: { id: string } | null; error: string | null }> {
   const supabase = db();
 
-  // Check if one already exists
   const { data: existing } = await supabase
     .from("deal_commercial_uw")
     .select("id")
-    .eq("opportunity_id", opportunityId)
+    .eq("opportunity_id", dealId)
     .eq("version", 1)
     .maybeSingle();
 
@@ -42,7 +41,7 @@ export async function initCommercialUW(
   const { data: uw, error: uwError } = await supabase
     .from("deal_commercial_uw")
     .insert({
-      opportunity_id: opportunityId,
+      opportunity_id: dealId,
       version: 1,
       status: "draft",
       created_by: userId,
@@ -54,7 +53,6 @@ export async function initCommercialUW(
     return { data: null, error: uwError?.message ?? "Failed to create UW record" };
   }
 
-  // Seed default income rows
   const incomeRows = DEFAULT_INCOME_ROWS.map((row) => ({
     uw_id: uw.id,
     ...row,
@@ -64,7 +62,6 @@ export async function initCommercialUW(
   }));
   await supabase.from("deal_commercial_income").insert(incomeRows);
 
-  // Seed default expense rows
   const expenseRows = DEFAULT_EXPENSE_ROWS.map((row) => ({
     uw_id: uw.id,
     ...row,
@@ -74,7 +71,7 @@ export async function initCommercialUW(
   }));
   await supabase.from("deal_commercial_expenses").insert(expenseRows);
 
-  revalidatePath(`/admin/pipeline/debt/${opportunityId}`);
+  revalidatePath(`/admin/pipeline/${dealId}`);
   return { data: { id: uw.id }, error: null };
 }
 
@@ -106,8 +103,6 @@ export async function upsertIncomeRows(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
-  // Delete existing and re-insert for simplicity
   await supabase.from("deal_commercial_income").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -133,7 +128,6 @@ export async function upsertExpenseRows(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_expenses").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -163,7 +157,6 @@ export async function upsertRentRoll(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_rent_roll").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -186,7 +179,6 @@ export async function upsertScopeOfWork(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_scope_of_work").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -210,7 +202,6 @@ export async function upsertSourcesUses(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_sources_uses").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -236,7 +227,6 @@ export async function upsertWaterfall(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_waterfall").delete().eq("uw_id", uwId);
 
   if (tiers.length > 0) {
@@ -250,16 +240,15 @@ export async function upsertWaterfall(
 }
 
 export async function createNewVersion(
-  opportunityId: string,
+  dealId: string,
   userId: string
 ): Promise<{ data: { id: string; version: number } | null; error: string | null }> {
   const supabase = db();
 
-  // Get latest version number
   const { data: latest } = await supabase
     .from("deal_commercial_uw")
     .select("version")
-    .eq("opportunity_id", opportunityId)
+    .eq("opportunity_id", dealId)
     .order("version", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -269,7 +258,7 @@ export async function createNewVersion(
   const { data: uw, error } = await supabase
     .from("deal_commercial_uw")
     .insert({
-      opportunity_id: opportunityId,
+      opportunity_id: dealId,
       version: newVersion,
       status: "draft",
       created_by: userId,
@@ -281,24 +270,22 @@ export async function createNewVersion(
     return { data: null, error: error?.message ?? "Failed to create version" };
   }
 
-  revalidatePath(`/admin/pipeline/debt/${opportunityId}`);
+  revalidatePath(`/admin/pipeline/${dealId}`);
   return { data: { id: uw.id, version: uw.version }, error: null };
 }
 
 export async function activateVersion(
   uwId: string,
-  opportunityId: string
+  dealId: string
 ): Promise<{ error: string | null }> {
   const supabase = db();
 
-  // Archive all other versions for this opportunity
   await supabase
     .from("deal_commercial_uw")
     .update({ status: "archived", updated_at: new Date().toISOString() })
-    .eq("opportunity_id", opportunityId)
+    .eq("opportunity_id", dealId)
     .neq("id", uwId);
 
-  // Set this one as active
   const { error } = await supabase
     .from("deal_commercial_uw")
     .update({ status: "active", updated_at: new Date().toISOString() })
@@ -306,23 +293,6 @@ export async function activateVersion(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/pipeline/debt/${opportunityId}`);
-  return { error: null };
-}
-
-export async function saveDraft(
-  uwId: string,
-  opportunityId: string
-): Promise<{ error: string | null }> {
-  const supabase = db();
-
-  const { error } = await supabase
-    .from("deal_commercial_uw")
-    .update({ status: "draft", updated_at: new Date().toISOString() })
-    .eq("id", uwId);
-
-  if (error) return { error: error.message };
-
-  revalidatePath(`/admin/pipeline/debt/${opportunityId}`);
+  revalidatePath(`/admin/pipeline/${dealId}`);
   return { error: null };
 }

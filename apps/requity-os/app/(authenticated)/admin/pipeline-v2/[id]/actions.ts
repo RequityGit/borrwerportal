@@ -7,6 +7,8 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 function revalidateDeal(dealId: string) {
   revalidatePath("/admin/pipeline-v2");
   revalidatePath(`/admin/pipeline-v2/${dealId}`);
+  revalidatePath("/admin/pipeline");
+  revalidatePath(`/admin/pipeline/${dealId}`);
 }
 
 // ─── Log Quick Action (call, email, approval, closing) ───
@@ -19,7 +21,7 @@ export async function logQuickActionV2(
 ) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
 
     const admin = createAdminClient();
 
@@ -64,7 +66,7 @@ export async function assignTeamMemberV2(
 ) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
 
     const admin = createAdminClient();
 
@@ -97,6 +99,208 @@ export async function assignTeamMemberV2(
   }
 }
 
+// ─── Document Actions ───
+
+export async function uploadDealDocumentV2(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const file = formData.get("file") as File;
+    const dealId = formData.get("dealId") as string;
+
+    if (!file || !dealId) return { error: "Missing file or dealId" };
+
+    const admin = createAdminClient();
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const storagePath = `deals/${dealId}/${fileName}`;
+
+    const { error: uploadError } = await admin.storage
+      .from("loan-documents")
+      .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+    if (uploadError) {
+      console.error("uploadDealDocumentV2 storage error:", uploadError);
+      return { error: uploadError.message };
+    }
+
+    const { data: urlData } = admin.storage
+      .from("loan-documents")
+      .getPublicUrl(storagePath);
+
+    const { error: dbError } = await admin
+      .from("unified_deal_documents" as never)
+      .insert({
+        deal_id: dealId,
+        document_name: file.name,
+        file_url: urlData.publicUrl,
+        file_size_bytes: file.size,
+        mime_type: file.type,
+        uploaded_by: auth.user.id,
+      } as never);
+
+    if (dbError) {
+      console.error("uploadDealDocumentV2 db error:", dbError);
+      await admin.storage.from("loan-documents").remove([storagePath]);
+      return { error: dbError.message };
+    }
+
+    revalidateDeal(dealId);
+    return { error: null };
+  } catch (err: unknown) {
+    console.error("uploadDealDocumentV2 error:", err);
+    return { error: err instanceof Error ? err.message : "Upload failed" };
+  }
+}
+
+export async function deleteDealDocumentV2(
+  docId: string
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { data: doc } = await admin
+      .from("unified_deal_documents" as never)
+      .select("deal_id, file_url" as never)
+      .eq("id" as never, docId as never)
+      .single();
+
+    const { error } = await admin
+      .from("unified_deal_documents" as never)
+      .delete()
+      .eq("id" as never, docId as never);
+
+    if (error) {
+      console.error("deleteDealDocumentV2 error:", error);
+      return { error: error.message };
+    }
+
+    if (doc) {
+      revalidateDeal((doc as { deal_id: string }).deal_id);
+    }
+    return { error: null };
+  } catch (err: unknown) {
+    console.error("deleteDealDocumentV2 error:", err);
+    return { error: err instanceof Error ? err.message : "Delete failed" };
+  }
+}
+
+// ─── Task Actions ───
+
+export async function createDealTaskV2(
+  dealId: string,
+  fields: {
+    title: string;
+    description?: string | null;
+    priority?: string;
+    assigned_to?: string | null;
+    due_date?: string | null;
+    created_by?: string;
+  }
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { error } = await admin
+      .from("unified_deal_tasks" as never)
+      .insert({
+        deal_id: dealId,
+        ...fields,
+        created_by: fields.created_by ?? auth.user.id,
+      } as never);
+
+    if (error) {
+      console.error("createDealTaskV2 error:", error);
+      return { error: error.message };
+    }
+
+    revalidateDeal(dealId);
+    return { error: null };
+  } catch (err: unknown) {
+    console.error("createDealTaskV2 error:", err);
+    return { error: err instanceof Error ? err.message : "Create failed" };
+  }
+}
+
+export async function updateDealTaskV2(
+  taskId: string,
+  fields: Record<string, unknown>
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { data: task } = await admin
+      .from("unified_deal_tasks" as never)
+      .select("deal_id" as never)
+      .eq("id" as never, taskId as never)
+      .single();
+
+    const { error } = await admin
+      .from("unified_deal_tasks" as never)
+      .update(fields as never)
+      .eq("id" as never, taskId as never);
+
+    if (error) {
+      console.error("updateDealTaskV2 error:", error);
+      return { error: error.message };
+    }
+
+    if (task) {
+      revalidateDeal((task as { deal_id: string }).deal_id);
+    }
+    return { error: null };
+  } catch (err: unknown) {
+    console.error("updateDealTaskV2 error:", err);
+    return { error: err instanceof Error ? err.message : "Update failed" };
+  }
+}
+
+export async function deleteDealTaskV2(
+  taskId: string
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { data: task } = await admin
+      .from("unified_deal_tasks" as never)
+      .select("deal_id" as never)
+      .eq("id" as never, taskId as never)
+      .single();
+
+    const { error } = await admin
+      .from("unified_deal_tasks" as never)
+      .delete()
+      .eq("id" as never, taskId as never);
+
+    if (error) {
+      console.error("deleteDealTaskV2 error:", error);
+      return { error: error.message };
+    }
+
+    if (task) {
+      revalidateDeal((task as { deal_id: string }).deal_id);
+    }
+    return { error: null };
+  } catch (err: unknown) {
+    console.error("deleteDealTaskV2 error:", err);
+    return { error: err instanceof Error ? err.message : "Delete failed" };
+  }
+}
+
 // ─── Update Deal Field (direct fields on unified_deals) ───
 
 export async function updateDealFieldV2(
@@ -106,7 +310,7 @@ export async function updateDealFieldV2(
 ) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error };
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
 
     const admin = createAdminClient();
 

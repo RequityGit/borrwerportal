@@ -6,5 +6,5 @@ export default async function UWRedirect({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(`/admin/pipeline/debt/${id}/underwriting`);
+  redirect(`/admin/pipeline/${id}`);
 }

@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
-const REVALIDATE_PATH = "/admin/pipeline-v2";
-
 function revalidatePipeline(dealId?: string) {
-  revalidatePath(REVALIDATE_PATH);
-  if (dealId) revalidatePath(`/admin/pipeline-v2/${dealId}`);
+  revalidatePath("/admin/pipeline-v2");
+  revalidatePath("/admin/pipeline");
+  if (dealId) {
+    revalidatePath(`/admin/pipeline-v2/${dealId}`);
+    revalidatePath(`/admin/pipeline/${dealId}`);
+  }
 }
 
 // ─── Create Deal ───

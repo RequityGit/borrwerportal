@@ -49,6 +49,11 @@ import {
 import { StageStepper } from "@/components/pipeline-v2/StageStepper";
 import { StageChecklist } from "@/components/pipeline-v2/StageChecklist";
 import { UnderwritingPanel } from "@/components/pipeline-v2/UnderwritingPanel";
+import { DocumentsTab } from "@/components/pipeline-v2/tabs/DocumentsTab";
+import { TasksTab } from "@/components/pipeline-v2/tabs/TasksTab";
+import { ConditionsTab } from "@/components/pipeline-v2/tabs/ConditionsTab";
+import { FinancialsTab, type CommercialUWData as FinancialsUWData } from "@/components/pipeline-v2/tabs/FinancialsTab";
+import { CommercialUnderwritingTab, type CommercialUWData } from "@/components/pipeline-v2/tabs/CommercialUnderwritingTab";
 import {
   type UnifiedDeal,
   type UnifiedCardType,
@@ -83,6 +88,9 @@ interface DealDetailPageProps {
   teamMembers: { id: string; full_name: string }[];
   currentUserId: string;
   currentUserName: string;
+  documents: Record<string, unknown>[];
+  tasks: Record<string, unknown>[];
+  commercialUWData: CommercialUWData | null;
 }
 
 // ─── Main Component ───
@@ -96,6 +104,9 @@ export function DealDetailPage({
   teamMembers,
   currentUserId,
   currentUserName,
+  documents,
+  tasks,
+  commercialUWData,
 }: DealDetailPageProps) {
   const router = useRouter();
   const tabs = cardType.detail_tabs;
@@ -112,13 +123,13 @@ export function DealDetailPage({
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/admin/pipeline-v2">Pipeline</Link>
+              <Link href="/admin/pipeline">Pipeline</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/admin/pipeline-v2">{cardType.label}</Link>
+              <Link href="/admin/pipeline">{cardType.label}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -175,6 +186,10 @@ export function DealDetailPage({
               checklist={checklist}
               activities={activities}
               currentUserId={currentUserId}
+              documents={documents}
+              tasks={tasks}
+              teamMembers={teamMembers}
+              commercialUWData={commercialUWData}
             />
           </div>
 
@@ -287,6 +302,10 @@ function TabContent({
   checklist,
   activities,
   currentUserId,
+  documents,
+  tasks,
+  teamMembers,
+  commercialUWData,
 }: {
   activeTab: string;
   deal: UnifiedDeal;
@@ -294,7 +313,13 @@ function TabContent({
   checklist: ChecklistItem[];
   activities: DealActivity[];
   currentUserId: string;
+  documents: Record<string, unknown>[];
+  tasks: Record<string, unknown>[];
+  teamMembers: { id: string; full_name: string }[];
+  commercialUWData: CommercialUWData | null;
 }) {
+  const isCommercial = cardType.slug === "comm_debt";
+
   switch (activeTab) {
     case "Overview":
       return (
@@ -304,7 +329,30 @@ function TabContent({
           checklist={checklist}
         />
       );
+    case "Financials":
+      if (commercialUWData) {
+        return (
+          <FinancialsTab
+            data={commercialUWData as FinancialsUWData}
+            dealId={deal.id}
+            currentUserId={currentUserId}
+          />
+        );
+      }
+      return (
+        <p className="text-sm text-muted-foreground py-4">
+          No commercial underwriting data available. Initialize from the Financials tab.
+        </p>
+      );
     case "Underwriting":
+      if (isCommercial && commercialUWData) {
+        return (
+          <CommercialUnderwritingTab
+            data={commercialUWData}
+            dealId={deal.id}
+          />
+        );
+      }
       return (
         <UnderwritingPanel
           cardType={cardType}
@@ -323,15 +371,25 @@ function TabContent({
       );
     case "Tasks":
       return (
-        <p className="text-sm text-muted-foreground py-4">
-          Tasks feature coming soon.
-        </p>
+        <TasksTab
+          tasks={tasks as unknown as import("@/components/pipeline-v2/tabs/TasksTab").DealTask[]}
+          dealId={deal.id}
+          currentUserId={currentUserId}
+          teamMembers={teamMembers}
+        />
       );
     case "Documents":
       return (
-        <p className="text-sm text-muted-foreground py-4">
-          Documents feature coming soon.
-        </p>
+        <DocumentsTab
+          documents={documents as unknown as { id: string; deal_id: string; document_name: string; file_url: string; file_size_bytes: number | null; mime_type: string | null; category: string | null; uploaded_by: string | null; created_at: string }[]}
+          dealId={deal.id}
+        />
+      );
+    case "Conditions":
+      return (
+        <ConditionsTab
+          conditions={checklist as unknown as import("@/components/pipeline-v2/tabs/ConditionsTab").ConditionItem[]}
+        />
       );
     case "Due Diligence":
       return (

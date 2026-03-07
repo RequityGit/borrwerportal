@@ -17,7 +17,6 @@ import {
   Contact,
   Banknote,
   Cog,
-  Columns3,
   FlaskConical,
   Layers,
 } from "lucide-react";
@@ -90,17 +89,7 @@ const adminNav: NavEntry[] = [
   },
   {
     label: "Pipeline",
-    icon: Columns3,
-    basePath: "/admin/pipeline",
-    moduleName: "pipeline",
-    children: [
-      { label: "Debt", href: "/admin/pipeline/debt" },
-      { label: "Equity", href: "/admin/pipeline/equity" },
-    ],
-  },
-  {
-    label: "Pipeline v2",
-    href: "/admin/pipeline-v2",
+    href: "/admin/pipeline",
     icon: Layers,
     moduleName: "pipeline",
   },

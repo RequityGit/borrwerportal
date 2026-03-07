@@ -6,5 +6,5 @@ export default async function DealRedirect({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(`/admin/pipeline/debt/${id}`);
+  redirect(`/admin/pipeline/${id}`);
 }
