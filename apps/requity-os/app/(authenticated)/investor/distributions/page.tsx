@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { getEffectiveAuth, getInvestorId } from "@/lib/impersonation";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -123,6 +124,10 @@ export default async function DistributionsPage({
       ).sort((a, b) => Number(b) - Number(a));
     }
   } catch (err) {
+    // Re-throw Next.js navigation errors (redirect/notFound) so the framework handles them
+    if (err instanceof Error && (err as { digest?: string }).digest?.startsWith("NEXT_")) {
+      throw err;
+    }
     console.error("Distributions page failed to load data:", err);
   }
 
@@ -245,17 +250,19 @@ export default async function DistributionsPage({
       </div>
 
       {/* Filters */}
-      <DistributionFilters
-        funds={uniqueFunds}
-        years={years}
-        distributionTypes={DISTRIBUTION_TYPES.map((dt) => ({
-          value: dt.value,
-          label: dt.label,
-        }))}
-        currentFund={searchParams.fund}
-        currentYear={searchParams.year}
-        currentType={searchParams.type}
-      />
+      <Suspense fallback={null}>
+        <DistributionFilters
+          funds={uniqueFunds}
+          years={years}
+          distributionTypes={DISTRIBUTION_TYPES.map((dt) => ({
+            value: dt.value,
+            label: dt.label,
+          }))}
+          currentFund={searchParams.fund}
+          currentYear={searchParams.year}
+          currentType={searchParams.type}
+        />
+      </Suspense>
 
       {/* Table */}
       <Card>
