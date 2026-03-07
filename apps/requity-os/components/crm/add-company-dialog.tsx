@@ -25,6 +25,7 @@ import { CRM_COMPANY_TYPES, CRM_COMPANY_SUBTYPES, US_STATES } from "@/lib/consta
 import { useToast } from "@/components/ui/use-toast";
 import { addCompanyAction } from "@/app/(authenticated)/admin/crm/company-actions";
 import { Building2 } from "lucide-react";
+import { formatPhoneInput } from "@/lib/format";
 
 interface AddCompanyDialogProps {
   trigger?: React.ReactNode;
@@ -228,7 +229,7 @@ export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
               <Label>Phone</Label>
               <Input
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                onChange={(e) => updateField("phone", formatPhoneInput(e.target.value))}
                 placeholder="(555) 123-4567"
               />
             </div>

@@ -25,7 +25,7 @@ import {
   type CrmSectionField,
 } from "@/components/crm/crm-edit-section-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPhoneInput } from "@/lib/format";
 import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
 import { updateCompanyAction } from "@/app/(authenticated)/admin/crm/company-actions";
 import type {
@@ -140,7 +140,7 @@ export function CompanyOverviewTab({
       label: "Company Type", fieldName: "company_type", fieldType: "select", value: company.company_type,
       options: COMPANY_TYPE_OPTIONS,
     },
-    { label: "Phone", fieldName: "phone", fieldType: "text", value: company.phone },
+    { label: "Phone", fieldName: "phone", fieldType: "text", value: formatPhoneInput(company.phone ?? "") || company.phone },
     { label: "Email", fieldName: "email", fieldType: "text", value: company.email },
     { label: "Website", fieldName: "website", fieldType: "text", value: company.website },
     { label: "Source", fieldName: "source", fieldType: "text", value: company.source },

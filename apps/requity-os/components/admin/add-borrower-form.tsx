@@ -24,6 +24,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { addBorrowerAction } from "@/app/(authenticated)/admin/borrowers/new/actions";
 import { Loader2, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { US_STATES } from "@/lib/constants";
+import { formatPhoneInput } from "@/lib/format";
 // Borrower contact fields (first_name, email, etc.) now live on crm_contacts.
 // Use `any` for the borrower prop until the form is refactored.
 
@@ -48,7 +49,7 @@ export function AddBorrowerForm({ borrower }: AddBorrowerFormProps) {
   const [firstName, setFirstName] = useState(borrower?.first_name ?? "");
   const [lastName, setLastName] = useState(borrower?.last_name ?? "");
   const [email, setEmail] = useState(borrower?.email ?? "");
-  const [phone, setPhone] = useState(borrower?.phone ?? "");
+  const [phone, setPhone] = useState(formatPhoneInput(borrower?.phone ?? ""));
   const [dateOfBirth, setDateOfBirth] = useState(borrower?.date_of_birth ?? "");
   const [ssnLastFour, setSsnLastFour] = useState(
     borrower?.ssn_last_four ?? ""
@@ -227,7 +228,7 @@ export function AddBorrowerForm({ borrower }: AddBorrowerFormProps) {
                     id="phone"
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
                     placeholder="(555) 123-4567"
                   />
                 </div>

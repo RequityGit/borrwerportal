@@ -36,6 +36,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { UserPlus, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatPhoneInput } from "@/lib/format";
 
 interface TeamMember {
   id: string;
@@ -413,7 +414,7 @@ export function AddContactDialog({
               <Label>Phone</Label>
               <Input
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                onChange={(e) => updateField("phone", formatPhoneInput(e.target.value))}
                 placeholder="(555) 123-4567"
               />
             </div>
