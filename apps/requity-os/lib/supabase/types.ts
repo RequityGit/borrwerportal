@@ -3639,6 +3639,467 @@ export type Database = {
           },
         ]
       }
+      deal_commercial_debt: {
+        Row: {
+          amortization_years: number | null
+          created_at: string | null
+          id: string
+          interest_rate: number | null
+          io_period_months: number | null
+          lender_name: string | null
+          loan_amount: number | null
+          loan_type: string | null
+          origination_fee_pct: number | null
+          sort_order: number | null
+          term_years: number | null
+          tranche_name: string | null
+          uw_id: string
+        }
+        Insert: {
+          amortization_years?: number | null
+          created_at?: string | null
+          id?: string
+          interest_rate?: number | null
+          io_period_months?: number | null
+          lender_name?: string | null
+          loan_amount?: number | null
+          loan_type?: string | null
+          origination_fee_pct?: number | null
+          sort_order?: number | null
+          term_years?: number | null
+          tranche_name?: string | null
+          uw_id: string
+        }
+        Update: {
+          amortization_years?: number | null
+          created_at?: string | null
+          id?: string
+          interest_rate?: number | null
+          io_period_months?: number | null
+          lender_name?: string | null
+          loan_amount?: number | null
+          loan_type?: string | null
+          origination_fee_pct?: number | null
+          sort_order?: number | null
+          term_years?: number | null
+          tranche_name?: string | null
+          uw_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_debt_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_expenses: {
+        Row: {
+          category: string
+          created_at: string | null
+          growth_rate: number | null
+          id: string
+          is_percentage: boolean | null
+          sort_order: number | null
+          t12_amount: number | null
+          uw_id: string
+          year_1_amount: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          growth_rate?: number | null
+          id?: string
+          is_percentage?: boolean | null
+          sort_order?: number | null
+          t12_amount?: number | null
+          uw_id: string
+          year_1_amount?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          growth_rate?: number | null
+          id?: string
+          is_percentage?: boolean | null
+          sort_order?: number | null
+          t12_amount?: number | null
+          uw_id?: string
+          year_1_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_expenses_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_income: {
+        Row: {
+          created_at: string | null
+          growth_rate: number | null
+          id: string
+          is_deduction: boolean | null
+          line_item: string
+          sort_order: number | null
+          t12_amount: number | null
+          uw_id: string
+          year_1_amount: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          growth_rate?: number | null
+          id?: string
+          is_deduction?: boolean | null
+          line_item: string
+          sort_order?: number | null
+          t12_amount?: number | null
+          uw_id: string
+          year_1_amount?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          growth_rate?: number | null
+          id?: string
+          is_deduction?: boolean | null
+          line_item?: string
+          sort_order?: number | null
+          t12_amount?: number | null
+          uw_id?: string
+          year_1_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_income_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_rent_roll: {
+        Row: {
+          bathrooms: number | null
+          bedrooms: number | null
+          created_at: string | null
+          current_rent: number | null
+          id: string
+          lease_end: string | null
+          lease_start: string | null
+          market_rent: number | null
+          sort_order: number | null
+          sq_ft: number | null
+          status: string | null
+          tenant_name: string | null
+          unit_number: string
+          uw_id: string
+        }
+        Insert: {
+          bathrooms?: number | null
+          bedrooms?: number | null
+          created_at?: string | null
+          current_rent?: number | null
+          id?: string
+          lease_end?: string | null
+          lease_start?: string | null
+          market_rent?: number | null
+          sort_order?: number | null
+          sq_ft?: number | null
+          status?: string | null
+          tenant_name?: string | null
+          unit_number: string
+          uw_id: string
+        }
+        Update: {
+          bathrooms?: number | null
+          bedrooms?: number | null
+          created_at?: string | null
+          current_rent?: number | null
+          id?: string
+          lease_end?: string | null
+          lease_start?: string | null
+          market_rent?: number | null
+          sort_order?: number | null
+          sq_ft?: number | null
+          status?: string | null
+          tenant_name?: string | null
+          unit_number?: string
+          uw_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_rent_roll_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_scope_of_work: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          estimated_cost: number | null
+          id: string
+          item_name: string
+          sort_order: number | null
+          uw_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          item_name: string
+          sort_order?: number | null
+          uw_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          item_name?: string
+          sort_order?: number | null
+          uw_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_scope_of_work_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_sources_uses: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          line_item: string
+          notes: string | null
+          sort_order: number | null
+          type: string
+          uw_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          line_item: string
+          notes?: string | null
+          sort_order?: number | null
+          type: string
+          uw_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          line_item?: string
+          notes?: string | null
+          sort_order?: number | null
+          type?: string
+          uw_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_sources_uses_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_uw: {
+        Row: {
+          amortization_years: number | null
+          capex_reserve: number | null
+          closing_costs: number | null
+          created_at: string | null
+          created_by: string | null
+          disposition_fee_pct: number | null
+          exit_cap_rate: number | null
+          hold_period_years: number | null
+          id: string
+          interest_rate: number | null
+          io_period_months: number | null
+          lender_name: string | null
+          loan_amount: number | null
+          loan_term_years: number | null
+          loan_type: string | null
+          lot_size_acres: number | null
+          num_units: number | null
+          opportunity_id: string
+          origination_fee_pct: number | null
+          prepay_schedule: string | null
+          prepay_type: string | null
+          property_address: string | null
+          property_city: string | null
+          property_name: string | null
+          property_state: string | null
+          property_type: string | null
+          property_zip: string | null
+          purchase_price: number | null
+          sale_costs_pct: number | null
+          status: string
+          total_sf: number | null
+          updated_at: string | null
+          version: number
+          working_capital: number | null
+          year_built: number | null
+          zoning: string | null
+        }
+        Insert: {
+          amortization_years?: number | null
+          capex_reserve?: number | null
+          closing_costs?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          disposition_fee_pct?: number | null
+          exit_cap_rate?: number | null
+          hold_period_years?: number | null
+          id?: string
+          interest_rate?: number | null
+          io_period_months?: number | null
+          lender_name?: string | null
+          loan_amount?: number | null
+          loan_term_years?: number | null
+          loan_type?: string | null
+          lot_size_acres?: number | null
+          num_units?: number | null
+          opportunity_id: string
+          origination_fee_pct?: number | null
+          prepay_schedule?: string | null
+          prepay_type?: string | null
+          property_address?: string | null
+          property_city?: string | null
+          property_name?: string | null
+          property_state?: string | null
+          property_type?: string | null
+          property_zip?: string | null
+          purchase_price?: number | null
+          sale_costs_pct?: number | null
+          status?: string
+          total_sf?: number | null
+          updated_at?: string | null
+          version?: number
+          working_capital?: number | null
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Update: {
+          amortization_years?: number | null
+          capex_reserve?: number | null
+          closing_costs?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          disposition_fee_pct?: number | null
+          exit_cap_rate?: number | null
+          hold_period_years?: number | null
+          id?: string
+          interest_rate?: number | null
+          io_period_months?: number | null
+          lender_name?: string | null
+          loan_amount?: number | null
+          loan_term_years?: number | null
+          loan_type?: string | null
+          lot_size_acres?: number | null
+          num_units?: number | null
+          opportunity_id?: string
+          origination_fee_pct?: number | null
+          prepay_schedule?: string | null
+          prepay_type?: string | null
+          property_address?: string | null
+          property_city?: string | null
+          property_name?: string | null
+          property_state?: string | null
+          property_type?: string | null
+          property_zip?: string | null
+          purchase_price?: number | null
+          sale_costs_pct?: number | null
+          status?: string
+          total_sf?: number | null
+          updated_at?: string | null
+          version?: number
+          working_capital?: number | null
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_uw_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_commercial_uw_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_pipeline"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_commercial_waterfall: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          hurdle_rate: number | null
+          id: string
+          investor_split: number | null
+          is_catch_up: boolean | null
+          sponsor_split: number | null
+          tier_name: string
+          tier_order: number
+          uw_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          hurdle_rate?: number | null
+          id?: string
+          investor_split?: number | null
+          is_catch_up?: boolean | null
+          sponsor_split?: number | null
+          tier_name: string
+          tier_order: number
+          uw_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          hurdle_rate?: number | null
+          id?: string
+          investor_split?: number | null
+          is_catch_up?: boolean | null
+          sponsor_split?: number | null
+          tier_name?: string
+          tier_order?: number
+          uw_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commercial_waterfall_uw_id_fkey"
+            columns: ["uw_id"]
+            isOneToOne: false
+            referencedRelation: "deal_commercial_uw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delinquency_records: {
         Row: {
           amount_past_due: number
@@ -9205,12 +9666,14 @@ export type Database = {
           loan_type: string | null
           loan_type_interest: string[] | null
           loss_reason: string | null
+          model_type: string | null
           occupancy_pct: number | null
           originator: string | null
           prepayment_penalty_months: number | null
           prepayment_penalty_pct: number | null
           prepayment_penalty_type: string | null
           prepayment_terms: string | null
+          primary_residential_model: string | null
           processor: string | null
           property_id: string | null
           proposed_interest_rate: number | null
@@ -9257,12 +9720,14 @@ export type Database = {
           loan_type?: string | null
           loan_type_interest?: string[] | null
           loss_reason?: string | null
+          model_type?: string | null
           occupancy_pct?: number | null
           originator?: string | null
           prepayment_penalty_months?: number | null
           prepayment_penalty_pct?: number | null
           prepayment_penalty_type?: string | null
           prepayment_terms?: string | null
+          primary_residential_model?: string | null
           processor?: string | null
           property_id?: string | null
           proposed_interest_rate?: number | null
@@ -9309,12 +9774,14 @@ export type Database = {
           loan_type?: string | null
           loan_type_interest?: string[] | null
           loss_reason?: string | null
+          model_type?: string | null
           occupancy_pct?: number | null
           originator?: string | null
           prepayment_penalty_months?: number | null
           prepayment_penalty_pct?: number | null
           prepayment_penalty_type?: string | null
           prepayment_terms?: string | null
+          primary_residential_model?: string | null
           processor?: string | null
           property_id?: string | null
           proposed_interest_rate?: number | null
@@ -12266,6 +12733,200 @@ export type Database = {
           },
         ]
       }
+      task_comments: {
+        Row: {
+          body: string
+          created_at: string | null
+          id: string
+          is_internal: boolean | null
+          task_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          id?: string
+          is_internal?: boolean | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          id?: string
+          is_internal?: boolean | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_documents: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          is_current: boolean | null
+          mime_type: string | null
+          storage_path: string
+          task_id: string | null
+          uploaded_by: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          is_current?: boolean | null
+          mime_type?: string | null
+          storage_path: string
+          task_id?: string | null
+          uploaded_by?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          is_current?: boolean | null
+          mime_type?: string | null
+          storage_path?: string
+          task_id?: string | null
+          uploaded_by?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_documents_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          active_party: string | null
+          amount: number | null
+          amount_currency: string | null
+          approved_at: string | null
+          assignee_role: string | null
+          assignee_user_id: string | null
+          category: string | null
+          completed_at: string | null
+          created_at: string | null
+          decision_note: string | null
+          description: string | null
+          due_date: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          parent_task_id: string | null
+          priority: string | null
+          rejected_at: string | null
+          requestor_user_id: string | null
+          resubmitted_at: string | null
+          revision_count: number | null
+          status: string
+          title: string
+          type: string
+          updated_at: string | null
+          workflow_instance_id: string | null
+          workflow_rule_id: string | null
+        }
+        Insert: {
+          active_party?: string | null
+          amount?: number | null
+          amount_currency?: string | null
+          approved_at?: string | null
+          assignee_role?: string | null
+          assignee_user_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          decision_note?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          parent_task_id?: string | null
+          priority?: string | null
+          rejected_at?: string | null
+          requestor_user_id?: string | null
+          resubmitted_at?: string | null
+          revision_count?: number | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string | null
+          workflow_instance_id?: string | null
+          workflow_rule_id?: string | null
+        }
+        Update: {
+          active_party?: string | null
+          amount?: number | null
+          amount_currency?: string | null
+          approved_at?: string | null
+          assignee_role?: string | null
+          assignee_user_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          decision_note?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          parent_task_id?: string | null
+          priority?: string | null
+          rejected_at?: string | null
+          requestor_user_id?: string | null
+          resubmitted_at?: string | null
+          revision_count?: number | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
+          workflow_instance_id?: string | null
+          workflow_rule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_workflow_rule_id_fkey"
+            columns: ["workflow_rule_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       term_sheet_generations: {
         Row: {
           created_at: string
@@ -12544,6 +13205,507 @@ export type Database = {
           show_reserves_section?: boolean
           updated_at?: string
           version?: number
+        }
+        Relationships: []
+      }
+      unified_card_types: {
+        Row: {
+          applicable_asset_classes: string[] | null
+          capital_side: string
+          card_icon: string | null
+          card_metrics: Json
+          category: string
+          created_at: string
+          description: string | null
+          detail_field_groups: Json
+          detail_tabs: Json
+          id: string
+          label: string
+          slug: string
+          sort_order: number | null
+          status: string
+          updated_at: string
+          uw_fields: Json
+          uw_model_key: string
+          uw_outputs: Json
+        }
+        Insert: {
+          applicable_asset_classes?: string[] | null
+          capital_side: string
+          card_icon?: string | null
+          card_metrics?: Json
+          category: string
+          created_at?: string
+          description?: string | null
+          detail_field_groups?: Json
+          detail_tabs?: Json
+          id?: string
+          label: string
+          slug: string
+          sort_order?: number | null
+          status?: string
+          updated_at?: string
+          uw_fields?: Json
+          uw_model_key: string
+          uw_outputs?: Json
+        }
+        Update: {
+          applicable_asset_classes?: string[] | null
+          capital_side?: string
+          card_icon?: string | null
+          card_metrics?: Json
+          category?: string
+          created_at?: string
+          description?: string | null
+          detail_field_groups?: Json
+          detail_tabs?: Json
+          id?: string
+          label?: string
+          slug?: string
+          sort_order?: number | null
+          status?: string
+          updated_at?: string
+          uw_fields?: Json
+          uw_model_key?: string
+          uw_outputs?: Json
+        }
+        Relationships: []
+      }
+      unified_checklist_templates: {
+        Row: {
+          card_type_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          item_label: string
+          sort_order: number | null
+          stage: string
+        }
+        Insert: {
+          card_type_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          item_label: string
+          sort_order?: number | null
+          stage: string
+        }
+        Update: {
+          card_type_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          item_label?: string
+          sort_order?: number | null
+          stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_checklist_templates_card_type_id_fkey"
+            columns: ["card_type_id"]
+            isOneToOne: false
+            referencedRelation: "unified_card_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_deal_activity: {
+        Row: {
+          activity_type: string
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_activity_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_deal_checklist: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          is_required: boolean | null
+          item_label: string
+          sort_order: number | null
+          template_id: string | null
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          is_required?: boolean | null
+          item_label: string
+          sort_order?: number | null
+          template_id?: string | null
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          is_required?: boolean | null
+          item_label?: string
+          sort_order?: number | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_checklist_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deal_checklist_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "unified_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_deal_relationships: {
+        Row: {
+          created_at: string
+          deal_a_id: string
+          deal_b_id: string
+          id: string
+          notes: string | null
+          relationship_type: string
+        }
+        Insert: {
+          created_at?: string
+          deal_a_id: string
+          deal_b_id: string
+          id?: string
+          notes?: string | null
+          relationship_type: string
+        }
+        Update: {
+          created_at?: string
+          deal_a_id?: string
+          deal_b_id?: string
+          id?: string
+          notes?: string | null
+          relationship_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_relationships_deal_a_id_fkey"
+            columns: ["deal_a_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deal_relationships_deal_b_id_fkey"
+            columns: ["deal_b_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_deal_stage_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          deal_id: string
+          duration_seconds: number | null
+          from_stage: string | null
+          id: string
+          notes: string | null
+          to_stage: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          deal_id: string
+          duration_seconds?: number | null
+          from_stage?: string | null
+          id?: string
+          notes?: string | null
+          to_stage: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          deal_id?: string
+          duration_seconds?: number | null
+          from_stage?: string | null
+          id?: string
+          notes?: string | null
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_stage_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_deal_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          deal_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          sort_order: number | null
+          stage_trigger: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          deal_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          sort_order?: number | null
+          stage_trigger?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          deal_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          sort_order?: number | null
+          stage_trigger?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_tasks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_deals: {
+        Row: {
+          actual_close_date: string | null
+          amount: number | null
+          asset_class: string | null
+          assigned_to: string | null
+          capital_side: string
+          card_type_id: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          deal_number: string | null
+          expected_close_date: string | null
+          id: string
+          loss_reason: string | null
+          name: string
+          notes: string | null
+          primary_contact_id: string | null
+          probability: number | null
+          property_data: Json | null
+          property_id: string | null
+          source: string | null
+          source_detail: string | null
+          stage: string
+          stage_entered_at: string
+          status: string
+          tags: string[] | null
+          updated_at: string
+          uw_data: Json | null
+        }
+        Insert: {
+          actual_close_date?: string | null
+          amount?: number | null
+          asset_class?: string | null
+          assigned_to?: string | null
+          capital_side: string
+          card_type_id: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_number?: string | null
+          expected_close_date?: string | null
+          id?: string
+          loss_reason?: string | null
+          name: string
+          notes?: string | null
+          primary_contact_id?: string | null
+          probability?: number | null
+          property_data?: Json | null
+          property_id?: string | null
+          source?: string | null
+          source_detail?: string | null
+          stage?: string
+          stage_entered_at?: string
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          uw_data?: Json | null
+        }
+        Update: {
+          actual_close_date?: string | null
+          amount?: number | null
+          asset_class?: string | null
+          assigned_to?: string | null
+          capital_side?: string
+          card_type_id?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_number?: string | null
+          expected_close_date?: string | null
+          id?: string
+          loss_reason?: string | null
+          name?: string
+          notes?: string | null
+          primary_contact_id?: string | null
+          probability?: number | null
+          property_data?: Json | null
+          property_id?: string | null
+          source?: string | null
+          source_detail?: string | null
+          stage?: string
+          stage_entered_at?: string
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          uw_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deals_card_type_id_fkey"
+            columns: ["card_type_id"]
+            isOneToOne: false
+            referencedRelation: "unified_card_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deals_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deals_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deals_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "unified_deals_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
+        ]
+      }
+      unified_stage_configs: {
+        Row: {
+          alert_days: number | null
+          description: string | null
+          id: string
+          sort_order: number
+          stage: string
+          warn_days: number | null
+        }
+        Insert: {
+          alert_days?: number | null
+          description?: string | null
+          id?: string
+          sort_order: number
+          stage: string
+          warn_days?: number | null
+        }
+        Update: {
+          alert_days?: number | null
+          description?: string | null
+          id?: string
+          sort_order?: number
+          stage?: string
+          warn_days?: number | null
         }
         Relationships: []
       }
@@ -12832,6 +13994,307 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workflow_definitions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          entity_type: string
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      workflow_instances: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_stage_id: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          previous_stage_id: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_stage_id?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          previous_stage_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_stage_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          previous_stage_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_instances_current_stage_id_fkey"
+            columns: ["current_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_previous_stage_id_fkey"
+            columns: ["previous_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_rules: {
+        Row: {
+          action_type: string
+          assign_to_role: string | null
+          assign_to_user_id: string | null
+          created_at: string | null
+          due_anchor: string | null
+          due_days_offset: number | null
+          execution_order: number | null
+          id: string
+          is_active: boolean | null
+          is_blocking: boolean | null
+          name: string
+          notification_body: string | null
+          notification_title: string | null
+          notification_type: string | null
+          notify_roles: string[] | null
+          notify_user_ids: string[] | null
+          requestor_role: string | null
+          task_category: string | null
+          task_description: string | null
+          task_is_approval: boolean | null
+          task_priority: string | null
+          task_title_template: string | null
+          trigger_days: number | null
+          trigger_stage_id: string | null
+          trigger_type: string
+          updated_at: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          action_type: string
+          assign_to_role?: string | null
+          assign_to_user_id?: string | null
+          created_at?: string | null
+          due_anchor?: string | null
+          due_days_offset?: number | null
+          execution_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_blocking?: boolean | null
+          name: string
+          notification_body?: string | null
+          notification_title?: string | null
+          notification_type?: string | null
+          notify_roles?: string[] | null
+          notify_user_ids?: string[] | null
+          requestor_role?: string | null
+          task_category?: string | null
+          task_description?: string | null
+          task_is_approval?: boolean | null
+          task_priority?: string | null
+          task_title_template?: string | null
+          trigger_days?: number | null
+          trigger_stage_id?: string | null
+          trigger_type: string
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          assign_to_role?: string | null
+          assign_to_user_id?: string | null
+          created_at?: string | null
+          due_anchor?: string | null
+          due_days_offset?: number | null
+          execution_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_blocking?: boolean | null
+          name?: string
+          notification_body?: string | null
+          notification_title?: string | null
+          notification_type?: string | null
+          notify_roles?: string[] | null
+          notify_user_ids?: string[] | null
+          requestor_role?: string | null
+          task_category?: string | null
+          task_description?: string | null
+          task_is_approval?: boolean | null
+          task_priority?: string | null
+          task_title_template?: string | null
+          trigger_days?: number | null
+          trigger_stage_id?: string | null
+          trigger_type?: string
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_rules_trigger_stage_id_fkey"
+            columns: ["trigger_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_rules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_stage_history: {
+        Row: {
+          created_at: string | null
+          from_stage_id: string | null
+          id: string
+          instance_id: string | null
+          note: string | null
+          to_stage_id: string | null
+          transitioned_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          from_stage_id?: string | null
+          id?: string
+          instance_id?: string | null
+          note?: string | null
+          to_stage_id?: string | null
+          transitioned_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          from_stage_id?: string | null
+          id?: string
+          instance_id?: string | null
+          note?: string | null
+          to_stage_id?: string | null
+          transitioned_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_stage_history_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_stages: {
+        Row: {
+          alert_after_days: number | null
+          borrower_label: string | null
+          created_at: string | null
+          id: string
+          is_terminal: boolean | null
+          name: string
+          position: number
+          slug: string
+          warn_after_days: number | null
+          workflow_id: string | null
+        }
+        Insert: {
+          alert_after_days?: number | null
+          borrower_label?: string | null
+          created_at?: string | null
+          id?: string
+          is_terminal?: boolean | null
+          name: string
+          position: number
+          slug: string
+          warn_after_days?: number | null
+          workflow_id?: string | null
+        }
+        Update: {
+          alert_after_days?: number | null
+          borrower_label?: string | null
+          created_at?: string | null
+          id?: string
+          is_terminal?: boolean | null
+          name?: string
+          position?: number
+          slug?: string
+          warn_after_days?: number | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_stages_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -14049,6 +15512,15 @@ export type Database = {
       }
     }
     Functions: {
+      advance_stage: {
+        Args: {
+          p_instance_id: string
+          p_note?: string
+          p_to_stage_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       apply_payment: {
         Args: {
           p_amount_received: number
@@ -14126,6 +15598,16 @@ export type Database = {
       dmetaphone_alt: { Args: { "": string }; Returns: string }
       evaluate_auto_approval: { Args: { p_loan_id: string }; Returns: string }
       exec_ddl: { Args: { sql: string }; Returns: undefined }
+      execute_workflow_trigger: {
+        Args: {
+          p_context?: Json
+          p_instance_id: string
+          p_stage_id: string
+          p_trigger_type: string
+          p_triggered_by: string
+        }
+        Returns: undefined
+      }
       find_potential_duplicates: {
         Args: { target_contact_id: string }
         Returns: {
@@ -14313,6 +15795,15 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soundex: { Args: { "": string }; Returns: string }
+      submit_approval_decision: {
+        Args: {
+          p_decision: string
+          p_note?: string
+          p_task_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       submit_draw_request: {
         Args: {
           p_borrower_notes: string
@@ -14328,6 +15819,17 @@ export type Database = {
       unarchive_notification: {
         Args: { p_notification_id: string }
         Returns: undefined
+      }
+      unified_advance_stage: {
+        Args: { p_deal_id: string; p_new_stage: string; p_notes?: string }
+        Returns: undefined
+      }
+      unified_checklist_progress: {
+        Args: { p_deal_id: string }
+        Returns: {
+          completed: number
+          total: number
+        }[]
       }
       update_user_streak: { Args: { p_user_id: string }; Returns: undefined }
       validate_budget_integrity: {
@@ -15212,7 +16714,6 @@ export const Constants = {
     },
   },
 } as const
-
 // Custom types for tables not yet in generated schema
 
 export interface PricingProgram {

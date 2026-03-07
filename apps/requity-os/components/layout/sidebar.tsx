@@ -131,10 +131,11 @@ const adminNav: NavEntry[] = [
     icon: Settings2,
     basePath: "/admin/operations",
     moduleName: "operations",
-    activePaths: ["/admin/operations/tasks", "/admin/operations/approvals"],
+    activePaths: ["/admin/operations/tasks", "/admin/operations/approvals", "/admin/settings/workflow-builder"],
     children: [
       { label: "Tasks", href: "/admin/operations/tasks" },
       { label: "Approvals", href: "/admin/operations/approvals" },
+      { label: "Workflow Builder", href: "/admin/settings/workflow-builder" },
     ],
   },
 ];
