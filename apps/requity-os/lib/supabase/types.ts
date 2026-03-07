@@ -10965,6 +10965,260 @@ export type Database = {
           },
         ]
       }
+      property_rent_roll_units: {
+        Row: {
+          baths: number | null
+          beds_type: string | null
+          cam_nnn: number | null
+          created_at: string
+          current_monthly_rent: number | null
+          id: string
+          is_vacant: boolean | null
+          lease_end: string | null
+          lease_start: string | null
+          lease_type: string | null
+          market_rent: number | null
+          other_income: number | null
+          rent_roll_id: string
+          sf: number | null
+          sort_order: number | null
+          tenant_name: string | null
+          unit_number: string
+        }
+        Insert: {
+          baths?: number | null
+          beds_type?: string | null
+          cam_nnn?: number | null
+          created_at?: string
+          current_monthly_rent?: number | null
+          id?: string
+          is_vacant?: boolean | null
+          lease_end?: string | null
+          lease_start?: string | null
+          lease_type?: string | null
+          market_rent?: number | null
+          other_income?: number | null
+          rent_roll_id: string
+          sf?: number | null
+          sort_order?: number | null
+          tenant_name?: string | null
+          unit_number: string
+        }
+        Update: {
+          baths?: number | null
+          beds_type?: string | null
+          cam_nnn?: number | null
+          created_at?: string
+          current_monthly_rent?: number | null
+          id?: string
+          is_vacant?: boolean | null
+          lease_end?: string | null
+          lease_start?: string | null
+          lease_type?: string | null
+          market_rent?: number | null
+          other_income?: number | null
+          rent_roll_id?: string
+          sf?: number | null
+          sort_order?: number | null
+          tenant_name?: string | null
+          unit_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_rent_roll_units_rent_roll_id_fkey"
+            columns: ["rent_roll_id"]
+            isOneToOne: false
+            referencedRelation: "property_rent_rolls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_rent_rolls: {
+        Row: {
+          as_of_date: string
+          column_mapping: Json | null
+          created_at: string
+          file_name: string | null
+          id: string
+          is_current: boolean
+          notes: string | null
+          property_id: string
+          source_label: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          as_of_date: string
+          column_mapping?: Json | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          is_current?: boolean
+          notes?: string | null
+          property_id: string
+          source_label?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          as_of_date?: string
+          column_mapping?: Json | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          is_current?: boolean
+          notes?: string | null
+          property_id?: string
+          source_label?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_rent_rolls_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_t12_line_items: {
+        Row: {
+          amount_month_1: number | null
+          amount_month_10: number | null
+          amount_month_11: number | null
+          amount_month_12: number | null
+          amount_month_2: number | null
+          amount_month_3: number | null
+          amount_month_4: number | null
+          amount_month_5: number | null
+          amount_month_6: number | null
+          amount_month_7: number | null
+          amount_month_8: number | null
+          amount_month_9: number | null
+          annual_total: number | null
+          created_at: string
+          exclusion_reason: string | null
+          id: string
+          is_excluded: boolean | null
+          is_income: boolean | null
+          mapped_category: string | null
+          original_row_label: string
+          sort_order: number | null
+          t12_id: string
+        }
+        Insert: {
+          amount_month_1?: number | null
+          amount_month_10?: number | null
+          amount_month_11?: number | null
+          amount_month_12?: number | null
+          amount_month_2?: number | null
+          amount_month_3?: number | null
+          amount_month_4?: number | null
+          amount_month_5?: number | null
+          amount_month_6?: number | null
+          amount_month_7?: number | null
+          amount_month_8?: number | null
+          amount_month_9?: number | null
+          annual_total?: number | null
+          created_at?: string
+          exclusion_reason?: string | null
+          id?: string
+          is_excluded?: boolean | null
+          is_income?: boolean | null
+          mapped_category?: string | null
+          original_row_label: string
+          sort_order?: number | null
+          t12_id: string
+        }
+        Update: {
+          amount_month_1?: number | null
+          amount_month_10?: number | null
+          amount_month_11?: number | null
+          amount_month_12?: number | null
+          amount_month_2?: number | null
+          amount_month_3?: number | null
+          amount_month_4?: number | null
+          amount_month_5?: number | null
+          amount_month_6?: number | null
+          amount_month_7?: number | null
+          amount_month_8?: number | null
+          amount_month_9?: number | null
+          annual_total?: number | null
+          created_at?: string
+          exclusion_reason?: string | null
+          id?: string
+          is_excluded?: boolean | null
+          is_income?: boolean | null
+          mapped_category?: string | null
+          original_row_label?: string
+          sort_order?: number | null
+          t12_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_t12_line_items_t12_id_fkey"
+            columns: ["t12_id"]
+            isOneToOne: false
+            referencedRelation: "property_t12s"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_t12s: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          id: string
+          is_current: boolean
+          month_labels: Json | null
+          notes: string | null
+          period_end: string
+          period_start: string
+          property_id: string
+          source_label: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          is_current?: boolean
+          month_labels?: Json | null
+          notes?: string | null
+          period_end: string
+          period_start: string
+          property_id: string
+          source_label?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          is_current?: boolean
+          month_labels?: Json | null
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          property_id?: string
+          source_label?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_t12s_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servicing_audit_log: {
         Row: {
           action: string
@@ -16291,7 +16545,6 @@ export const Constants = {
     },
   },
 } as const
-
 // Custom types for tables not yet in generated schema
 
 export interface PricingProgram {
