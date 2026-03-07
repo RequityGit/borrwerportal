@@ -43,8 +43,9 @@ export default async function DebtPipelinePage() {
       .eq("role", "admin")
       .order("full_name"),
     admin
-      .from("loan_comments")
-      .select("loan_id"),
+      .from("notes")
+      .select("loan_id")
+      .not("loan_id", "is", null),
   ]);
 
   const profiles: Record<string, string> = {};

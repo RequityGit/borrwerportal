@@ -242,6 +242,7 @@ export function ContactDetailClient({
                 tasks={tasks}
                 contactId={contact.id}
                 contactName={fullName}
+                profiles={profiles}
                 currentUserId={currentUserId}
               />
             </TabsContent>
