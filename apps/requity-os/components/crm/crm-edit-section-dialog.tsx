@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export type CrmFieldType =
   | "text"
@@ -189,6 +190,21 @@ export function CrmEditSectionDialog({
               );
             }
 
+            if (f.fieldType === "date") {
+              return (
+                <div key={f.fieldName} className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">{f.label}</Label>
+                  <div className="col-span-3">
+                    <DatePicker
+                      value={values[f.fieldName] || ""}
+                      onChange={(val) => handleChange(f.fieldName, val)}
+                      placeholder={f.label}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={f.fieldName} className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor={f.fieldName} className="text-right">
@@ -203,9 +219,7 @@ export function CrmEditSectionDialog({
                     type={
                       f.fieldType === "number" || f.fieldType === "currency"
                         ? "number"
-                        : f.fieldType === "date"
-                          ? "date"
-                          : "text"
+                        : "text"
                     }
                     step={f.fieldType === "currency" ? "0.01" : undefined}
                     value={values[f.fieldName] || ""}

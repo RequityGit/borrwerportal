@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { SelectOption } from "./EditableFieldRow";
 
 export type SectionFieldType =
@@ -26,6 +27,7 @@ export type SectionFieldType =
   | "number"
   | "currency"
   | "percent"
+  | "date"
   | "select"
   | "readonly";
 
@@ -189,6 +191,21 @@ export function EditSectionDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+              );
+            }
+
+            if (f.fieldType === "date") {
+              return (
+                <div key={f.fieldName} className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">{f.label}</Label>
+                  <div className="col-span-3">
+                    <DatePicker
+                      value={values[f.fieldName] || ""}
+                      onChange={(val) => handleChange(f.fieldName, val)}
+                      placeholder={f.label}
+                    />
                   </div>
                 </div>
               );
