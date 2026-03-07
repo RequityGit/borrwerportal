@@ -17,7 +17,6 @@ import {
   Contact,
   Banknote,
   Cog,
-  BookOpen,
   Columns3,
   FlaskConical,
 } from "lucide-react";
@@ -213,11 +212,6 @@ export function Sidebar({
   });
 
   // Check if bottom nav items are accessible
-  const showKnowledgeBase =
-    !accessibleModules ||
-    accessibleModules.length === 0 ||
-    accessibleModules.includes("knowledge-base") ||
-    navRole !== "admin";
   const showControlCenter =
     isSuperAdmin &&
     !isViewingAs &&
@@ -301,21 +295,6 @@ export function Sidebar({
 
       {/* Bottom nav items */}
       <div className="px-2 pb-2 space-y-0.5">
-        {showKnowledgeBase && (
-          <Link
-            href="/sops"
-            className={cn(
-              "flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] transition-colors",
-              pathname.startsWith("/sops")
-                ? "bg-sidebar-active text-sidebar-foreground font-semibold"
-                : "text-sidebar-foreground/60 hover:bg-sidebar-hover hover:text-sidebar-foreground font-medium"
-            )}
-            title={collapsed ? "Knowledge Base" : undefined}
-          >
-            <BookOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.5} />
-            {!collapsed && <span>Knowledge Base</span>}
-          </Link>
-        )}
         {showControlCenter && (
           <Link
             href="/control-center"
