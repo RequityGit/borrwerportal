@@ -17,7 +17,6 @@ import {
   Contact,
   Banknote,
   Cog,
-  BookOpen,
   Columns3,
   X,
   User,
@@ -135,11 +134,6 @@ export function MobileSidebar({
         )
       : allNavItems;
 
-  const showKnowledgeBase =
-    !accessibleModules ||
-    accessibleModules.length === 0 ||
-    accessibleModules.includes("knowledge-base") ||
-    navRole !== "admin";
   const showControlCenter =
     isSuperAdmin &&
     !isViewingAs &&
@@ -198,20 +192,6 @@ export function MobileSidebar({
 
         {/* Bottom links */}
         <div className="px-2 pb-2 space-y-0.5">
-          {showKnowledgeBase && (
-            <Link
-              href="/sops"
-              className={cn(
-                "flex items-center gap-2.5 px-3 py-3 rounded-lg text-[13px] transition-colors min-h-[44px]",
-                pathname.startsWith("/sops")
-                  ? "bg-accent text-foreground font-semibold"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground font-medium"
-              )}
-            >
-              <BookOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.5} />
-              <span>Knowledge Base</span>
-            </Link>
-          )}
           {showControlCenter && (
             <Link
               href="/control-center"
