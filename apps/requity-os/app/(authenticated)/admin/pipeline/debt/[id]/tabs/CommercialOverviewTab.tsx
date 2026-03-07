@@ -25,6 +25,19 @@ import {
 } from "../commercial-uw-actions";
 import { computeAnnualDebtService, computeT12NetRevenue, computeT12TotalExpenses, computeT12NOI } from "@/lib/commercial-uw/deal-computations";
 import type { DealIncomeRow, DealExpenseRow, DealUWRecord } from "@/lib/commercial-uw/deal-computations";
+import { UploadPropertyRentRollDialog } from "@/components/admin/property-financials/upload-property-rent-roll-dialog";
+import { UploadPropertyT12Dialog } from "@/components/admin/property-financials/upload-property-t12-dialog";
+import {
+  PropertyFinancialVersions,
+  type RentRollVersion,
+  type T12Version,
+} from "@/components/admin/property-financials/property-financial-versions";
+import {
+  setCurrentRentRoll,
+  setCurrentT12,
+  deletePropertyRentRoll,
+  deletePropertyT12,
+} from "../property-financial-actions";
 
 // ── Types ──
 
@@ -49,10 +62,23 @@ export interface CommercialUWData {
   allVersions: any[];
 }
 
+interface PropertyFinancialsData {
+  rentRolls: RentRollVersion[];
+  currentRentRoll: RentRollVersion | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentRentRollUnits: any[];
+  t12s: T12Version[];
+  currentT12: T12Version | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentT12LineItems: any[];
+}
+
 interface CommercialOverviewTabProps {
   data: CommercialUWData;
   dealId: string;
   currentUserId: string;
+  propertyFinancials?: PropertyFinancialsData | null;
+  propertyId?: string | null;
 }
 
 // ── Helpers ──
@@ -96,7 +122,7 @@ function EditButton({ onClick }: { onClick: () => void }) {
 
 // ── Main Component ──
 
-export function CommercialOverviewTab({ data, dealId, currentUserId }: CommercialOverviewTabProps) {
+export function CommercialOverviewTab({ data, dealId, currentUserId, propertyFinancials, propertyId }: CommercialOverviewTabProps) {
   const { uw, income, expenses, rentRoll, scopeOfWork, allVersions } = data;
   const { toast } = useToast();
   const router = useRouter();
@@ -107,6 +133,56 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
   const [showAllUnits, setShowAllUnits] = useState(false);
   const [creatingVersion, setCreatingVersion] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [uploadRROpen, setUploadRROpen] = useState(false);
+  const [uploadT12Open, setUploadT12Open] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+
+  // Property-level financial data
+  const pf = propertyFinancials;
+  const currentPropRR = pf?.currentRentRoll ?? null;
+  const propRRUnits = pf?.currentRentRollUnits ?? [];
+  const currentPropT12 = pf?.currentT12 ?? null;
+  const propT12LineItems = pf?.currentT12LineItems ?? [];
+
+  // Compute property T12 income/expense aggregates
+  const propT12Income = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propT12LineItems.filter((item: any) => item.is_income && !item.is_excluded),
+    [propT12LineItems]
+  );
+  const propT12Expenses = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propT12LineItems.filter((item: any) => !item.is_income && !item.is_excluded),
+    [propT12LineItems]
+  );
+  const propT12NetRevenue = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propT12Income.reduce((sum: number, item: any) => sum + (Number(item.annual_total) || 0), 0),
+    [propT12Income]
+  );
+  const propT12TotalExpenses = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propT12Expenses.reduce((sum: number, item: any) => sum + (Number(item.annual_total) || 0), 0),
+    [propT12Expenses]
+  );
+  const propT12NOI = useMemo(() => propT12NetRevenue - propT12TotalExpenses, [propT12NetRevenue, propT12TotalExpenses]);
+
+  // Property rent roll totals
+  const propRRTotalCurrentRent = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propRRUnits.reduce((sum: number, u: any) => sum + (Number(u.current_monthly_rent) || 0), 0),
+    [propRRUnits]
+  );
+  const propRRTotalMarketRent = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propRRUnits.reduce((sum: number, u: any) => sum + (Number(u.market_rent) || 0), 0),
+    [propRRUnits]
+  );
+  const propRROccupied = useMemo(() =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    propRRUnits.filter((u: any) => !u.is_vacant).length,
+    [propRRUnits]
+  );
 
   // Computed values
   const incomeRows: DealIncomeRow[] = useMemo(() =>
@@ -370,9 +446,27 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
           {/* T12 Income */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: T.text.muted }}>
-                T12 Income
+              <div className="flex items-center gap-2">
+                <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: T.text.muted }}>
+                  T12 Income
+                </div>
+                {currentPropT12 && (
+                  <span className="rounded px-1.5 py-px text-[10px] font-medium num" style={{ backgroundColor: "rgba(59,130,246,0.12)", color: T.accent.blue }}>
+                    {new Date(currentPropT12.period_start + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    {" – "}
+                    {new Date(currentPropT12.period_end + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                )}
               </div>
+              {propertyId && (
+                <button
+                  onClick={() => setUploadT12Open(true)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer border-0"
+                  style={{ backgroundColor: T.bg.elevated, color: T.text.secondary, border: `1px solid ${T.bg.border}` }}
+                >
+                  Upload T12
+                </button>
+              )}
             </div>
             <div className="overflow-hidden rounded-lg" style={{ border: `1px solid ${T.bg.borderSubtle}` }}>
               <table className="w-full border-collapse">
@@ -383,22 +477,40 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
                   </tr>
                 </thead>
                 <tbody>
-                  {incomeRows.map((row, i) => (
-                    <tr key={row.id || i} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
-                      <td className="text-[13px] px-3 py-2" style={{ color: T.text.primary }}>{row.line_item}</td>
-                      <td
-                        className="text-right text-[13px] num px-3 py-2"
-                        style={{ color: row.is_deduction ? T.accent.red : T.text.primary }}
-                      >
-                        {row.is_deduction ? `(${fmtCurrency(Math.abs(row.t12_amount))})` : fmtCurrency(row.t12_amount)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Property-level T12 income rows (if available) */}
+                  {propT12Income.length > 0 ? (
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    propT12Income.map((item: any, i: number) => (
+                      <tr key={item.id || `prop-inc-${i}`} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                        <td className="text-[13px] px-3 py-2" style={{ color: T.text.primary }}>
+                          {item.mapped_category ? (item.mapped_category as string).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : item.original_row_label}
+                        </td>
+                        <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>
+                          {fmtCurrency(item.annual_total)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    /* Deal-level UW income rows (fallback) */
+                    incomeRows.map((row, i) => (
+                      <tr key={row.id || i} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                        <td className="text-[13px] px-3 py-2" style={{ color: T.text.primary }}>{row.line_item}</td>
+                        <td
+                          className="text-right text-[13px] num px-3 py-2"
+                          style={{ color: row.is_deduction ? T.accent.red : T.text.primary }}
+                        >
+                          {row.is_deduction ? `(${fmtCurrency(Math.abs(row.t12_amount))})` : fmtCurrency(row.t12_amount)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
                 <tfoot>
                   <tr style={{ backgroundColor: T.bg.elevated, borderTop: `1px solid ${T.bg.border}` }}>
                     <td className="text-[13px] font-semibold px-3 py-2" style={{ color: T.text.primary }}>Net Revenue</td>
-                    <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(t12NetRevenue)}</td>
+                    <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>
+                      {fmtCurrency(propT12Income.length > 0 ? propT12NetRevenue : t12NetRevenue)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -421,26 +533,45 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
                   </tr>
                 </thead>
                 <tbody>
-                  {expenseRows.map((row, i) => (
-                    <tr key={row.id || i} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
-                      <td className="text-[13px] px-3 py-2" style={{ color: T.text.primary }}>
-                        {row.category}
-                        {row.is_percentage && <span className="text-[11px] ml-1" style={{ color: T.text.muted }}>(% of EGI)</span>}
-                      </td>
-                      <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>
-                        {fmtCurrency(row.t12_amount)}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Property-level T12 expense rows (if available) */}
+                  {propT12Expenses.length > 0 ? (
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    propT12Expenses.map((item: any, i: number) => (
+                      <tr key={item.id || `prop-exp-${i}`} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                        <td className="text-[13px] px-3 py-2" style={{ color: T.text.primary }}>
+                          {item.mapped_category ? (item.mapped_category as string).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : item.original_row_label}
+                        </td>
+                        <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>
+                          {fmtCurrency(item.annual_total)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    expenseRows.map((row, i) => (
+                      <tr key={row.id || i} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                        <td className="text-[13px] px-3 py-2" style={{ color: T.text.primary }}>
+                          {row.category}
+                          {row.is_percentage && <span className="text-[11px] ml-1" style={{ color: T.text.muted }}>(% of EGI)</span>}
+                        </td>
+                        <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>
+                          {fmtCurrency(row.t12_amount)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
                 <tfoot>
                   <tr style={{ backgroundColor: T.bg.elevated, borderTop: `1px solid ${T.bg.border}` }}>
                     <td className="text-[13px] font-semibold px-3 py-2" style={{ color: T.text.primary }}>Total Expenses</td>
-                    <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(t12TotalExpenses)}</td>
+                    <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>
+                      {fmtCurrency(propT12Expenses.length > 0 ? propT12TotalExpenses : t12TotalExpenses)}
+                    </td>
                   </tr>
                   <tr style={{ backgroundColor: T.bg.elevated, borderTop: `2px solid ${T.bg.border}` }}>
                     <td className="text-[13px] font-semibold px-3 py-2" style={{ color: T.text.primary }}>Current NOI</td>
-                    <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(t12NOI)}</td>
+                    <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>
+                      {fmtCurrency(propT12LineItems.length > 0 ? propT12NOI : t12NOI)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -450,10 +581,33 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
           {/* Rent Roll */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: T.text.muted }}>
-                Rent Roll {rentRoll.length > 0 && <span className="normal-case font-normal">— {rentRoll.length} units</span>}
+              <div className="flex items-center gap-2">
+                <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: T.text.muted }}>
+                  Rent Roll
+                  {(propRRUnits.length > 0 ? propRRUnits : rentRoll).length > 0 && (
+                    <span className="normal-case font-normal">
+                      {" "}— {(propRRUnits.length > 0 ? propRRUnits : rentRoll).length} units
+                    </span>
+                  )}
+                </div>
+                {currentPropRR && (
+                  <span className="rounded px-1.5 py-px text-[10px] font-medium num" style={{ backgroundColor: "rgba(59,130,246,0.12)", color: T.accent.blue }}>
+                    As of {new Date(currentPropRR.as_of_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                )}
               </div>
-              <EditButton onClick={() => setEditRentRollOpen(true)} />
+              <div className="flex items-center gap-1.5">
+                {propertyId && (
+                  <button
+                    onClick={() => setUploadRROpen(true)}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer border-0"
+                    style={{ backgroundColor: T.bg.elevated, color: T.text.secondary, border: `1px solid ${T.bg.border}` }}
+                  >
+                    Upload
+                  </button>
+                )}
+                <EditButton onClick={() => setEditRentRollOpen(true)} />
+              </div>
             </div>
             <div className="overflow-hidden rounded-lg" style={{ border: `1px solid ${T.bg.borderSubtle}` }}>
               <table className="w-full border-collapse">
@@ -468,46 +622,97 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
                   </tr>
                 </thead>
                 <tbody>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {visibleUnits.map((unit: any, i: number) => (
-                    <tr key={unit.id || i} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
-                      <td className="text-[13px] px-3 py-2 font-medium" style={{ color: T.text.primary }}>{unit.unit_number}</td>
-                      <td className="text-[13px] px-3 py-2" style={{ color: T.text.secondary }}>
-                        {unit.bedrooms != null ? `${unit.bedrooms}/${unit.bathrooms ?? 1}` : "—"}
-                      </td>
-                      <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.secondary }}>
-                        {unit.sq_ft ? Number(unit.sq_ft).toLocaleString() : "—"}
-                      </td>
-                      <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(unit.current_rent)}</td>
-                      <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(unit.market_rent)}</td>
-                      <td className="text-[13px] px-3 py-2">
-                        <StatusDot status={unit.status} />
-                      </td>
-                    </tr>
-                  ))}
-                  {!showAllUnits && hiddenCount > 0 && (
-                    <tr>
-                      <td colSpan={6} className="text-center py-2">
-                        <button
-                          onClick={() => setShowAllUnits(true)}
-                          className="text-[13px] font-medium cursor-pointer border-0 bg-transparent flex items-center gap-1 mx-auto"
-                          style={{ color: T.accent.blue }}
-                        >
-                          <ChevronDown size={14} strokeWidth={1.5} />
-                          Show {hiddenCount} more units
-                        </button>
-                      </td>
-                    </tr>
+                  {/* Property-level rent roll units (if available) */}
+                  {propRRUnits.length > 0 ? (
+                    <>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {(showAllUnits ? propRRUnits : propRRUnits.slice(0, INITIAL_UNITS)).map((unit: any, i: number) => (
+                        <tr key={unit.id || `prop-rr-${i}`} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                          <td className="text-[13px] px-3 py-2 font-medium" style={{ color: T.text.primary }}>{unit.unit_number}</td>
+                          <td className="text-[13px] px-3 py-2" style={{ color: T.text.secondary }}>
+                            {unit.beds_type || "—"}
+                          </td>
+                          <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.secondary }}>
+                            {unit.sf ? Number(unit.sf).toLocaleString() : "—"}
+                          </td>
+                          <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(unit.current_monthly_rent)}</td>
+                          <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(unit.market_rent)}</td>
+                          <td className="text-[13px] px-3 py-2">
+                            <StatusDot status={unit.is_vacant ? "vacant" : "occupied"} />
+                          </td>
+                        </tr>
+                      ))}
+                      {!showAllUnits && propRRUnits.length > INITIAL_UNITS && (
+                        <tr>
+                          <td colSpan={6} className="text-center py-2">
+                            <button
+                              onClick={() => setShowAllUnits(true)}
+                              className="text-[13px] font-medium cursor-pointer border-0 bg-transparent flex items-center gap-1 mx-auto"
+                              style={{ color: T.accent.blue }}
+                            >
+                              <ChevronDown size={14} strokeWidth={1.5} />
+                              Show {propRRUnits.length - INITIAL_UNITS} more units
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {visibleUnits.map((unit: any, i: number) => (
+                        <tr key={unit.id || i} style={{ borderBottom: `1px solid ${T.bg.borderSubtle}` }}>
+                          <td className="text-[13px] px-3 py-2 font-medium" style={{ color: T.text.primary }}>{unit.unit_number}</td>
+                          <td className="text-[13px] px-3 py-2" style={{ color: T.text.secondary }}>
+                            {unit.bedrooms != null ? `${unit.bedrooms}/${unit.bathrooms ?? 1}` : "—"}
+                          </td>
+                          <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.secondary }}>
+                            {unit.sq_ft ? Number(unit.sq_ft).toLocaleString() : "—"}
+                          </td>
+                          <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(unit.current_rent)}</td>
+                          <td className="text-right text-[13px] num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(unit.market_rent)}</td>
+                          <td className="text-[13px] px-3 py-2">
+                            <StatusDot status={unit.status} />
+                          </td>
+                        </tr>
+                      ))}
+                      {!showAllUnits && hiddenCount > 0 && (
+                        <tr>
+                          <td colSpan={6} className="text-center py-2">
+                            <button
+                              onClick={() => setShowAllUnits(true)}
+                              className="text-[13px] font-medium cursor-pointer border-0 bg-transparent flex items-center gap-1 mx-auto"
+                              style={{ color: T.accent.blue }}
+                            >
+                              <ChevronDown size={14} strokeWidth={1.5} />
+                              Show {hiddenCount} more units
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )}
                 </tbody>
-                {rentRoll.length > 0 && (
+                {(propRRUnits.length > 0 || rentRoll.length > 0) && (
                   <tfoot>
                     <tr style={{ backgroundColor: T.bg.elevated, borderTop: `1px solid ${T.bg.border}` }}>
-                      <td colSpan={3} className="text-[13px] font-semibold px-3 py-2" style={{ color: T.text.primary }}>
-                        Total ({occupiedCount}/{rentRoll.length} occupied · {rentRoll.length > 0 ? ((occupiedCount / rentRoll.length) * 100).toFixed(0) : 0}%)
-                      </td>
-                      <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(totalCurrentRent)}/mo</td>
-                      <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(totalMarketRent)}/mo</td>
+                      {propRRUnits.length > 0 ? (
+                        <>
+                          <td colSpan={3} className="text-[13px] font-semibold px-3 py-2" style={{ color: T.text.primary }}>
+                            Total ({propRROccupied}/{propRRUnits.length} occupied · {propRRUnits.length > 0 ? ((propRROccupied / propRRUnits.length) * 100).toFixed(0) : 0}%)
+                          </td>
+                          <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(propRRTotalCurrentRent)}/mo</td>
+                          <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(propRRTotalMarketRent)}/mo</td>
+                        </>
+                      ) : (
+                        <>
+                          <td colSpan={3} className="text-[13px] font-semibold px-3 py-2" style={{ color: T.text.primary }}>
+                            Total ({occupiedCount}/{rentRoll.length} occupied · {rentRoll.length > 0 ? ((occupiedCount / rentRoll.length) * 100).toFixed(0) : 0}%)
+                          </td>
+                          <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(totalCurrentRent)}/mo</td>
+                          <td className="text-right text-[13px] font-semibold num px-3 py-2" style={{ color: T.text.primary }}>{fmtCurrency(totalMarketRent)}/mo</td>
+                        </>
+                      )}
                       <td />
                     </tr>
                   </tfoot>
@@ -695,6 +900,68 @@ export function CommercialOverviewTab({ data, dealId, currentUserId }: Commercia
           </div>
         </div>
       </div>
+
+      {/* ━━━ PROPERTY FINANCIAL VERSIONS ━━━ */}
+      {propertyId && pf && (pf.rentRolls.length > 0 || pf.t12s.length > 0) && (
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{ border: `1px solid ${T.bg.border}`, backgroundColor: T.bg.surface }}
+        >
+          <div
+            className="flex items-center justify-between px-5 py-3.5 cursor-pointer"
+            style={{ borderBottom: showVersions ? `1px solid ${T.bg.borderSubtle}` : "none" }}
+            onClick={() => setShowVersions(!showVersions)}
+          >
+            <div className="flex items-center gap-2">
+              <Clock size={16} color={T.text.muted} strokeWidth={1.5} />
+              <span className="text-sm font-semibold" style={{ color: T.text.primary }}>
+                Property Financial History
+              </span>
+              <span className="text-[11px] num ml-1" style={{ color: T.text.muted }}>
+                {pf.rentRolls.length} rent roll{pf.rentRolls.length !== 1 ? "s" : ""} · {pf.t12s.length} T12{pf.t12s.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <ChevronDown
+              size={16}
+              color={T.text.muted}
+              strokeWidth={1.5}
+              style={{ transform: showVersions ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+            />
+          </div>
+          {showVersions && (
+            <div className="px-5 py-4">
+              <PropertyFinancialVersions
+                rentRolls={pf.rentRolls}
+                t12s={pf.t12s}
+                onSetCurrentRR={setCurrentRentRoll}
+                onSetCurrentT12={setCurrentT12}
+                onDeleteRR={deletePropertyRentRoll}
+                onDeleteT12={deletePropertyT12}
+                onUploadRR={() => setUploadRROpen(true)}
+                onUploadT12={() => setUploadT12Open(true)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ━━━ UPLOAD DIALOGS ━━━ */}
+      {propertyId && (
+        <>
+          <UploadPropertyRentRollDialog
+            open={uploadRROpen}
+            onOpenChange={setUploadRROpen}
+            propertyId={propertyId}
+            userId={currentUserId}
+          />
+          <UploadPropertyT12Dialog
+            open={uploadT12Open}
+            onOpenChange={setUploadT12Open}
+            propertyId={propertyId}
+            userId={currentUserId}
+          />
+        </>
+      )}
 
       {/* ━━━ EDIT DIALOGS ━━━ */}
       <PropertyEditDialog

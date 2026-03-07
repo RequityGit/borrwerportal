@@ -140,6 +140,7 @@ export default async function DealDetailPage({ params }: PageProps) {
     dealRaw = {
       id: opp.id,
       opportunity_id: opp.id,
+      property_id: opp.property_id ?? null,
       loan_number: null,
       deal_name: opp.deal_name,
       stage: OPPORTUNITY_TO_STAGE[opp.stage] ?? opp.stage,
@@ -442,6 +443,75 @@ export default async function DealDetailPage({ params }: PageProps) {
     }
   }
 
+  // ─── Fetch property-level financial snapshots (Rent Roll + T12) ───
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let propertyFinancials: any = null;
+  const propertyId = d.property_id ?? null;
+  if (propertyId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adminPF = createAdminClient() as any;
+    const [rrRes, t12Res] = await Promise.all([
+      adminPF
+        .from("property_rent_rolls")
+        .select("id, as_of_date, source_label, file_name, is_current, created_at")
+        .eq("property_id", propertyId)
+        .order("created_at", { ascending: false }),
+      adminPF
+        .from("property_t12s")
+        .select("id, period_start, period_end, source_label, file_name, is_current, created_at")
+        .eq("property_id", propertyId)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const allRentRolls = rrRes.data ?? [];
+    const allT12s = t12Res.data ?? [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentRR = allRentRolls.find((r: any) => r.is_current) ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentT12 = allT12s.find((t: any) => t.is_current) ?? null;
+
+    let currentRRUnits: unknown[] = [];
+    let currentT12LineItems: unknown[] = [];
+
+    const parallelFetches = [];
+    if (currentRR) {
+      parallelFetches.push(
+        adminPF
+          .from("property_rent_roll_units")
+          .select("*")
+          .eq("rent_roll_id", currentRR.id)
+          .order("sort_order")
+      );
+    } else {
+      parallelFetches.push(Promise.resolve({ data: [] }));
+    }
+    if (currentT12) {
+      parallelFetches.push(
+        adminPF
+          .from("property_t12_line_items")
+          .select("*")
+          .eq("t12_id", currentT12.id)
+          .order("sort_order")
+      );
+    } else {
+      parallelFetches.push(Promise.resolve({ data: [] }));
+    }
+
+    const [rrUnitsRes, t12ItemsRes] = await Promise.all(parallelFetches);
+    currentRRUnits = rrUnitsRes.data ?? [];
+    currentT12LineItems = t12ItemsRes.data ?? [];
+
+    propertyFinancials = {
+      rentRolls: allRentRolls,
+      currentRentRoll: currentRR,
+      currentRentRollUnits: currentRRUnits,
+      t12s: allT12s,
+      currentT12: currentT12,
+      currentT12LineItems: currentT12LineItems,
+    };
+  }
+
   // ─── Resolve names ───
   const userIdsSet = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -567,6 +637,8 @@ export default async function DealDetailPage({ params }: PageProps) {
       currentUserInitials={currentUserInitials}
       adminProfiles={adminProfiles}
       commercialUW={commercialUWData}
+      propertyFinancials={propertyFinancials}
+      propertyId={propertyId}
     />
   );
 }

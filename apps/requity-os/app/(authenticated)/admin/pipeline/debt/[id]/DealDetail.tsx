@@ -59,6 +59,9 @@ interface DealDetailProps {
   currentUserInitials: string;
   adminProfiles?: TeamProfile[];
   commercialUW?: CommercialUWData | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  propertyFinancials?: any;
+  propertyId?: string | null;
 }
 
 interface TabConfig {
@@ -82,6 +85,8 @@ export function DealDetail({
   currentUserInitials,
   adminProfiles,
   commercialUW,
+  propertyFinancials,
+  propertyId,
 }: DealDetailProps) {
   const [tab, setTab] = useState(getDefaultTab(initialDeal.stage));
   const [deal, setDeal] = useState<DealData>(initialDeal);
@@ -205,7 +210,7 @@ export function DealDetail({
     switch (tab) {
       case "overview":
         if (isCommercial && commercialUW) {
-          return <CommercialOverviewTab data={commercialUW} dealId={deal.id} currentUserId={currentUserId} />;
+          return <CommercialOverviewTab data={commercialUW} dealId={deal.id} currentUserId={currentUserId} propertyFinancials={propertyFinancials} propertyId={propertyId ?? null} />;
         }
         return <OverviewTab deal={deal} onSave={onSave} onSaveRelated={onSaveRelated} />;
       case "underwriting":
