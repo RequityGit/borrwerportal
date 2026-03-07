@@ -81,7 +81,7 @@ export function PipelineView({
 
   const handleDealClick = useCallback(
     (deal: UnifiedDeal) => {
-      router.push(`/admin/pipeline-v2/${deal.id}`);
+      router.push(`/admin/pipeline/${deal.id}`);
     },
     [router]
   );

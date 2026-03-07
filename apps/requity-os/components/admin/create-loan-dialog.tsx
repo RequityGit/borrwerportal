@@ -255,7 +255,7 @@ export function CreateLoanDialog({
       toast({ title: "Loan created successfully" });
       setOpen(false);
       resetForm();
-      router.push(`/admin/pipeline/debt/${newLoan.id}`);
+      router.push(`/admin/pipeline/${newLoan.id}`);
     } catch (err: any) {
       console.error("Loan creation error:", err);
       toast({

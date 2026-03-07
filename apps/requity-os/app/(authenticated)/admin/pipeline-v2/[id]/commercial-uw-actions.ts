@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
-// Helper to bypass type checking for new tables not yet in generated types
+// Helper to bypass type checking for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function db(): any { return createAdminClient(); }
 
@@ -29,6 +29,54 @@ const DEFAULT_WATERFALL_TIERS = [
   { tier_order: 3, tier_name: "Catch-Up", hurdle_rate: null, sponsor_split: 0.50, investor_split: 0.50, is_catch_up: true, description: "Until sponsor reaches 20% of total profit" },
   { tier_order: 4, tier_name: "Remaining Profits", hurdle_rate: null, sponsor_split: 0.20, investor_split: 0.80, is_catch_up: false, description: "Standard 80/20 split" },
 ];
+
+export async function initCommercialUW(
+  dealId: string,
+  userId: string
+): Promise<{ data: { id: string } | null; error: string | null }> {
+  const supabase = db();
+
+  const { data: existing } = await supabase
+    .from("deal_commercial_uw")
+    .select("id")
+    .eq("opportunity_id", dealId)
+    .eq("version", 1)
+    .maybeSingle();
+
+  if (existing) return { data: { id: existing.id }, error: null };
+
+  const { data: uw, error: uwError } = await supabase
+    .from("deal_commercial_uw")
+    .insert({
+      opportunity_id: dealId,
+      version: 1,
+      status: "draft",
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+
+  if (uwError || !uw) {
+    return { data: null, error: uwError?.message ?? "Failed to create UW record" };
+  }
+
+  // Seed default rows
+  const incomeRows = DEFAULT_INCOME_ROWS.map((row) => ({
+    uw_id: uw.id, ...row, t12_amount: 0, year_1_amount: 0, growth_rate: 0,
+  }));
+  await supabase.from("deal_commercial_income").insert(incomeRows);
+
+  const expenseRows = DEFAULT_EXPENSE_ROWS.map((row) => ({
+    uw_id: uw.id, ...row, t12_amount: 0, year_1_amount: 0, growth_rate: 0,
+  }));
+  await supabase.from("deal_commercial_expenses").insert(expenseRows);
+
+  const waterfallRows = DEFAULT_WATERFALL_TIERS.map((t) => ({ uw_id: uw.id, ...t }));
+  await supabase.from("deal_commercial_waterfall").insert(waterfallRows);
+
+  revalidatePath(`/admin/pipeline/${dealId}`);
+  return { data: { id: uw.id }, error: null };
+}
 
 /**
  * Ensures a commercial UW record exists for the given opportunity.
@@ -104,8 +152,6 @@ export async function upsertIncomeRows(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
-  // Delete existing and re-insert for simplicity
   await supabase.from("deal_commercial_income").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -134,7 +180,6 @@ export async function upsertExpenseRows(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_expenses").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -166,7 +211,6 @@ export async function upsertRentRoll(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_rent_roll").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -191,7 +235,6 @@ export async function upsertScopeOfWork(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_scope_of_work").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -217,7 +260,6 @@ export async function upsertSourcesUses(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_sources_uses").delete().eq("uw_id", uwId);
 
   if (rows.length > 0) {
@@ -245,7 +287,6 @@ export async function upsertWaterfall(
   }[]
 ): Promise<{ error: string | null }> {
   const supabase = db();
-
   await supabase.from("deal_commercial_waterfall").delete().eq("uw_id", uwId);
 
   if (tiers.length > 0) {
@@ -257,5 +298,63 @@ export async function upsertWaterfall(
 
   await supabase.from("deal_commercial_uw").update({ updated_at: new Date().toISOString() }).eq("id", uwId);
 
+  return { error: null };
+}
+
+export async function createNewVersion(
+  dealId: string,
+  userId: string
+): Promise<{ data: { id: string; version: number } | null; error: string | null }> {
+  const supabase = db();
+
+  const { data: latest } = await supabase
+    .from("deal_commercial_uw")
+    .select("version")
+    .eq("opportunity_id", dealId)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const newVersion = (latest?.version ?? 0) + 1;
+
+  const { data: uw, error } = await supabase
+    .from("deal_commercial_uw")
+    .insert({
+      opportunity_id: dealId,
+      version: newVersion,
+      status: "draft",
+      created_by: userId,
+    })
+    .select("id, version")
+    .single();
+
+  if (error || !uw) {
+    return { data: null, error: error?.message ?? "Failed to create version" };
+  }
+
+  revalidatePath(`/admin/pipeline/${dealId}`);
+  return { data: { id: uw.id, version: uw.version }, error: null };
+}
+
+export async function activateVersion(
+  uwId: string,
+  dealId: string
+): Promise<{ error: string | null }> {
+  const supabase = db();
+
+  await supabase
+    .from("deal_commercial_uw")
+    .update({ status: "archived", updated_at: new Date().toISOString() })
+    .eq("opportunity_id", dealId)
+    .neq("id", uwId);
+
+  const { error } = await supabase
+    .from("deal_commercial_uw")
+    .update({ status: "active", updated_at: new Date().toISOString() })
+    .eq("id", uwId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/pipeline/${dealId}`);
   return { error: null };
 }

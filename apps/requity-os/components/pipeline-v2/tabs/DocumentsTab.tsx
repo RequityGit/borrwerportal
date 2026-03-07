@@ -1,0 +1,187 @@
+"use client";
+
+import { useState, useRef, useTransition } from "react";
+import { Upload, FileText, Eye, Download, Trash2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  uploadDealDocumentV2,
+  deleteDealDocumentV2,
+} from "@/app/(authenticated)/admin/pipeline-v2/[id]/actions";
+
+interface DealDocument {
+  id: string;
+  deal_id: string;
+  document_name: string;
+  file_url: string;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+  category: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+  _uploaded_by_name?: string | null;
+}
+
+interface DocumentsTabProps {
+  documents: DealDocument[];
+  dealId: string;
+}
+
+function formatFileSize(bytes: number | null | undefined): string {
+  if (bytes == null) return "\u2014";
+  if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + " MB";
+  if (bytes >= 1024) return Math.round(bytes / 1024) + " KB";
+  return bytes + " B";
+}
+
+function formatDate(d: string | null | undefined): string {
+  if (!d) return "\u2014";
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function DocumentsTab({ documents, dealId }: DocumentsTabProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, startUpload] = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    startUpload(async () => {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("dealId", dealId);
+
+        const result = await uploadDealDocumentV2(formData);
+        if (result.error) {
+          toast.error(`Failed to upload ${file.name}: ${result.error}`);
+        } else {
+          toast.success(`Uploaded ${file.name}`);
+        }
+      }
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleDelete(docId: string, docName: string) {
+    setDeletingId(docId);
+    const result = await deleteDealDocumentV2(docId);
+    if (result.error) {
+      toast.error(`Failed to delete: ${result.error}`);
+    } else {
+      toast.success(`Deleted ${docName}`);
+    }
+    setDeletingId(null);
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Upload zone */}
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="cursor-pointer rounded-xl border-2 border-dashed border-border bg-card px-5 py-8 text-center transition-colors hover:bg-muted/50"
+      >
+        {uploading ? (
+          <Loader2 className="mx-auto h-7 w-7 animate-spin text-muted-foreground" />
+        ) : (
+          <Upload className="mx-auto h-7 w-7 text-muted-foreground" strokeWidth={1.5} />
+        )}
+        <div className="mt-2 text-sm font-medium text-foreground">
+          {uploading ? "Uploading..." : "Drop files here or click to upload"}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          PDF, DOCX, XLSX up to 25MB
+        </div>
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
+      {/* Document list */}
+      <div className="rounded-xl border bg-card">
+        <div className="flex items-center gap-2 border-b border-border/50 px-5 py-3">
+          <FileText className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+          <span className="text-sm font-medium">
+            Documents ({documents.length})
+          </span>
+        </div>
+
+        {documents.length === 0 && (
+          <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+            No documents uploaded yet.
+          </div>
+        )}
+
+        {documents.map((doc, i) => (
+          <div
+            key={doc.id}
+            className={cn(
+              "flex items-center gap-3 px-5 py-3",
+              i < documents.length - 1 && "border-b border-border/50"
+            )}
+          >
+            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium text-foreground">
+                {doc.document_name}
+              </div>
+              <div className="text-[11px] num text-muted-foreground">
+                {doc._uploaded_by_name || "\u2014"} &middot; {formatDate(doc.created_at)} &middot; {formatFileSize(doc.file_size_bytes)}
+              </div>
+            </div>
+            {doc.category && doc.category !== "general" && (
+              <Badge variant="outline" className="text-[10px] uppercase">
+                {doc.category}
+              </Badge>
+            )}
+            {doc.file_url && (
+              <a
+                href={doc.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </a>
+            )}
+            {doc.file_url && (
+              <a
+                href={doc.file_url}
+                download
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </a>
+            )}
+            <button
+              onClick={() => handleDelete(doc.id, doc.document_name)}
+              disabled={deletingId === doc.id}
+              className="p-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer bg-transparent border-0"
+            >
+              {deletingId === doc.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+              )}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

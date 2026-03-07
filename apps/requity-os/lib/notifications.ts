@@ -133,7 +133,7 @@ export function getNotificationRoute(
     switch (entity_type) {
       case "loan":
         if (activeRole === "borrower") return `/borrower/loans/${entity_id}`;
-        return `/admin/pipeline/debt/${entity_id}`;
+        return `/admin/pipeline/${entity_id}`;
 
       case "borrower":
         if (isAdmin) return `/admin/borrowers/${entity_id}`;
@@ -153,7 +153,7 @@ export function getNotificationRoute(
         if (loanMatch) {
           const loanId = loanMatch[1];
           if (activeRole === "borrower") return `/borrower/loans/${loanId}`;
-          return `/admin/pipeline/debt/${loanId}?condition=${entity_id}`;
+          return `/admin/pipeline/${loanId}?condition=${entity_id}`;
         }
         if (isAdmin) return "/admin/conditions";
         return ROLE_DASHBOARDS[activeRole] ?? "/admin/dashboard";
