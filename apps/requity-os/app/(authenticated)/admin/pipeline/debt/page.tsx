@@ -42,10 +42,10 @@ export default async function DebtPipelinePage() {
       .select("id, full_name")
       .eq("role", "admin")
       .order("full_name"),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
-      .from("loan_comments")
-      .select("loan_id"),
+    admin
+      .from("notes")
+      .select("loan_id")
+      .not("loan_id", "is", null),
   ]);
 
   const profiles: Record<string, string> = {};

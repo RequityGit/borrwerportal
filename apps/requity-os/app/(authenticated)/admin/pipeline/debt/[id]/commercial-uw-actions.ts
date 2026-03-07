@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 // Helper to bypass type checking for new tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function db() { return createAdminClient() as any; }
+function db(): any { return createAdminClient(); }
 
 const DEFAULT_INCOME_ROWS = [
   { line_item: "Gross Potential Rent", is_deduction: false, sort_order: 0 },

@@ -188,7 +188,7 @@ export function ContactDrawer({
           <div className="space-y-4">
             {contact.notes && (
               <div className="bg-muted/50 rounded-lg p-3.5">
-                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Notes</div>
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Description</div>
                 <div className="text-sm text-foreground leading-relaxed">{contact.notes}</div>
               </div>
             )}

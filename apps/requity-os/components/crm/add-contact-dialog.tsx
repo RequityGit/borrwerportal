@@ -36,6 +36,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { UserPlus, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatPhoneInput } from "@/lib/format";
 
 interface TeamMember {
   id: string;
@@ -267,7 +268,7 @@ export function AddContactDialog({
       toast({ title: "Contact added successfully" });
       setOpen(false);
       resetForm();
-      router.refresh();
+      router.push(`/admin/crm/${newContact.id}`);
     } catch (err: any) {
       toast({
         title: "Error adding contact",
@@ -413,7 +414,7 @@ export function AddContactDialog({
               <Label>Phone</Label>
               <Input
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                onChange={(e) => updateField("phone", formatPhoneInput(e.target.value))}
                 placeholder="(555) 123-4567"
               />
             </div>
@@ -654,14 +655,14 @@ export function AddContactDialog({
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Description */}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label>Description</Label>
             <Textarea
               value={form.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={3}
-              placeholder="Internal notes about this contact..."
+              placeholder="Description of this contact..."
             />
           </div>
 

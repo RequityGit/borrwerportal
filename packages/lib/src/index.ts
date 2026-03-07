@@ -5,4 +5,6 @@ export {
   formatDate,
   formatPercent,
   formatCompactCurrency,
+  formatPhoneNumber,
+  formatPhoneInput,
 } from "./format";

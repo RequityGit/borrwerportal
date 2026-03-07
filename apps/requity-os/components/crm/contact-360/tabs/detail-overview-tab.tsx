@@ -16,7 +16,7 @@ import {
   CrmEditSectionDialog,
   type CrmSectionField,
 } from "@/components/crm/crm-edit-section-dialog";
-import { formatCurrency, formatPercent, formatDate } from "@/lib/format";
+import { formatCurrency, formatPercent, formatDate, formatPhoneNumber, formatPhoneInput } from "@/lib/format";
 import type {
   ContactData,
   BorrowerData,
@@ -61,6 +61,7 @@ export function DetailOverviewTab({
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editBorrowerOpen, setEditBorrowerOpen] = useState(false);
   const [editInvestorOpen, setEditInvestorOpen] = useState(false);
+  const [editDescriptionOpen, setEditDescriptionOpen] = useState(false);
 
   async function updateBorrowerField(
     field: string,
@@ -165,7 +166,7 @@ export function DetailOverviewTab({
     { label: "First Name", fieldName: "first_name", fieldType: "text", value: contact.first_name },
     { label: "Last Name", fieldName: "last_name", fieldType: "text", value: contact.last_name },
     { label: "Email", fieldName: "email", fieldType: "text", value: contact.email },
-    { label: "Phone", fieldName: "phone", fieldType: "text", value: contact.phone },
+    { label: "Phone", fieldName: "phone", fieldType: "text", value: formatPhoneInput(contact.phone ?? "") || contact.phone },
     { label: "Address", fieldName: "address_line1", fieldType: "text", value: contact.address_line1 },
     { label: "City", fieldName: "city", fieldType: "text", value: contact.city },
     { label: "State", fieldName: "state", fieldType: "text", value: contact.state },
@@ -422,7 +423,7 @@ export function DetailOverviewTab({
           <FieldRow label="First Name" value={contact.first_name} />
           <FieldRow label="Last Name" value={contact.last_name} />
           <FieldRow label="Email" value={contact.email} />
-          <FieldRow label="Phone" value={contact.phone} />
+          <FieldRow label="Phone" value={formatPhoneNumber(contact.phone)} />
           <FieldRow label="Address" value={contact.address_line1} />
           <FieldRow label="City" value={contact.city} />
           <FieldRow label="State" value={contact.state} />
@@ -458,14 +459,12 @@ export function DetailOverviewTab({
         </div>
       </SectionCard>
 
-      {/* Internal Notes */}
-      {contact.notes && (
-        <SectionCard title="Internal Notes" icon={FileText}>
-          <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-            {contact.notes}
-          </p>
-        </SectionCard>
-      )}
+      {/* Description */}
+      <SectionCard title="Description" icon={FileText} action={<SectionEditButton onClick={() => setEditDescriptionOpen(true)} />}>
+        <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+          {contact.notes || "No description."}
+        </p>
+      </SectionCard>
 
       {/* Section Edit Dialogs */}
       <CrmEditSectionDialog
@@ -493,6 +492,13 @@ export function DetailOverviewTab({
           onSave={updateInvestorField}
         />
       )}
+      <CrmEditSectionDialog
+        open={editDescriptionOpen}
+        onOpenChange={setEditDescriptionOpen}
+        title="Description"
+        fields={[{ label: "Description", fieldName: "notes", fieldType: "textarea", value: contact.notes }]}
+        onSave={updateContactField}
+      />
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { CRM_COMPANY_TYPES, CRM_COMPANY_SUBTYPES, US_STATES } from "@/lib/consta
 import { useToast } from "@/components/ui/use-toast";
 import { addCompanyAction } from "@/app/(authenticated)/admin/crm/company-actions";
 import { Building2 } from "lucide-react";
+import { formatPhoneInput } from "@/lib/format";
 
 interface AddCompanyDialogProps {
   trigger?: React.ReactNode;
@@ -121,7 +122,7 @@ export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
         toast({ title: "Company added successfully" });
         setOpen(false);
         resetForm();
-        router.refresh();
+        router.push(`/admin/crm/companies/${result.id}`);
       }
     } catch (err: unknown) {
       toast({
@@ -228,7 +229,7 @@ export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
               <Label>Phone</Label>
               <Input
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                onChange={(e) => updateField("phone", formatPhoneInput(e.target.value))}
                 placeholder="(555) 123-4567"
               />
             </div>
@@ -303,14 +304,14 @@ export function AddCompanyDialog({ trigger }: AddCompanyDialogProps) {
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Description */}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label>Description</Label>
             <Textarea
               value={form.notes}
               onChange={(e) => updateField("notes", e.target.value)}
               rows={3}
-              placeholder="Internal notes about this company..."
+              placeholder="Description of this company..."
             />
           </div>
 
