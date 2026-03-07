@@ -6,9 +6,6 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   FileText,
-  Building2,
-  Users,
-  Briefcase,
   CreditCard,
   ChevronLeft,
   ChevronRight,

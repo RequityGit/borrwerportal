@@ -118,10 +118,12 @@ export function MobileBottomNav({
                 isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >
-              <item.icon
-                className="h-5 w-5"
-                strokeWidth={1.5}
-              />
+              <div className="relative">
+                <item.icon
+                  className="h-5 w-5"
+                  strokeWidth={1.5}
+                />
+              </div>
               <span className={cn(
                 "text-[10px] leading-tight",
                 isActive && "font-semibold"

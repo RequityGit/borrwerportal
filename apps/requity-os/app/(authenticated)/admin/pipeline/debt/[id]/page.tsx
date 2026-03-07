@@ -8,7 +8,6 @@ import type {
   ConditionData,
   DocumentData,
   ActivityData,
-  CommentData,
   PipelineStage,
   UWVersion,
 } from "./components";
@@ -285,8 +284,6 @@ export default async function DealDetailPage({ params }: PageProps) {
   let documentsData: any[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let activityData: any[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let commentsData: any[] = [];
   let uwVersionsData: UWVersion[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let dealTasksData: any[] = [];
@@ -308,7 +305,6 @@ export default async function DealDetailPage({ params }: PageProps) {
       conditionsRaw,
       documentsRaw,
       activityRaw,
-      commentsRaw,
       uwVersionsRaw,
       dealTasksRaw,
     ] = await Promise.all([
@@ -343,13 +339,6 @@ export default async function DealDetailPage({ params }: PageProps) {
       ),
       fetchSafe(() =>
         supabase
-          .from("loan_comments")
-          .select("*")
-          .eq("loan_id", loanId)
-          .order("created_at", { ascending: false })
-      ),
-      fetchSafe(() =>
-        supabase
           .from("loan_underwriting_versions")
           .select("*")
           .eq("loan_id", loanId)
@@ -369,7 +358,6 @@ export default async function DealDetailPage({ params }: PageProps) {
     conditionsData = conditionsRaw ?? [];
     documentsData = documentsRaw ?? [];
     activityData = activityRaw ?? [];
-    commentsData = commentsRaw ?? [];
     dealTasksData = (dealTasksRaw ?? []) as any[];
 
     // Map UW versions with author names
@@ -406,21 +394,6 @@ export default async function DealDetailPage({ params }: PageProps) {
 
   }
 
-  // ─── Fetch comments for opportunities ───
-  if (isOpportunity) {
-    try {
-      const admin = createAdminClient();
-      const { data: oppComments } = await admin
-        .from("loan_comments")
-        .select("*")
-        .eq("opportunity_id", d.id)
-        .order("created_at", { ascending: false });
-      commentsData = oppComments ?? [];
-    } catch {
-      /* ok */
-    }
-  }
-
   // ─── Resolve names ───
   const userIdsSet = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -431,10 +404,6 @@ export default async function DealDetailPage({ params }: PageProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   activityData.forEach((a: any) => {
     if (a.performed_by) userIdsSet.add(a.performed_by);
-  });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  commentsData.forEach((c: any) => {
-    if (c.author_id) userIdsSet.add(c.author_id);
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   documentsData.forEach((doc: any) => {
@@ -496,15 +465,6 @@ export default async function DealDetailPage({ params }: PageProps) {
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const comments: CommentData[] = commentsData.map((c: any) => ({
-    id: c.id, loan_id: c.loan_id, author_id: c.author_id,
-    author_name: c.author_name ?? (c.author_id ? nameMap[c.author_id] ?? null : null),
-    comment: c.comment ?? c.body ?? "", is_internal: c.is_internal ?? false,
-    is_edited: c.is_edited ?? false, parent_comment_id: c.parent_comment_id ?? null,
-    mentions: c.mentions ?? [], created_at: c.created_at ?? null, updated_at: c.updated_at ?? null,
-  }));
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stageHistory: StageHistoryEntry[] = stageHistoryData.map((h: any) => ({
     id: h.id, loan_id: h.loan_id, from_stage: h.from_stage ?? null,
     to_stage: h.to_stage ?? null, changed_at: h.changed_at ?? null,
@@ -552,7 +512,6 @@ export default async function DealDetailPage({ params }: PageProps) {
       conditions={conditions}
       documents={documents}
       activity={activity}
-      comments={comments}
       dealTasks={dealTasksData}
       isOpportunity={isOpportunity}
       currentUserId={currentUserId}
