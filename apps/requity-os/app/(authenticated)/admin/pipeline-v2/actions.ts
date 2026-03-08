@@ -685,3 +685,175 @@ export async function updateConditionStatusAction(
     return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
   }
 }
+
+// ─── Resolve Intake Queue Item ───
+
+export async function resolveIntakeItemAction(data: {
+  intakeQueueId: string;
+  action: "create_deal" | "attach" | "dismiss";
+  cardTypeId?: string;
+  dealFields?: {
+    name?: string;
+    amount?: number;
+    asset_class?: string;
+    expected_close_date?: string;
+  };
+  uwFields?: Record<string, string>;
+  existingDealId?: string;
+  notes?: string;
+}) {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    if (data.action === "dismiss") {
+      const { error } = await admin
+        .from("email_intake_queue")
+        .update({
+          status: "dismissed",
+          resolved_by: auth.user.id,
+          resolved_at: new Date().toISOString(),
+          resolution_notes: data.notes || null,
+        })
+        .eq("id", data.intakeQueueId);
+
+      if (error) return { error: error.message };
+      revalidatePath("/admin/pipeline/intake");
+      return { success: true };
+    }
+
+    if (data.action === "create_deal") {
+      if (!data.cardTypeId) return { error: "Card type is required" };
+
+      // Look up the card type for capital_side
+      const { data: cardType } = await admin
+        .from("unified_card_types")
+        .select("capital_side")
+        .eq("id", data.cardTypeId)
+        .single();
+
+      // Create the deal using the existing action logic
+      const insertData: UnifiedDealInsert = {
+        name: data.dealFields?.name || "Untitled Deal",
+        card_type_id: data.cardTypeId,
+        capital_side: cardType?.capital_side || "debt",
+        asset_class: data.dealFields?.asset_class || null,
+        amount: data.dealFields?.amount || null,
+        expected_close_date: data.dealFields?.expected_close_date || null,
+        created_by: auth.user.id,
+        ...(data.uwFields && Object.keys(data.uwFields).length > 0
+          ? { uw_data: data.uwFields as Json }
+          : {}),
+      };
+
+      const { data: deal, error: dealError } = await admin
+        .from("unified_deals")
+        .insert(insertData)
+        .select("id, deal_number")
+        .single();
+
+      if (dealError) {
+        console.error("resolveIntakeItemAction create deal error:", dealError);
+        return { error: dealError.message };
+      }
+
+      // Generate conditions (non-fatal)
+      const { error: condErr } = await admin.rpc(
+        "generate_deal_conditions" as never,
+        { p_deal_id: deal.id } as never
+      );
+      if (condErr) console.error("Failed to generate conditions:", condErr);
+
+      // Move attachments from email-intake/ to deals/{dealId}/ and create documents
+      const { data: queueItem } = await admin
+        .from("email_intake_queue")
+        .select("attachments")
+        .eq("id", data.intakeQueueId)
+        .single();
+
+      if (queueItem?.attachments) {
+        const attachments = queueItem.attachments as Array<{
+          filename: string;
+          storage_path: string;
+          mime_type: string;
+          size_bytes: number;
+        }>;
+
+        for (const att of attachments) {
+          if (!att.storage_path) continue;
+
+          try {
+            // Download from intake path
+            const { data: fileData } = await admin.storage
+              .from("loan-documents")
+              .download(att.storage_path);
+
+            if (!fileData) continue;
+
+            // Upload to deal path
+            const newPath = `deals/${deal.id}/${att.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            await admin.storage
+              .from("loan-documents")
+              .upload(newPath, fileData, {
+                contentType: att.mime_type,
+                upsert: true,
+              });
+
+            // Create document record
+            await admin
+              .from("unified_deal_documents")
+              .insert({
+                deal_id: deal.id,
+                document_name: att.filename,
+                storage_path: newPath,
+                file_url: newPath,
+                file_size_bytes: att.size_bytes,
+                mime_type: att.mime_type,
+                uploaded_by: auth.user.id,
+              });
+
+            // Clean up intake file (non-fatal)
+            await admin.storage
+              .from("loan-documents")
+              .remove([att.storage_path]);
+          } catch (err) {
+            console.error(`Failed to move attachment ${att.filename}:`, err);
+          }
+        }
+      }
+
+      // Log activity (non-fatal)
+      await admin
+        .from("unified_deal_activity")
+        .insert({
+          deal_id: deal.id,
+          activity_type: "status_change",
+          title: "Deal created from email intake",
+          created_by: auth.user.id,
+        });
+
+      // Mark intake item as resolved
+      await admin
+        .from("email_intake_queue")
+        .update({
+          status: "deal_created",
+          resolved_deal_id: deal.id,
+          resolved_by: auth.user.id,
+          resolved_at: new Date().toISOString(),
+          resolution_notes: data.notes || null,
+        })
+        .eq("id", data.intakeQueueId);
+
+      revalidatePipeline(deal.id);
+      revalidatePath("/admin/pipeline/intake");
+      return { success: true, deal };
+    }
+
+    return { error: "Invalid action" };
+  } catch (err: unknown) {
+    console.error("resolveIntakeItemAction error:", err);
+    return { error: err instanceof Error ? err.message : "Failed to resolve intake item" };
+  }
+}
