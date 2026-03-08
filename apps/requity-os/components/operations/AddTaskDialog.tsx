@@ -177,12 +177,12 @@ export function AddTaskDialog({ projects, teamMembers, externalOpen, onExternalO
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[500px] p-0 flex flex-col max-h-[90vh] md:max-h-[85vh]">
-        <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6">
+      <DialogContent className="sm:max-w-[500px] p-0 flex flex-col max-h-[90vh] md:max-h-[85vh] overflow-hidden">
+        <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 shrink-0">
           <DialogTitle>New Task</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <ScrollArea className="flex-1 px-4 md:px-6">
+        <ScrollArea className="flex-1 min-h-0 px-4 md:px-6">
           <div className="space-y-3 py-2">
           <div className="space-y-1.5">
             <Label htmlFor="title">Title *</Label>
@@ -364,7 +364,7 @@ export function AddTaskDialog({ projects, teamMembers, externalOpen, onExternalO
           </div>
           </div>
           </ScrollArea>
-          <DialogFooter className="px-4 md:px-6 pb-4 md:pb-6 pt-3 border-t">
+          <DialogFooter className="px-4 md:px-6 pb-4 md:pb-6 pt-3 border-t shrink-0">
             <Button
               type="button"
               variant="outline"
