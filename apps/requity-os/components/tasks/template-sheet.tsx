@@ -251,7 +251,7 @@ export function TemplateSheet({
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[560px] p-0 flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-[560px] p-0 flex flex-col max-h-[90vh] overflow-hidden">
         <DialogHeader className="px-6 pt-4 pb-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center">
@@ -266,7 +266,7 @@ export function TemplateSheet({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
+        <ScrollArea className="flex-1 min-h-0 px-6">
           <div className="space-y-4 pb-4 pt-3">
             {/* Title */}
             <div className="space-y-1.5">
