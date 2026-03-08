@@ -13577,6 +13577,38 @@ export type Database = {
         }
         Relationships: []
       }
+      unified_stage_rules: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          field_key: string
+          id: string
+          stage_config_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          field_key: string
+          id?: string
+          stage_config_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          field_key?: string
+          id?: string
+          stage_config_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_stage_rules_stage_config_id_fkey"
+            columns: ["stage_config_id"]
+            isOneToOne: false
+            referencedRelation: "unified_stage_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_email_sends: {
         Row: {
           created_at: string
@@ -16405,3 +16437,4 @@ export interface LenderQuote {
   created_by: string | null;
   updated_by: string | null;
 }
+
