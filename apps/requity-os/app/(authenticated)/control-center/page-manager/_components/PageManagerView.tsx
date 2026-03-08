@@ -24,6 +24,7 @@ import {
   EyeOff,
   Lock,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Plus,
   Trash2,
@@ -166,7 +167,7 @@ function SortableSectionCard({
   onToggleExpand,
   onToggleVisibility,
   onDeleteSection,
-  onFieldReorder,
+  onFieldMove,
   onFieldSwapColumn,
   onFieldToggleVisibility,
   onFieldRemove,
@@ -179,7 +180,7 @@ function SortableSectionCard({
   onToggleExpand: () => void;
   onToggleVisibility: () => void;
   onDeleteSection: () => void;
-  onFieldReorder: (sectionId: string, oldIndex: number, newIndex: number) => void;
+  onFieldMove: (sectionId: string, fieldKey: string, direction: "up" | "down") => void;
   onFieldSwapColumn: (sectionId: string, fieldKey: string) => void;
   onFieldToggleVisibility: (sectionId: string, fieldKey: string) => void;
   onFieldRemove: (sectionId: string, fieldKey: string) => void;
@@ -297,13 +298,17 @@ function SortableSectionCard({
                 {leftFields.length === 0 ? (
                   <p className="text-[11px] text-muted-foreground px-1 py-2">Empty</p>
                 ) : (
-                  leftFields.map((field) => (
+                  leftFields.map((field, index) => (
                     <FieldCard
                       key={field.field_key}
                       field={field}
                       onSwapColumn={() => onFieldSwapColumn(section.id, field.field_key)}
                       onToggleVisibility={() => onFieldToggleVisibility(section.id, field.field_key)}
                       onRemove={() => onFieldRemove(section.id, field.field_key)}
+                      onMoveUp={() => onFieldMove(section.id, field.field_key, "up")}
+                      onMoveDown={() => onFieldMove(section.id, field.field_key, "down")}
+                      isFirst={index === 0}
+                      isLast={index === leftFields.length - 1}
                       swapDirection="right"
                     />
                   ))
@@ -317,13 +322,17 @@ function SortableSectionCard({
                 {rightFields.length === 0 ? (
                   <p className="text-[11px] text-muted-foreground px-1 py-2">Empty</p>
                 ) : (
-                  rightFields.map((field) => (
+                  rightFields.map((field, index) => (
                     <FieldCard
                       key={field.field_key}
                       field={field}
                       onSwapColumn={() => onFieldSwapColumn(section.id, field.field_key)}
                       onToggleVisibility={() => onFieldToggleVisibility(section.id, field.field_key)}
                       onRemove={() => onFieldRemove(section.id, field.field_key)}
+                      onMoveUp={() => onFieldMove(section.id, field.field_key, "up")}
+                      onMoveDown={() => onFieldMove(section.id, field.field_key, "down")}
+                      isFirst={index === 0}
+                      isLast={index === rightFields.length - 1}
                       swapDirection="left"
                     />
                   ))
@@ -356,12 +365,20 @@ function FieldCard({
   onSwapColumn,
   onToggleVisibility,
   onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
   swapDirection,
 }: {
   field: FieldState;
   onSwapColumn: () => void;
   onToggleVisibility: () => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
   swapDirection: "left" | "right";
 }) {
   return (
@@ -371,6 +388,30 @@ function FieldCard({
         !field.is_visible && "opacity-50"
       )}
     >
+      <div className="flex flex-col shrink-0">
+        <button
+          onClick={onMoveUp}
+          disabled={isFirst}
+          className={cn(
+            "p-0 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors leading-none",
+            isFirst && "opacity-30 cursor-not-allowed"
+          )}
+          title="Move up"
+        >
+          <ChevronUp size={11} strokeWidth={1.5} />
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={isLast}
+          className={cn(
+            "p-0 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors leading-none",
+            isLast && "opacity-30 cursor-not-allowed"
+          )}
+          title="Move down"
+        >
+          <ChevronDown size={11} strokeWidth={1.5} />
+        </button>
+      </div>
       <span className="flex-1 truncate font-medium">{field.field_label}</span>
       <Badge
         variant="outline"
@@ -561,11 +602,17 @@ export function PageManagerView({
     setSections((prev) =>
       prev.map((s) => {
         if (s.id !== sectionId) return s;
+        const field = s.fields.find((f) => f.field_key === fieldKey);
+        if (!field) return s;
+        const targetCol = field.column_position === "left" ? "right" : "left";
+        const maxOrder = s.fields
+          .filter((f) => f.column_position === targetCol)
+          .reduce((max, f) => Math.max(max, f.display_order), -1);
         return {
           ...s,
           fields: s.fields.map((f) =>
             f.field_key === fieldKey
-              ? { ...f, column_position: f.column_position === "left" ? "right" : "left" }
+              ? { ...f, column_position: targetCol, display_order: maxOrder + 1 }
               : f
           ),
         };
@@ -573,6 +620,37 @@ export function PageManagerView({
     );
     setIsDirty(true);
   }, []);
+
+  const handleFieldMove = useCallback(
+    (sectionId: string, fieldKey: string, direction: "up" | "down") => {
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId) return s;
+          const field = s.fields.find((f) => f.field_key === fieldKey);
+          if (!field) return s;
+          const colFields = s.fields
+            .filter((f) => f.column_position === field.column_position)
+            .sort((a, b) => a.display_order - b.display_order);
+          const idx = colFields.findIndex((f) => f.field_key === fieldKey);
+          const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+          if (swapIdx < 0 || swapIdx >= colFields.length) return s;
+          const thisOrder = colFields[idx].display_order;
+          const swapOrder = colFields[swapIdx].display_order;
+          const swapKey = colFields[swapIdx].field_key;
+          return {
+            ...s,
+            fields: s.fields.map((f) => {
+              if (f.field_key === fieldKey) return { ...f, display_order: swapOrder };
+              if (f.field_key === swapKey) return { ...f, display_order: thisOrder };
+              return f;
+            }),
+          };
+        })
+      );
+      setIsDirty(true);
+    },
+    []
+  );
 
   const handleFieldToggleVisibility = useCallback((sectionId: string, fieldKey: string) => {
     setSections((prev) =>
@@ -692,16 +770,32 @@ export function PageManagerView({
       sidebar: s.sidebar,
     }));
 
-    const fieldAssignments = sections.flatMap((s) =>
-      s.fields.map((f, idx) => ({
-        section_id: s.id,
-        field_config_id: f.field_config_id,
-        field_key: f.field_key,
-        display_order: idx,
-        column_position: f.column_position,
-        is_visible: f.is_visible,
-      }))
-    );
+    const fieldAssignments = sections.flatMap((s) => {
+      const left = s.fields
+        .filter((f) => f.column_position === "left")
+        .sort((a, b) => a.display_order - b.display_order);
+      const right = s.fields
+        .filter((f) => f.column_position === "right")
+        .sort((a, b) => a.display_order - b.display_order);
+      return [
+        ...left.map((f, idx) => ({
+          section_id: s.id,
+          field_config_id: f.field_config_id,
+          field_key: f.field_key,
+          display_order: idx,
+          column_position: f.column_position,
+          is_visible: f.is_visible,
+        })),
+        ...right.map((f, idx) => ({
+          section_id: s.id,
+          field_config_id: f.field_config_id,
+          field_key: f.field_key,
+          display_order: idx,
+          column_position: f.column_position,
+          is_visible: f.is_visible,
+        })),
+      ];
+    });
 
     const result = await publishPageLayout(pageType, sectionUpdates, fieldAssignments);
 
@@ -738,7 +832,7 @@ export function PageManagerView({
               onToggleExpand={() => toggleExpand(section.id)}
               onToggleVisibility={() => toggleSectionVisibility(section.id)}
               onDeleteSection={() => setDeleteConfirm(section.id)}
-              onFieldReorder={() => {}}
+              onFieldMove={handleFieldMove}
               onFieldSwapColumn={handleFieldSwapColumn}
               onFieldToggleVisibility={handleFieldToggleVisibility}
               onFieldRemove={handleFieldRemove}
