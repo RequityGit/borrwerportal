@@ -20,6 +20,91 @@ These guide every decision. If a proposed change violates one, push back.
 
 ---
 
+## Development Workflow
+
+These workflow standards apply to every task. They are non-negotiable — follow them in order.
+
+### 1. Plan Before You Code
+
+**For multi-step features or new modules:**
+- Explore the codebase first: read existing patterns, recent commits, related files.
+- Ask clarifying questions one at a time. Prefer multiple-choice when feasible.
+- Propose 2-3 approaches with trade-offs and a recommendation. Get user approval before writing any code.
+- Break approved work into bite-sized tasks (each ~2-5 minutes of work): write failing test → make it pass → commit.
+- For complex features, save the plan to `docs/plans/YYYY-MM-DD-<feature-name>.md`.
+
+**Hard gate:** Do NOT write implementation code until the approach is approved. "Simple" tasks often contain the most problematic unexamined assumptions — a brief plan can still be one paragraph.
+
+**For bug fixes and small changes:** A plan can be verbal (stated in chat), but must still exist. State what you think the root cause is and how you'll fix it before touching code.
+
+### 2. Test-Driven Development (Red-Green-Refactor)
+
+**The iron law: no production code without a failing test first.**
+
+Every new feature, bug fix, or behavior change follows this cycle:
+
+1. **RED** — Write one minimal test demonstrating the expected behavior. Run it. Watch it fail. If it passes immediately, you're testing existing behavior — revise the test.
+2. **GREEN** — Write the simplest code that makes the test pass. Nothing more. No unrequested features, no unrelated refactoring, no over-engineering.
+3. **REFACTOR** — Only after green: eliminate duplication, improve naming, extract helpers. All tests must stay green throughout.
+4. **COMMIT** — Commit the passing test + implementation together.
+5. **REPEAT** — Next failing test.
+
+**Verify every phase:**
+- RED: test fails for the right reason (missing feature, not a typo or import error).
+- GREEN: test passes AND all other tests still pass.
+- REFACTOR: no test regressions.
+
+**Bug fixes always start with a failing test** that reproduces the bug. The test proves the fix works and prevents regression.
+
+**Exceptions** (require user approval): throwaway prototypes, generated code, pure configuration files.
+
+**If you catch yourself writing code before the test — stop.** Delete the code. Write the test first.
+
+### 3. Systematic Debugging
+
+**No fixes without root cause investigation first.** Guessing guarantees wasted time and new bugs.
+
+Four mandatory phases:
+
+| Phase | What to Do |
+|-------|-----------|
+| **1. Investigate** | Read the full error message and stack trace. Reproduce the issue consistently. Check recent changes (`git log`, `git diff`). Trace data flow backward through the call stack. |
+| **2. Analyze** | Find similar working code in the codebase. List all differences between working and broken versions. Understand dependencies and assumptions. |
+| **3. Hypothesize** | Form one specific hypothesis. Test it with a minimal change — one variable at a time. Verify before proceeding. |
+| **4. Fix** | Write a failing test that reproduces the bug. Implement a single fix addressing the root cause. Verify all tests pass. |
+
+**If 3+ fix attempts fail:** stop fixing symptoms. Question the architecture. The design may be wrong.
+
+**Red-flag phrases that mean you've left the process:** "quick fix for now", "just try this", "one more attempt". If you hear yourself thinking these — restart at Phase 1.
+
+### 4. Verification Before Completion
+
+**Every claim of "done" requires fresh evidence. No exceptions.**
+
+Before saying any task is complete:
+
+1. **Identify** the verification command (`pnpm build`, `pnpm test`, `pnpm lint`, etc.)
+2. **Run** it freshly — not from memory, not from a previous run
+3. **Read** the complete output, including exit codes and failure counts
+4. **Confirm** the output proves the claim (zero errors, zero failures)
+5. **Only then** state the result with evidence
+
+**Banned language without evidence:** "should work", "probably fixed", "looks good", "I believe this is correct". Run it and prove it.
+
+**Applies before:** commits, PRs, task completion claims, delegation to subagents, and any statement implying success.
+
+### 5. Subagent-Driven Development
+
+**For complex tasks with multiple independent subtasks**, use fresh subagents per task:
+
+1. Read the plan and extract all tasks with full context.
+2. For each task: dispatch a subagent with complete context (don't make it re-read files you've already read).
+3. After the subagent completes: review its work via `git diff`, run tests independently.
+4. Never skip the review step. Never proceed with unfixed issues.
+5. After all tasks: run full verification (`pnpm build && pnpm lint && pnpm test`).
+
+---
+
 ## Monorepo Structure
 
 ```
@@ -317,12 +402,16 @@ The Field Manager (`/control-center/field-manager`) is the single source of trut
 - ❌ Generic error messages ("Something went wrong") shown to users
 - ❌ Bare loading spinners without context labels
 - ❌ Adding user-facing columns without a corresponding `field_configurations` row — every editable or displayed field must be in the Field Manager
+- ❌ Writing production code before a failing test exists — TDD is not optional
+- ❌ Claiming "done" without running verification commands and showing output — evidence before claims
+- ❌ Attempting fixes without root cause investigation — no guess-and-check debugging
+- ❌ Skipping the planning step for multi-file changes — propose your approach first
 
 ---
 
 ## Definition of Done
 
-Before any PR is opened, confirm all seven:
+Before any PR is opened, confirm all nine:
 
 1. ✅ `pnpm build` — zero errors, zero warnings
 2. ✅ `pnpm lint` — passes clean
@@ -331,6 +420,8 @@ Before any PR is opened, confirm all seven:
 5. ✅ Matches design system — follows `DESIGN_SYSTEM.md`, no visual regressions
 6. ✅ Manually verified — clicked every button, submitted every form, checked empty/loading/error/success states
 7. ✅ Field Manager — any new user-facing columns have `field_configurations` rows; new tables have a registered module
+8. ✅ TDD — every new function/mutation has a test that was written first and watched fail before the implementation existed
+9. ✅ Verified with evidence — ran `pnpm build`, `pnpm lint`, `pnpm test` freshly and confirmed zero errors in the actual output (not from memory or a previous run)
 
 ---
 
