@@ -302,6 +302,31 @@ The Field Manager (`/control-center/field-manager`) is the single source of trut
 
 ---
 
+## Development Discipline
+
+These rules exist to prevent multi-round debugging cycles. Follow them strictly.
+
+### Read Before Write
+1. **Never modify a file you haven't read in this session.** Always `Read` the file first — understand the current code, its imports, its types, and how it connects to other files.
+2. **Read adjacent files.** Before changing a component, read its parent (where it's rendered), its types/interfaces, and any server actions or hooks it uses. Changes that ignore context cause cascading errors.
+3. **Check column names and types against the source of truth.** Before writing any Supabase query or form field, verify the exact column name in `apps/requity-os/lib/supabase/types.ts` — never guess.
+
+### Change Small, Verify Often
+4. **One logical change at a time.** Don't modify 8 files in a batch. Change one file (or a tightly coupled pair), then run `pnpm build` or `pnpm typecheck` to catch errors immediately — before moving to the next file.
+5. **Run `pnpm build` after every meaningful change.** Not at the end. Not after 5 files. After each one. Catching a type error in 1 file is fast; untangling type errors across 8 files is slow and error-prone.
+6. **If a build/type error appears, fix it before continuing.** Never pile more changes on top of a broken build. Stop, fix, verify, then resume.
+
+### No Guessing
+7. **If you're unsure how an existing pattern works, read an existing example first.** Find a similar component/page/action that already does what you need and follow that pattern exactly.
+8. **If you're unsure about a Supabase table structure, query it via MCP** (`list_tables`, `execute_sql`) — don't assume column names or types.
+9. **If a fix doesn't work on the first try, stop and re-read the actual error message and the actual code.** Don't apply speculative fixes. Diagnose first, then fix once.
+
+### Scope Control
+10. **Do exactly what was asked — nothing more.** Don't refactor surrounding code, add type annotations to untouched functions, or "improve" things that weren't requested. Extra changes create extra bugs.
+11. **When fixing a bug, identify the root cause before changing code.** A symptom-level fix often just moves the bug somewhere else.
+
+---
+
 ## Forbidden Patterns
 
 - ❌ `as any` — find the real type
