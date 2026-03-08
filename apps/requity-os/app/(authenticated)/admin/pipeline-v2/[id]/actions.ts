@@ -123,26 +123,34 @@ export async function uploadDealDocumentV2(
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const storagePath = `deals/${dealId}/${fileName}`;
 
-    const { error: uploadError } = await admin.storage
+    const uploadResult = await admin.storage
       .from("loan-documents")
       .upload(storagePath, buffer, {
         contentType: file.type || "application/octet-stream",
         upsert: false,
       });
 
-    if (uploadError) {
-      console.error("uploadDealDocumentV2 storage error:", uploadError);
-      return { error: uploadError.message };
+    if (!uploadResult) {
+      console.error("uploadDealDocumentV2: storage upload returned undefined");
+      return { error: "Storage upload failed — no response from storage service" };
+    }
+
+    if (uploadResult.error) {
+      console.error("uploadDealDocumentV2 storage error:", uploadResult.error);
+      return { error: uploadResult.error.message };
     }
 
     // Generate a signed URL (bucket is private, getPublicUrl won't work)
-    const { data: signedUrlData, error: signedUrlError } = await admin.storage
+    const signedUrlResult = await admin.storage
       .from("loan-documents")
       .createSignedUrl(storagePath, 60 * 60 * 24 * 365);
 
-    const fileUrl = signedUrlError ? storagePath : signedUrlData.signedUrl;
+    const fileUrl =
+      signedUrlResult?.error || !signedUrlResult?.data
+        ? storagePath
+        : signedUrlResult.data.signedUrl;
 
-    const { data: docRecord, error: dbError } = await admin
+    const insertResult = await admin
       .from("unified_deal_documents" as never)
       .insert({
         deal_id: dealId,
@@ -157,14 +165,15 @@ export async function uploadDealDocumentV2(
       .select("id" as never)
       .single();
 
-    if (dbError) {
+    if (!insertResult || insertResult.error) {
+      const dbError = insertResult?.error;
       console.error("uploadDealDocumentV2 db error:", dbError);
       await admin.storage.from("loan-documents").remove([storagePath]);
-      return { error: dbError.message };
+      return { error: dbError?.message ?? "Failed to save document record" };
     }
 
     // Fire AI document review (non-blocking)
-    const documentId = (docRecord as { id: string })?.id;
+    const documentId = (insertResult.data as { id: string } | null)?.id;
     if (documentId) {
       triggerDocumentReviewEdgeFunction(documentId, dealId).catch((err) =>
         console.error("Failed to trigger document review:", err)

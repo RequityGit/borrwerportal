@@ -96,7 +96,9 @@ export function DocumentsTab({ documents, dealId }: DocumentsTabProps) {
 
         try {
           const result = await uploadDealDocumentV2(formData);
-          if (result.error) {
+          if (!result) {
+            toast.error(`Failed to upload ${file.name}: No response from server`);
+          } else if (result.error) {
             toast.error(`Failed to upload ${file.name}: ${result.error}`);
           } else {
             toast.success(`Uploaded ${file.name}`);
