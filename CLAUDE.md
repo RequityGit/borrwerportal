@@ -257,6 +257,48 @@ SUPABASE_SERVICE_ROLE_KEY=       # Supabase service role key (server-side only)
 - After any schema change, regenerate TypeScript types immediately: `npx supabase gen types typescript --project-id edhlkknvlczhbowasjna > src/types/supabase.ts`
 - Update any affected Zod schemas to match the new types.
 - If you add a new table, add RLS policies. No table ships without RLS.
+- **Every new user-facing column must be registered in the Field Manager** — see section below.
+
+---
+
+## Field Manager
+
+The Field Manager (`/control-center/field-manager`) is the single source of truth for which fields are visible, their layout order, and column position on every detail/profile page in RequityOS. It is backed by the `field_configurations` table in Supabase.
+
+### Rules
+
+1. **Every user-facing column must have a `field_configurations` row.** If a column is editable or displayed on a detail page, it must be registered in the Field Manager — no exceptions. This includes text fields, dropdowns, dates, booleans, currency, percentages, and formula/calculated fields.
+2. **When adding a new column to an existing table**, also INSERT a corresponding row into `field_configurations` in the same migration. Include: `module`, `field_key` (must match the DB column name exactly), `field_label`, `field_type`, `column_position`, `display_order`, `is_visible`, `is_locked`.
+3. **When creating a new table with a detail page**, seed all its user-facing columns into `field_configurations` as a new module. Also register the module in `FieldManagerView.tsx` (MODULES array, MODULE_LABELS, MODULE_TABLE_LABELS) and the `create-field` edge function (MODULE_TO_TABLE mapping).
+4. **System/internal columns are excluded** — `id`, `created_at`, `updated_at`, `deleted_at`, `created_by`, and foreign key IDs (e.g., `borrower_id`, `fund_id`) do not belong in the Field Manager.
+5. **Formula fields** (calculated from other fields) use `field_type: 'formula'` with `formula_expression` and `formula_source_fields` — no DB column is created for these.
+6. **The audit doc** at `docs/field-manager-audit.md` tracks coverage. Update it when adding new modules or closing gaps.
+
+### Module-to-Table Mapping (25 modules)
+
+| Module | DB Table | Module | DB Table |
+|--------|----------|--------|----------|
+| loan_details | loans | borrower_entity_detail | borrower_entities |
+| property | loans | investing_entity | investing_entities |
+| borrower_entity | loans | investor_commitment | investor_commitments |
+| loans_extended | loans | capital_call | capital_calls |
+| servicing_loan | servicing_loans | distribution | distributions |
+| fund_details | funds | draw_request | draw_requests |
+| opportunity | opportunities | payoff_statement | payoff_statements |
+| standalone_property | properties | wire_instructions | company_wire_instructions |
+| company_info | companies | crm_activity | crm_activities |
+| borrower_profile | borrowers | equity_underwriting | equity_underwriting |
+| investor_profile | investors | equity_deal | equity_deals |
+| contact_profile | crm_contacts | equity_property | equity_properties |
+| | | equity_notes | equity_deals |
+
+### Key Files
+
+- **UI**: `apps/requity-os/app/(authenticated)/control-center/field-manager/FieldManagerView.tsx`
+- **Server actions**: `apps/requity-os/app/(authenticated)/control-center/field-manager/actions.ts`
+- **Hook**: `apps/requity-os/hooks/useFieldConfigurations.ts`
+- **Edge function**: `packages/db/supabase/functions/create-field/index.ts`
+- **Seed migrations**: `packages/db/supabase/migrations/20260306200000_create_field_configurations.sql` and subsequent
 
 ---
 
@@ -274,12 +316,13 @@ SUPABASE_SERVICE_ROLE_KEY=       # Supabase service role key (server-side only)
 - ❌ Custom components that duplicate existing shadcn primitives
 - ❌ Generic error messages ("Something went wrong") shown to users
 - ❌ Bare loading spinners without context labels
+- ❌ Adding user-facing columns without a corresponding `field_configurations` row — every editable or displayed field must be in the Field Manager
 
 ---
 
 ## Definition of Done
 
-Before any PR is opened, confirm all six:
+Before any PR is opened, confirm all seven:
 
 1. ✅ `pnpm build` — zero errors, zero warnings
 2. ✅ `pnpm lint` — passes clean
@@ -287,6 +330,7 @@ Before any PR is opened, confirm all six:
 4. ✅ Validated — all forms use Zod, all errors are handled
 5. ✅ Matches design system — follows `DESIGN_SYSTEM.md`, no visual regressions
 6. ✅ Manually verified — clicked every button, submitted every form, checked empty/loading/error/success states
+7. ✅ Field Manager — any new user-facing columns have `field_configurations` rows; new tables have a registered module
 
 ---
 
