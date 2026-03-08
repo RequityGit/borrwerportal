@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -391,7 +391,9 @@ function SectionCard({
     const fields = [...section.fields];
     const [item] = fields.splice(fIdx, 1);
     fields.splice(fIdx + dir, 0, item);
-    onFieldsUpdate(fields);
+    // Normalize sort_order to match new array positions
+    const normalized = fields.map((f, i) => ({ ...f, sort_order: i }));
+    onFieldsUpdate(normalized);
   };
 
   const toggleCol = (fIdx: number) => {
@@ -911,9 +913,10 @@ export function PageLayoutManagerView({
   );
 
   // Load initial layout
-  useState(() => {
+  useEffect(() => {
     loadLayout("contact");
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Save
@@ -923,11 +926,21 @@ export function PageLayoutManagerView({
     if (!layout || !hasChanges) return;
     setSaving(true);
     try {
+      // Normalize sort_order values to match array positions before saving
+      const normalizedSections = layout.sections.map((s, si) => ({
+        ...s,
+        sort_order: si,
+        fields: s.fields.map((f, fi) => ({
+          ...f,
+          sort_order: fi,
+        })),
+      }));
+
       const result = await savePageLayout(
         layout.object_type,
         layout.name,
         layout.tabs,
-        layout.sections
+        normalizedSections
       );
       if (result.error) {
         toast({
@@ -938,9 +951,17 @@ export function PageLayoutManagerView({
       } else {
         toast({ title: "Layout saved", description: `${layout.name} updated.` });
         setHasChanges(false);
-        // Reload to get fresh IDs
+        // Reload to get fresh IDs from database
         await loadLayout(layout.object_type);
       }
+    } catch (err) {
+      console.error("handleSave unexpected error:", err);
+      toast({
+        variant: "destructive",
+        title: "Failed to save layout",
+        description:
+          err instanceof Error ? err.message : "An unexpected error occurred",
+      });
     } finally {
       setSaving(false);
     }

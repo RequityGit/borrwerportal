@@ -250,11 +250,27 @@ export async function savePageLayout(
     }
 
     // 2. Delete existing tabs, sections, fields (cascade handles fields)
-    await admin.from("page_layout_tabs").delete().eq("layout_id", layoutId);
-    await admin
+    const { error: deleteTabsErr } = await admin
+      .from("page_layout_tabs")
+      .delete()
+      .eq("layout_id", layoutId);
+
+    if (deleteTabsErr) {
+      console.error("savePageLayout delete tabs error:", deleteTabsErr);
+      return { error: `Failed to clear existing tabs: ${deleteTabsErr.message}` };
+    }
+
+    const { error: deleteSectionsErr } = await admin
       .from("page_layout_sections")
       .delete()
       .eq("layout_id", layoutId);
+
+    if (deleteSectionsErr) {
+      console.error("savePageLayout delete sections error:", deleteSectionsErr);
+      return {
+        error: `Failed to clear existing sections: ${deleteSectionsErr.message}`,
+      };
+    }
 
     // 3. Insert tabs
     if (tabs.length > 0) {
