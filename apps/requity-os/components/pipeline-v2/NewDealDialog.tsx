@@ -270,6 +270,10 @@ export function NewDealDialog({
                 cardTypes={cardTypes}
                 selected={cardTypeId}
                 onSelect={(id) => setCardTypeId(id)}
+                onDoubleClick={(id) => {
+                  setCardTypeId(id);
+                  setStep(2);
+                }}
               />
               <div className="flex justify-end">
                 <Button onClick={() => setStep(2)} disabled={!cardTypeId}>
@@ -288,6 +292,10 @@ export function NewDealDialog({
                     key={ac}
                     type="button"
                     onClick={() => setAssetClass(ac)}
+                    onDoubleClick={() => {
+                      setAssetClass(ac);
+                      setStep(3);
+                    }}
                     className={`rounded-lg border p-3 text-left text-sm transition-all hover:border-foreground/20 ${
                       assetClass === ac
                         ? "border-foreground ring-1 ring-foreground"
