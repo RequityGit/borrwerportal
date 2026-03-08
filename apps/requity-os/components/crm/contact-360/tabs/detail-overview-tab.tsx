@@ -129,8 +129,8 @@ function renderSsnLast4(val: unknown, isSuperAdmin: boolean): ReactNode | null {
 }
 
 function renderExperienceCount(val: unknown): ReactNode {
-  if (val == null) return undefined;
-  return `${val} transactions`;
+  if (val == null || val === 0) return undefined;
+  return `${val} transaction${val === 1 ? "" : "s"}`;
 }
 
 // Map of field_key → custom render function
@@ -505,9 +505,18 @@ export function DetailOverviewTab({
 
     description: (
       <SectionCard title="Description" icon={FileText} action={<SectionEditButton onClick={() => setEditDescriptionOpen(true)} />} key="description">
-        <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-          {contact.notes || "No description."}
-        </p>
+        {contact.notes ? (
+          <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+            {contact.notes}
+          </p>
+        ) : (
+          <button
+            onClick={() => setEditDescriptionOpen(true)}
+            className="text-[13px] text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer bg-transparent border-0 p-0 text-left"
+          >
+            Click to add a description...
+          </button>
+        )}
       </SectionCard>
     ),
   };

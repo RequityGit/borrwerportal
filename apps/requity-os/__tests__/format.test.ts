@@ -12,12 +12,12 @@ describe("formatCurrency", () => {
     expect(formatCurrency(1234567)).toBe("$1,234,567");
   });
 
-  it("returns $0.00 for null", () => {
-    expect(formatCurrency(null)).toBe("$0.00");
+  it("returns em dash for null", () => {
+    expect(formatCurrency(null)).toBe("—");
   });
 
-  it("returns $0.00 for undefined", () => {
-    expect(formatCurrency(undefined)).toBe("$0.00");
+  it("returns em dash for undefined", () => {
+    expect(formatCurrency(undefined)).toBe("—");
   });
 
   it("formats zero", () => {
@@ -30,8 +30,8 @@ describe("formatCurrencyDetailed", () => {
     expect(formatCurrencyDetailed(1234.5)).toBe("$1,234.50");
   });
 
-  it("returns $0.00 for null", () => {
-    expect(formatCurrencyDetailed(null)).toBe("$0.00");
+  it("returns em dash for null", () => {
+    expect(formatCurrencyDetailed(null)).toBe("—");
   });
 });
 
