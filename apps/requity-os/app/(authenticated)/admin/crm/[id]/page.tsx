@@ -16,6 +16,7 @@ import type {
   InvestorProfileData,
   EntityData,
   SectionLayout,
+  FieldLayout,
 } from "@/components/crm/contact-360/types";
 import type { OpsTask, Profile } from "@/lib/tasks";
 
@@ -407,6 +408,81 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
     })
   );
 
+  // Build section_id → section_key lookup for profile sections
+  const profileSectionKeys = ["contact_profile", "borrower_profile", "investor_profile"];
+  const { data: profileSectionRows } = await admin
+    .from("page_layout_sections" as never)
+    .select("id, section_key" as never)
+    .eq("page_type" as never, "contact_detail" as never)
+    .in("section_key" as never, profileSectionKeys as never);
+
+  const sectionIdToKey: Record<string, string> = {};
+  const sectionIds: string[] = [];
+  for (const row of (profileSectionRows ?? []) as Record<string, unknown>[]) {
+    sectionIdToKey[row.id as string] = row.section_key as string;
+    sectionIds.push(row.id as string);
+  }
+
+  // Fetch page_layout_fields with field_configurations for profile sections
+  const sectionFields: Record<string, FieldLayout[]> = {};
+  if (sectionIds.length > 0) {
+    const { data: fieldRows } = await admin
+      .from("page_layout_fields" as never)
+      .select("field_key, display_order, column_position, is_visible, section_id, field_config_id" as never)
+      .in("section_id" as never, sectionIds as never)
+      .order("display_order" as never, { ascending: true });
+
+    // Collect field_config_ids to fetch labels/types
+    const fcIds = ((fieldRows ?? []) as Record<string, unknown>[])
+      .map((r) => r.field_config_id as string)
+      .filter(Boolean);
+
+    let fcLookup: Record<string, { field_label: string; field_type: string; dropdown_options: unknown }> = {};
+    if (fcIds.length > 0) {
+      const { data: fcRows } = await admin
+        .from("field_configurations" as never)
+        .select("id, field_label, field_type, dropdown_options" as never)
+        .in("id" as never, fcIds as never);
+
+      for (const fc of (fcRows ?? []) as Record<string, unknown>[]) {
+        fcLookup[fc.id as string] = {
+          field_label: fc.field_label as string,
+          field_type: fc.field_type as string,
+          dropdown_options: fc.dropdown_options,
+        };
+      }
+    }
+
+    // Group by section_key
+    for (const row of (fieldRows ?? []) as Record<string, unknown>[]) {
+      const sectionKey = sectionIdToKey[row.section_id as string];
+      if (!sectionKey) continue;
+      const fc = fcLookup[row.field_config_id as string];
+      if (!fc) continue;
+
+      const rawOpts = fc.dropdown_options;
+      let dropdownOptions: { label: string; value: string }[] | null = null;
+      if (Array.isArray(rawOpts)) {
+        dropdownOptions = rawOpts.map((v: unknown) =>
+          typeof v === "string"
+            ? { label: v.charAt(0).toUpperCase() + v.slice(1).replace(/_/g, " "), value: v }
+            : (v as { label: string; value: string })
+        );
+      }
+
+      if (!sectionFields[sectionKey]) sectionFields[sectionKey] = [];
+      sectionFields[sectionKey].push({
+        field_key: row.field_key as string,
+        field_label: fc.field_label,
+        field_type: fc.field_type,
+        column_position: row.column_position as string,
+        display_order: row.display_order as number,
+        is_visible: row.is_visible as boolean,
+        dropdown_options: dropdownOptions,
+      });
+    }
+  }
+
   const company: CompanyData | null = companyResult.data
     ? {
         id: companyResult.data.id,
@@ -483,6 +559,7 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
       sourceLabel={sourceLabel}
       isSuperAdmin={isSuperAdmin}
       sectionOrder={sectionOrder}
+      sectionFields={sectionFields}
     />
   );
 }

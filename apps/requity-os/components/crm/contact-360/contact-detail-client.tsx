@@ -36,6 +36,7 @@ import type {
   InvestorProfileData,
   EntityData,
   SectionLayout,
+  FieldLayout,
 } from "./types";
 import type { OpsTask, Profile } from "@/lib/tasks";
 
@@ -59,6 +60,7 @@ interface ContactDetailClientProps {
   sourceLabel: string | null;
   isSuperAdmin: boolean;
   sectionOrder: SectionLayout[];
+  sectionFields: Record<string, FieldLayout[]>;
 }
 
 export function ContactDetailClient({
@@ -81,6 +83,7 @@ export function ContactDetailClient({
   sourceLabel,
   isSuperAdmin,
   sectionOrder,
+  sectionFields,
 }: ContactDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -231,6 +234,7 @@ export function ContactDetailClient({
                 commitments={investorCommitments}
                 isSuperAdmin={isSuperAdmin}
                 sectionOrder={sectionOrder}
+                sectionFields={sectionFields}
               />
             </TabsContent>
 

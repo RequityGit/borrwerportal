@@ -166,6 +166,16 @@ export interface SectionLayout {
   visibility_rule: string | null;
 }
 
+export interface FieldLayout {
+  field_key: string;
+  field_label: string;
+  field_type: string;
+  column_position: string;
+  display_order: number;
+  is_visible: boolean;
+  dropdown_options: { label: string; value: string }[] | null;
+}
+
 export interface TaskData {
   id: string;
   subject: string;
