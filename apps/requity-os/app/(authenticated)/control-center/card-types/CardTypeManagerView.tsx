@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { validateFormula as validateFormulaStr } from "@/lib/formula-engine";
 import {
@@ -1442,14 +1442,14 @@ function GridTemplateEditor({
                   </SelectContent>
                 </Select>
                 <Select
-                  value={row.section ?? ""}
-                  onValueChange={(v) => updateRow(idx, { section: v || undefined })}
+                  value={row.section || "__none__"}
+                  onValueChange={(v) => updateRow(idx, { section: v === "__none__" ? undefined : v })}
                 >
                   <SelectTrigger className="text-xs">
                     <SelectValue placeholder="Section..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No section</SelectItem>
+                    <SelectItem value="__none__">No section</SelectItem>
                     {SECTION_PRESETS.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
@@ -1517,9 +1517,9 @@ function GridTemplateEditor({
               </thead>
               <tbody>
                 {sections.map((sec, si) => (
-                  <>{/* Fragment for sections */}
+                  <React.Fragment key={`section-${si}`}>
                     {sec.section && (
-                      <tr key={`sec-${si}`}>
+                      <tr>
                         <td
                           colSpan={GRID_PERIODS.length + 1}
                           className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground border-b bg-foreground/[0.01]"
@@ -1550,7 +1550,7 @@ function GridTemplateEditor({
                         ))}
                       </tr>
                     ))}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
