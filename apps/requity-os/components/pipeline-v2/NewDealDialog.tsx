@@ -29,6 +29,7 @@ import {
   createUnifiedDealAction,
   createTempExtractionUploadUrl,
   cleanupTempExtraction,
+  addDealNoteAction,
 } from "@/app/(authenticated)/admin/pipeline-v2/actions";
 import {
   type UnifiedCardType,
@@ -214,6 +215,7 @@ export function NewDealDialog({
   function handleAcceptExtraction(accepted: {
     dealFields: Record<string, unknown>;
     uwFields: Record<string, unknown>;
+    summaryNote?: string;
   }) {
     // Merge accepted deal fields into form state
     if (accepted.dealFields.name) setName(String(accepted.dealFields.name));
@@ -261,6 +263,12 @@ export function NewDealDialog({
         const deal = result.deal as
           | { id: string; deal_number: string }
           | undefined;
+        // Save summary as deal note if requested
+        if (accepted.summaryNote && deal?.id) {
+          await addDealNoteAction(deal.id, accepted.summaryNote).catch(
+            (err) => console.error("Failed to save deal note:", err)
+          );
+        }
         toast.success(`Deal ${deal?.deal_number ?? ""} created`);
         handleClose(false);
       }

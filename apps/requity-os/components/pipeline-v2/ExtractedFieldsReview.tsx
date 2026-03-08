@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Sparkles, Check } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Sparkles, Check, Pencil } from "lucide-react";
 import type { UwFieldDef } from "./pipeline-types";
 
 export interface ExtractedField {
@@ -30,6 +31,7 @@ interface ExtractedFieldsReviewProps {
   onAccept: (accepted: {
     dealFields: Record<string, unknown>;
     uwFields: Record<string, unknown>;
+    summaryNote?: string;
   }) => void;
   onBack: () => void;
   pending?: boolean;
@@ -106,6 +108,10 @@ export function ExtractedFieldsReview({
     return initial;
   });
 
+  const [editedSummary, setEditedSummary] = useState(summary);
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [saveAsNote, setSaveAsNote] = useState(true);
+
   const uwFieldDefMap = useMemo(
     () => new Map(uwFieldDefs.map((f) => [f.key, f])),
     [uwFieldDefs]
@@ -133,7 +139,11 @@ export function ExtractedFieldsReview({
       }
     }
 
-    onAccept({ dealFields: acceptedDeal, uwFields: acceptedUw });
+    onAccept({
+      dealFields: acceptedDeal,
+      uwFields: acceptedUw,
+      summaryNote: saveAsNote ? editedSummary : undefined,
+    });
   }
 
   function renderFieldInput(
@@ -196,11 +206,48 @@ export function ExtractedFieldsReview({
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
+      {/* AI Summary */}
       {summary && (
-        <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">{summary}</p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Deal Summary
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => setEditingSummary(!editingSummary)}
+            >
+              <Pencil className="h-3 w-3 mr-1" />
+              {editingSummary ? "Done" : "Edit"}
+            </Button>
+          </div>
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            {editingSummary ? (
+              <Textarea
+                value={editedSummary}
+                onChange={(e) => setEditedSummary(e.target.value)}
+                className="min-h-[80px] text-xs bg-background"
+                placeholder="Edit the deal summary..."
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{editedSummary}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="save-as-note"
+              checked={saveAsNote}
+              onCheckedChange={(checked) => setSaveAsNote(!!checked)}
+            />
+            <label htmlFor="save-as-note" className="text-xs text-muted-foreground cursor-pointer">
+              Save summary as a deal note
+            </label>
+          </div>
         </div>
       )}
 
@@ -254,7 +301,7 @@ export function ExtractedFieldsReview({
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Underwriting Fields
           </Label>
-          <div className="space-y-2 rounded-lg border p-3 max-h-[40vh] overflow-y-auto">
+          <div className="space-y-2 rounded-lg border p-3">
             {uwFieldEntries.map(([key, field]) => {
               const def = uwFieldDefMap.get(key);
               return (
