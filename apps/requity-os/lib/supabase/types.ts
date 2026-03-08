@@ -2251,6 +2251,77 @@ export type Database = {
           },
         ]
       }
+      contact_files: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          id: string
+          mime_type: string | null
+          notes: string | null
+          storage_path: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          storage_path: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          storage_path?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_files_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_files_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_files_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "contact_files_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
+        ]
+      }
       contact_relationship_types: {
         Row: {
           contact_id: string
@@ -13222,6 +13293,96 @@ export type Database = {
           },
         ]
       }
+      unified_deal_conditions: {
+        Row: {
+          assigned_to: string | null
+          borrower_description: string | null
+          category: string
+          condition_name: string
+          created_at: string | null
+          critical_path_item: boolean | null
+          deal_id: string
+          document_urls: string[] | null
+          due_date: string | null
+          id: string
+          internal_description: string | null
+          is_required: boolean | null
+          notes: string | null
+          required_stage: string
+          responsible_party: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sort_order: number | null
+          status: string
+          submitted_at: string | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          borrower_description?: string | null
+          category?: string
+          condition_name: string
+          created_at?: string | null
+          critical_path_item?: boolean | null
+          deal_id: string
+          document_urls?: string[] | null
+          due_date?: string | null
+          id?: string
+          internal_description?: string | null
+          is_required?: boolean | null
+          notes?: string | null
+          required_stage?: string
+          responsible_party?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number | null
+          status?: string
+          submitted_at?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          borrower_description?: string | null
+          category?: string
+          condition_name?: string
+          created_at?: string | null
+          critical_path_item?: boolean | null
+          deal_id?: string
+          document_urls?: string[] | null
+          due_date?: string | null
+          id?: string
+          internal_description?: string | null
+          is_required?: boolean | null
+          notes?: string | null
+          required_stage?: string
+          responsible_party?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number | null
+          status?: string
+          submitted_at?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_conditions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deal_conditions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "loan_condition_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unified_deal_documents: {
         Row: {
           category: string | null
@@ -15318,6 +15479,7 @@ export type Database = {
         Args: { p_billing_month: string; p_created_by: string }
         Returns: string
       }
+      generate_deal_conditions: { Args: { p_deal_id: string }; Returns: number }
       generate_loan_conditions: { Args: { p_loan_id: string }; Returns: number }
       generate_nacha_file: {
         Args: { p_billing_cycle_id: string }
@@ -16367,6 +16529,10 @@ export const Constants = {
     },
   },
 } as const
+
+// ---------------------------------------------------------------------------
+// Custom types (manually added, not auto-generated)
+// ---------------------------------------------------------------------------
 
 export interface PricingProgram {
   id: string;
