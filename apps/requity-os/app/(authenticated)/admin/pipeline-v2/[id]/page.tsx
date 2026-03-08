@@ -11,6 +11,7 @@ import {
   type StageConfig,
   type ChecklistItem,
   type DealActivity,
+  type DealCondition,
 } from "@/components/pipeline-v2/pipeline-types";
 import type { OpsTask, Profile } from "@/lib/tasks";
 
@@ -56,6 +57,7 @@ export default async function DealDetailRoute({ params }: PageProps) {
     activitiesRaw,
     teamResult,
     profileResult,
+    conditionsRaw,
     documentsRaw,
     tasksRaw,
   ] = await Promise.all([
@@ -90,6 +92,11 @@ export default async function DealDetailRoute({ params }: PageProps) {
       .eq("id", user.id)
       .single(),
     admin
+      .from("unified_deal_conditions" as never)
+      .select("*")
+      .eq("deal_id" as never, id as never)
+      .order("sort_order" as never),
+    admin
       .from("unified_deal_documents" as never)
       .select("*")
       .eq("deal_id" as never, id as never)
@@ -111,6 +118,7 @@ export default async function DealDetailRoute({ params }: PageProps) {
   const stageConfigs = ((stageConfigsRaw as unknown as { data: StageConfig[] | null }).data ?? []);
   const checklistItems = ((checklistRaw as unknown as { data: ChecklistItem[] | null }).data ?? []);
   const activities = ((activitiesRaw as unknown as { data: DealActivity[] | null }).data ?? []);
+  const conditions = ((conditionsRaw as unknown as { data: DealCondition[] | null }).data ?? []);
   const documents = ((documentsRaw as unknown as { data: Record<string, unknown>[] | null }).data ?? []);
   const tasks = ((tasksRaw as unknown as { data: OpsTask[] | null }).data ?? []);
 
@@ -221,6 +229,7 @@ export default async function DealDetailRoute({ params }: PageProps) {
       teamMembers={teamMembers}
       currentUserId={user.id}
       currentUserName={currentProfile?.full_name ?? "Unknown"}
+      conditions={conditions}
       documents={documents}
       tasks={tasks}
       commercialUWData={commercialUWData}

@@ -59,6 +59,7 @@ import {
   type UnifiedCardType,
   type StageConfig,
   type ChecklistItem,
+  type DealCondition,
   type DealActivity,
   STAGES,
   CARD_TYPE_SHORT_LABELS,
@@ -85,6 +86,7 @@ interface DealDetailPageProps {
   cardType: UnifiedCardType;
   stageConfigs: StageConfig[];
   checklist: ChecklistItem[];
+  conditions: DealCondition[];
   activities: DealActivity[];
   teamMembers: Profile[];
   currentUserId: string;
@@ -101,6 +103,7 @@ export function DealDetailPage({
   cardType,
   stageConfigs,
   checklist,
+  conditions,
   activities,
   teamMembers,
   currentUserId,
@@ -207,6 +210,7 @@ export function DealDetailPage({
               deal={deal}
               cardType={cardType}
               checklist={checklist}
+              conditions={conditions}
               activities={activities}
               currentUserId={currentUserId}
               documents={documents}
@@ -323,6 +327,7 @@ function TabContent({
   deal,
   cardType,
   checklist,
+  conditions,
   activities,
   currentUserId,
   documents,
@@ -334,6 +339,7 @@ function TabContent({
   deal: UnifiedDeal;
   cardType: UnifiedCardType;
   checklist: ChecklistItem[];
+  conditions: DealCondition[];
   activities: DealActivity[];
   currentUserId: string;
   documents: Record<string, unknown>[];
@@ -419,9 +425,7 @@ function TabContent({
       );
     case "Conditions":
       return (
-        <ConditionsTab
-          conditions={checklist as unknown as import("@/components/pipeline-v2/tabs/ConditionsTab").ConditionItem[]}
-        />
+        <ConditionsTab conditions={conditions} dealId={deal.id} />
       );
     case "Due Diligence":
       return (

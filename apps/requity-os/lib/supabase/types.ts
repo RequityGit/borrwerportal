@@ -13293,6 +13293,96 @@ export type Database = {
           },
         ]
       }
+      unified_deal_conditions: {
+        Row: {
+          assigned_to: string | null
+          borrower_description: string | null
+          category: string
+          condition_name: string
+          created_at: string | null
+          critical_path_item: boolean | null
+          deal_id: string
+          document_urls: string[] | null
+          due_date: string | null
+          id: string
+          internal_description: string | null
+          is_required: boolean | null
+          notes: string | null
+          required_stage: string
+          responsible_party: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sort_order: number | null
+          status: string
+          submitted_at: string | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          borrower_description?: string | null
+          category?: string
+          condition_name: string
+          created_at?: string | null
+          critical_path_item?: boolean | null
+          deal_id: string
+          document_urls?: string[] | null
+          due_date?: string | null
+          id?: string
+          internal_description?: string | null
+          is_required?: boolean | null
+          notes?: string | null
+          required_stage?: string
+          responsible_party?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number | null
+          status?: string
+          submitted_at?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          borrower_description?: string | null
+          category?: string
+          condition_name?: string
+          created_at?: string | null
+          critical_path_item?: boolean | null
+          deal_id?: string
+          document_urls?: string[] | null
+          due_date?: string | null
+          id?: string
+          internal_description?: string | null
+          is_required?: boolean | null
+          notes?: string | null
+          required_stage?: string
+          responsible_party?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number | null
+          status?: string
+          submitted_at?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_deal_conditions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deal_conditions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "loan_condition_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unified_deal_documents: {
         Row: {
           category: string | null
@@ -15389,6 +15479,7 @@ export type Database = {
         Args: { p_billing_month: string; p_created_by: string }
         Returns: string
       }
+      generate_deal_conditions: { Args: { p_deal_id: string }; Returns: number }
       generate_loan_conditions: { Args: { p_loan_id: string }; Returns: number }
       generate_nacha_file: {
         Args: { p_billing_cycle_id: string }
@@ -16442,7 +16533,6 @@ export const Constants = {
 // ---------------------------------------------------------------------------
 // Custom types (manually added, not auto-generated)
 // ---------------------------------------------------------------------------
-
 
 export interface PricingProgram {
   id: string;

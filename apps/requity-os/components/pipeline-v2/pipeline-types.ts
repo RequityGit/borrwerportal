@@ -136,6 +136,31 @@ export interface DealActivity {
   created_at: string;
 }
 
+export interface DealCondition {
+  id: string;
+  deal_id: string;
+  template_id: string | null;
+  condition_name: string;
+  category: string;
+  required_stage: string;
+  status: string;
+  internal_description: string | null;
+  borrower_description: string | null;
+  responsible_party: string | null;
+  critical_path_item: boolean;
+  is_required: boolean;
+  sort_order: number;
+  notes: string | null;
+  document_urls: string[] | null;
+  due_date: string | null;
+  assigned_to: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DealTask {
   id: string;
   deal_id: string;
