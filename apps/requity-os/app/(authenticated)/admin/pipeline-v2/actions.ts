@@ -31,6 +31,7 @@ export async function createUnifiedDealAction(data: {
   company_id?: string;
   expected_close_date?: string;
   assigned_to?: string;
+  uw_data?: Record<string, unknown>;
 }) {
   try {
     const auth = await requireAdmin();
@@ -49,6 +50,9 @@ export async function createUnifiedDealAction(data: {
       expected_close_date: data.expected_close_date || null,
       assigned_to: data.assigned_to || null,
       created_by: auth.user.id,
+      ...(data.uw_data && Object.keys(data.uw_data).length > 0
+        ? { uw_data: data.uw_data as Json }
+        : {}),
     };
 
     const { data: deal, error } = await admin
