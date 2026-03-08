@@ -4584,6 +4584,7 @@ export type Database = {
       }
       document_templates: {
         Row: {
+          content: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -4601,6 +4602,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          content?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -4618,6 +4620,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          content?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -16589,7 +16592,6 @@ export const Constants = {
     },
   },
 } as const
-
 export interface PricingProgram {
   id: string;
   created_at: string;
