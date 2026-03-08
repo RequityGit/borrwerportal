@@ -72,20 +72,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Reject unsupported file types early
+    const fileName = file.name.toLowerCase();
+    if (
+      fileName.endsWith(".doc") ||
+      fileName.endsWith(".docx") ||
+      file.type.includes("msword") ||
+      file.type.includes("officedocument")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Word documents are not supported for AI extraction. Please upload a PDF or image file.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Convert file to base64
     const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
 
     // Determine media type
-    let mediaType = "application/pdf";
+    let mediaType: string;
     if (file.type.startsWith("image/")) {
       mediaType = file.type;
-    } else if (file.type.includes("pdf") || file.name.endsWith(".pdf")) {
+    } else {
       mediaType = "application/pdf";
     }
 
@@ -156,6 +168,7 @@ Only include fields that you can actually find data for in the document. Do not 
         "Content-Type": "application/json",
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "pdfs-2024-09-25",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
@@ -181,9 +194,16 @@ Only include fields that you can actually find data for in the document. Do not 
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Anthropic API error:", response.status, errorData);
+      const apiMessage =
+        errorData?.error?.message ?? "Unknown API error";
+      console.error(
+        "Anthropic API error:",
+        response.status,
+        apiMessage,
+        errorData
+      );
       return NextResponse.json(
-        { error: "Failed to process document with AI" },
+        { error: `AI extraction failed: ${apiMessage}` },
         { status: 502 }
       );
     }

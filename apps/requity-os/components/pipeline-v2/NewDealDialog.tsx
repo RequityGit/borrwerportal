@@ -402,7 +402,7 @@ export function NewDealDialog({
                     </div>
                     <FileUpload
                       onFileSelect={handleFileSelect}
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      accept=".pdf,.jpg,.jpeg,.png"
                       maxSize={10}
                     />
                   </div>
