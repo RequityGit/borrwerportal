@@ -182,6 +182,7 @@ Only include fields that you can actually find data for in the document. Do not 
         "Content-Type": "application/json",
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "pdfs-2024-09-25",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
@@ -206,15 +207,24 @@ Only include fields that you can actually find data for in the document. Do not 
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const apiMessage =
-        errorData?.error?.message ?? "Unknown API error";
-      console.error(
-        "Anthropic API error:",
-        response.status,
-        apiMessage,
-        errorData
-      );
+      const errorText = await response.text().catch(() => "");
+      let apiMessage = "Unknown API error";
+      try {
+        const errorData = JSON.parse(errorText);
+        apiMessage = errorData?.error?.message ?? apiMessage;
+      } catch {
+        if (errorText) apiMessage = errorText.slice(0, 200);
+      }
+      console.error("Anthropic API error:", response.status, apiMessage);
+
+      if (response.status === 401)
+        apiMessage = "AI service authentication failed — check API key";
+      else if (response.status === 429)
+        apiMessage =
+          "AI service rate limit reached — please try again in a moment";
+      else if (response.status === 413)
+        apiMessage = "Document is too large for AI processing";
+
       return NextResponse.json(
         { error: `AI extraction failed: ${apiMessage}` },
         { status: 502 }
