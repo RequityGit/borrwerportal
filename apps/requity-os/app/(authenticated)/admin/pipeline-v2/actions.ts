@@ -52,6 +52,15 @@ export async function createUnifiedDealAction(data: {
       return { error: error.message };
     }
 
+    // Generate conditions from loan_condition_templates
+    const { error: condError } = await admin.rpc(
+      "generate_deal_conditions" as never,
+      { p_deal_id: (deal as { id: string }).id } as never
+    );
+    if (condError) {
+      console.error("Failed to generate deal conditions:", condError);
+    }
+
     revalidatePipeline((deal as { id: string }).id);
     return { success: true, deal };
   } catch (err: unknown) {
@@ -282,6 +291,43 @@ export async function updateDealStatusAction(
     return { success: true };
   } catch (err: unknown) {
     console.error("updateDealStatusAction error:", err);
+    return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
+  }
+}
+
+// ─── Update Condition Status ───
+
+export async function updateConditionStatusAction(
+  conditionId: string,
+  newStatus: string
+) {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === "submitted") updates.submitted_at = new Date().toISOString();
+    if (newStatus === "approved" || newStatus === "rejected") {
+      updates.reviewed_at = new Date().toISOString();
+      updates.reviewed_by = auth.user.id;
+    }
+
+    const { error } = await admin
+      .from("unified_deal_conditions" as never)
+      .update(updates as never)
+      .eq("id" as never, conditionId as never);
+
+    if (error) {
+      console.error("updateConditionStatusAction error:", error);
+      return { error: error.message };
+    }
+
+    revalidatePipeline();
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("updateConditionStatusAction error:", err);
     return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
   }
 }
