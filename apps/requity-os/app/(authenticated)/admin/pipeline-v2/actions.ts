@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { validateStageAdvancement } from "@/lib/pipeline/validate-stage-advancement";
 import type { Database, Json } from "@/lib/supabase/types";
 
 type UnifiedDealInsert = Database["public"]["Tables"]["unified_deals"]["Insert"];
@@ -119,6 +120,26 @@ export async function advanceStageAction(
     if ("error" in auth) return { error: auth.error };
 
     const admin = createAdminClient();
+
+    // Fetch deal data for validation
+    const { data: deal, error: fetchErr } = await admin
+      .from("unified_deals")
+      .select("*")
+      .eq("id", dealId)
+      .single();
+
+    if (fetchErr || !deal) {
+      return { error: "Deal not found" };
+    }
+
+    // Validate advancement rules
+    const validation = await validateStageAdvancement(
+      deal as unknown as Record<string, unknown>,
+      newStage
+    );
+    if (!validation.valid) {
+      return { error: validation.message };
+    }
 
     const { error } = await admin.rpc("unified_advance_stage", {
       p_deal_id: dealId,
