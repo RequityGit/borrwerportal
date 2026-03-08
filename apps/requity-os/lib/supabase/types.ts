@@ -16232,39 +16232,10 @@ export const Constants = {
   },
 } as const
 
-export interface LenderQuote {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  loan_id: string;
-  quote_name: string;
-  lender_company_id: string | null;
-  lender_contact_name: string | null;
-  linked_property_id: string | null;
-  loan_amount: number | null;
-  interest_rate: number | null;
-  loan_term_months: number | null;
-  interest_only_period_months: number | null;
-  ltv: number | null;
-  amortization_months: number | null;
-  origination_fee: number | null;
-  uw_processing_fee: number | null;
-  requity_lending_fee: number | null;
-  prepayment_penalty: string | null;
-  ym_spread: number | null;
-  ym_amount: number | null;
-  term_sheet_url: string | null;
-  description: string | null;
-  status: string;
-  status_changed_at: string | null;
-  requested_at: string | null;
-  received_at: string | null;
-  accepted_at: string | null;
-  declined_at: string | null;
-  declined_reason: string | null;
-  created_by: string | null;
-  updated_by: string | null;
-}
+
+// ---------------------------------------------------------------------------
+// Custom types (manually added, not auto-generated)
+// ---------------------------------------------------------------------------
 
 export interface PricingProgram {
   id: string;
@@ -16319,4 +16290,38 @@ export interface PricingProgramVersion {
   changed_at: string;
   changed_by: string | null;
   snapshot: Record<string, unknown> | null;
+}
+
+export interface LenderQuote {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  loan_id: string;
+  quote_name: string;
+  lender_company_id: string | null;
+  lender_contact_name: string | null;
+  linked_property_id: string | null;
+  loan_amount: number | null;
+  interest_rate: number | null;
+  loan_term_months: number | null;
+  interest_only_period_months: number | null;
+  ltv: number | null;
+  amortization_months: number | null;
+  origination_fee: number | null;
+  uw_processing_fee: number | null;
+  requity_lending_fee: number | null;
+  prepayment_penalty: string | null;
+  ym_spread: number | null;
+  ym_amount: number | null;
+  term_sheet_url: string | null;
+  description: string | null;
+  status: string;
+  status_changed_at: string | null;
+  requested_at: string | null;
+  received_at: string | null;
+  accepted_at: string | null;
+  declined_at: string | null;
+  declined_reason: string | null;
+  created_by: string | null;
+  updated_by: string | null;
 }

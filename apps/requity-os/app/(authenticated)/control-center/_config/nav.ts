@@ -12,6 +12,7 @@ import {
   Settings2,
   Wrench,
   ScrollText,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -139,6 +140,13 @@ export const NAV_GROUPS: NavGroup[] = [
         desc: "Configure field visibility and ordering across deal detail modules.",
         href: "/control-center/field-manager",
         icon: Settings2,
+      },
+      {
+        id: "page-layouts",
+        label: "Page Layouts",
+        desc: "Arrange sections and fields on object detail pages without code changes.",
+        href: "/control-center/page-layouts",
+        icon: LayoutDashboard,
       },
       {
         id: "system-settings",
