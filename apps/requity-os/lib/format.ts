@@ -1,5 +1,5 @@
 export function formatCurrency(amount: number | null | undefined): string {
-  if (amount == null) return "$0.00";
+  if (amount == null) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -11,7 +11,7 @@ export function formatCurrency(amount: number | null | undefined): string {
 export function formatCurrencyDetailed(
   amount: number | null | undefined
 ): string {
-  if (amount == null) return "$0.00";
+  if (amount == null) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
