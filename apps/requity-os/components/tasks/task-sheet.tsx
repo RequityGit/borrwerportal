@@ -349,8 +349,8 @@ export function TaskSheet({
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[540px] p-0 flex flex-col max-h-[85vh] md:max-h-[85vh]">
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
+      <DialogContent className="sm:max-w-[540px] p-0 flex flex-col max-h-[85vh] md:max-h-[85vh] overflow-hidden">
+        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border shrink-0">
           <DialogTitle className="text-base font-bold tracking-tight">
             {isNew ? "New Task" : "Edit Task"}
           </DialogTitle>
@@ -359,7 +359,7 @@ export function TaskSheet({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
+        <ScrollArea className="flex-1 min-h-0 px-6">
           <div className="space-y-4 py-5">
             {/* Title */}
             <div className="space-y-2">
@@ -615,7 +615,7 @@ export function TaskSheet({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-6 py-4">
+        <div className="flex items-center justify-between border-t border-border px-6 py-4 shrink-0">
           {!isNew ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>
