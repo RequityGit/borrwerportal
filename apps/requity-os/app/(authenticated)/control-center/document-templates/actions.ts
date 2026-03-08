@@ -151,6 +151,28 @@ export async function duplicateTemplate(id: string) {
   return { success: true };
 }
 
+export async function saveTemplateContent(id: string, content: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("document_templates")
+    .update({ content })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to save template content:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/control-center/document-templates");
+  return { success: true };
+}
+
 export async function deleteTemplate(id: string) {
   const supabase = await createClient();
 

@@ -11,6 +11,7 @@ import {
   Trash2,
   Check,
   X,
+  FileEdit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -268,6 +269,16 @@ export function DocumentTemplatesView({ templates }: Props) {
                           <DropdownMenuItem onClick={() => handleEdit(t)}>
                             <Pencil size={14} className="mr-2" />
                             Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/control-center/document-templates/editor/${t.id}`
+                              )
+                            }
+                          >
+                            <FileEdit size={14} className="mr-2" />
+                            Open Editor
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDuplicate(t.id)}
