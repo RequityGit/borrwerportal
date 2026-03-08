@@ -45,7 +45,6 @@ import {
   TASK_PRIORITIES,
   TASK_CATEGORIES,
 } from "@/lib/tasks";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   composeRecurrencePattern,
   parseRecurrencePattern,
@@ -359,7 +358,7 @@ export function TaskSheet({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6">
           <div className="space-y-4 py-5">
             {/* Title */}
             <div className="space-y-2">
@@ -612,7 +611,7 @@ export function TaskSheet({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border px-6 py-4 shrink-0">
