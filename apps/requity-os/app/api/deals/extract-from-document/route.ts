@@ -17,6 +17,13 @@ interface ExtractionResponse {
   summary: string;
 }
 
+function getMediaType(storagePath: string): string {
+  const lower = storagePath.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  return "application/pdf";
+}
+
 export async function POST(req: NextRequest) {
   // Auth: check for service role key or session-based auth
   const authHeader = req.headers.get("authorization");
@@ -35,12 +42,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const cardTypeId = formData.get("card_type_id") as string | null;
+    const body = await req.json();
+    const storagePath = body.storage_path as string | null;
+    const cardTypeId = body.card_type_id as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!storagePath) {
+      return NextResponse.json(
+        { error: "No storage_path provided" },
+        { status: 400 }
+      );
     }
 
     if (!cardTypeId) {
@@ -57,8 +67,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Look up card type's uw_fields for the target schema
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Look up card type's uw_fields for the target schema
     const { data: cardType, error: ctError } = await admin
       .from("unified_card_types")
       .select("label, uw_fields, property_fields")
@@ -73,13 +84,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Reject unsupported file types early
-    const fileName = file.name.toLowerCase();
-    if (
-      fileName.endsWith(".doc") ||
-      fileName.endsWith(".docx") ||
-      file.type.includes("msword") ||
-      file.type.includes("officedocument")
-    ) {
+    const lowerPath = storagePath.toLowerCase();
+    if (lowerPath.endsWith(".doc") || lowerPath.endsWith(".docx")) {
       return NextResponse.json(
         {
           error:
@@ -89,17 +95,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert file to base64
-    const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    // Download file from Supabase storage
+    const { data: fileData, error: downloadError } = await admin.storage
+      .from("loan-documents")
+      .download(storagePath);
 
-    // Determine media type
-    let mediaType: string;
-    if (file.type.startsWith("image/")) {
-      mediaType = file.type;
-    } else {
-      mediaType = "application/pdf";
+    if (downloadError || !fileData) {
+      console.error("Failed to download file from storage:", downloadError);
+      return NextResponse.json(
+        { error: "Failed to download uploaded file" },
+        { status: 500 }
+      );
     }
+
+    // Convert file to base64
+    const arrayBuffer = await fileData.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const mediaType = getMediaType(storagePath);
 
     // Build the target field descriptions from uw_fields
     const uwFields = (cardType.uw_fields ?? []) as Array<{
@@ -162,13 +174,14 @@ Respond with ONLY valid JSON in this exact format:
 
 Only include fields that you can actually find data for in the document. Do not guess or fabricate values.`;
 
+    const contentType = mediaType.startsWith("image/") ? "image" : "document";
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "pdfs-2024-09-25",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
@@ -178,7 +191,7 @@ Only include fields that you can actually find data for in the document. Do not 
             role: "user",
             content: [
               {
-                type: "document",
+                type: contentType,
                 source: {
                   type: "base64",
                   media_type: mediaType,
@@ -221,6 +234,16 @@ Only include fields that you can actually find data for in the document. Do not 
     const parsed: ExtractionResponse = JSON.parse(
       text.replace(/```json|```/g, "").trim()
     );
+
+    // Clean up temp file (fire-and-forget)
+    if (storagePath.startsWith("temp-extractions/")) {
+      admin.storage
+        .from("loan-documents")
+        .remove([storagePath])
+        .catch((err) =>
+          console.error("Failed to cleanup temp extraction file:", err)
+        );
+    }
 
     return NextResponse.json({
       deal_fields: parsed.deal_fields ?? {},

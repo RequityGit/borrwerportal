@@ -25,7 +25,11 @@ import {
   ExtractedFieldsReview,
   type ExtractedField,
 } from "./ExtractedFieldsReview";
-import { createUnifiedDealAction } from "@/app/(authenticated)/admin/pipeline-v2/actions";
+import {
+  createUnifiedDealAction,
+  createTempExtractionUploadUrl,
+  cleanupTempExtraction,
+} from "@/app/(authenticated)/admin/pipeline-v2/actions";
 import {
   type UnifiedCardType,
   ASSET_CLASS_LABELS,
@@ -122,15 +126,35 @@ export function NewDealDialog({
     if (!cardTypeId) return;
 
     setExtracting(true);
+    let uploadedPath: string | null = null;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("card_type_id", cardTypeId);
+      // 1. Get signed upload URL for temp storage
+      const urlResult = await createTempExtractionUploadUrl(file.name);
+      if (urlResult.error || !urlResult.signedUrl || !urlResult.storagePath) {
+        throw new Error(urlResult.error ?? "Could not create upload URL");
+      }
+      uploadedPath = urlResult.storagePath;
 
+      // 2. Upload file directly to Supabase storage (bypasses serverless body limit)
+      const uploadRes = await fetch(urlResult.signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!uploadRes.ok) {
+        const errorText = await uploadRes.text().catch(() => "Unknown error");
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+
+      // 3. Call extraction API with storage path (tiny JSON body)
       const response = await fetch("/api/deals/extract-from-document", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storage_path: urlResult.storagePath,
+          card_type_id: cardTypeId,
+        }),
       });
 
       if (!response.ok) {
@@ -166,6 +190,9 @@ export function NewDealDialog({
         setAssetClass(String(dealFields.asset_class.value));
       }
 
+      // Temp file cleaned up server-side after extraction
+      uploadedPath = null;
+
       // Move to verification step
       setStep(4);
     } catch (err) {
@@ -175,6 +202,10 @@ export function NewDealDialog({
           ? err.message
           : "Failed to extract data from document"
       );
+      // Clean up temp file on failure
+      if (uploadedPath) {
+        cleanupTempExtraction(uploadedPath).catch(() => {});
+      }
     } finally {
       setExtracting(false);
     }
