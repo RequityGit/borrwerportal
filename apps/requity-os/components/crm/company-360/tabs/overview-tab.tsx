@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   TrendingUp,
@@ -23,6 +23,7 @@ import {
 import {
   CrmEditSectionDialog,
   type CrmSectionField,
+  type CrmFieldType,
 } from "@/components/crm/crm-edit-section-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate, formatPhoneInput } from "@/lib/format";
@@ -40,17 +41,216 @@ import {
   ASSET_LABELS,
   CAPABILITY_LABELS,
 } from "../types";
+import type { FieldLayout } from "@/components/crm/contact-360/types";
 
 interface OverviewTabProps {
   company: CompanyDetailData;
   wireInstructions: CompanyWireData | null;
   files: CompanyFileData[];
+  sectionFields: Record<string, FieldLayout[]>;
   onEditLenderDetails?: () => void;
 }
 
 const COMPANY_TYPE_OPTIONS = Object.entries(COMPANY_TYPE_CONFIG).map(
   ([value, { label }]) => ({ value, label })
 );
+
+// --- Dropdown option fallbacks for built-in company fields ---
+const DROPDOWN_FALLBACKS: Record<string, { label: string; value: string }[]> = {
+  company_type: COMPANY_TYPE_OPTIONS,
+};
+
+// --- field_type → CrmFieldType mapping for edit dialogs ---
+const FC_TYPE_TO_CRM: Record<string, CrmFieldType> = {
+  text: "text",
+  email: "text",
+  phone: "text",
+  number: "number",
+  currency: "currency",
+  date: "date",
+  boolean: "boolean",
+  dropdown: "select",
+  percentage: "number",
+};
+
+// --- Field key → property name mapping for mismatches ---
+const FIELD_KEY_TO_PROP: Record<string, string> = {
+  legal_name: "name",
+  dba_names: "other_names",
+  subtype: "company_subtype",
+  status: "is_active",
+  is_title_co_verified: "title_company_verified",
+};
+
+// --- Custom renderers for fields with special display logic ---
+type FieldRenderer = (val: unknown, company: CompanyDetailData) => ReactNode | null;
+const FIELD_RENDERERS: Record<string, FieldRenderer> = {
+  company_type: (v) => {
+    if (!v) return undefined;
+    const cfg = COMPANY_TYPE_CONFIG[v as string];
+    return cfg?.label ?? String(v);
+  },
+  subtype: (v) => {
+    if (!v) return undefined;
+    return SUBTYPE_LABELS[v as string] ?? String(v);
+  },
+  phone: (v) => {
+    if (!v) return undefined;
+    return <ClickToCallNumber number={v as string} showIcon={false} />;
+  },
+  website: (v) => {
+    if (!v) return undefined;
+    return String(v).replace(/^https?:\/\//, "");
+  },
+  status: (v) => {
+    return v ? "Active" : "Inactive";
+  },
+  is_title_co_verified: (v) => {
+    return v ? "Yes" : "No";
+  },
+};
+
+// --- Dynamic field rendering helper ---
+function renderDynamicFields(
+  fields: FieldLayout[],
+  dataObj: Record<string, unknown>,
+  company: CompanyDetailData,
+): ReactNode {
+  const visible = fields
+    .filter((f) => f.is_visible)
+    .sort((a, b) => a.display_order - b.display_order);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+      {visible.map((f) => {
+        const propKey = FIELD_KEY_TO_PROP[f.field_key] ?? f.field_key;
+        const rawValue = dataObj[propKey];
+
+        // Check for custom renderer
+        const customRender = FIELD_RENDERERS[f.field_key];
+        if (customRender) {
+          const rendered = customRender(rawValue, company);
+          if (rendered === null) return null; // skip field
+          return (
+            <FieldRow
+              key={f.field_key}
+              label={f.field_label}
+              value={rendered}
+              mono={f.field_type === "currency"}
+            />
+          );
+        }
+
+        // Standard rendering by field_type
+        let displayValue: ReactNode;
+        switch (f.field_type) {
+          case "currency":
+            displayValue = rawValue != null ? `$${Number(rawValue).toLocaleString()}` : undefined;
+            break;
+          case "date":
+            displayValue = formatDate(rawValue as string | null);
+            break;
+          case "boolean":
+            displayValue = rawValue != null ? (rawValue ? "Yes" : "No") : undefined;
+            break;
+          case "dropdown":
+            displayValue = rawValue
+              ? String(rawValue).charAt(0).toUpperCase() + String(rawValue).slice(1).replace(/_/g, " ")
+              : undefined;
+            break;
+          default:
+            displayValue = rawValue != null ? String(rawValue) : undefined;
+        }
+
+        return (
+          <FieldRow
+            key={f.field_key}
+            label={f.field_label}
+            value={displayValue}
+            mono={f.field_type === "currency"}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// --- Mask sensitive values (show last 4 chars) ---
+function maskValue(val: string): string {
+  return val.replace(/./g, (c, i) => (i < val.length - 4 ? "●" : c));
+}
+
+// --- Masked fields in wire instructions ---
+const MASKED_WIRE_FIELDS = new Set(["account_number", "routing_number"]);
+
+// --- Dynamic wire instructions renderer with masking ---
+function renderWireFields(
+  fields: FieldLayout[],
+  wire: CompanyWireData,
+  showWire: boolean,
+): ReactNode {
+  const wireData = wire as unknown as Record<string, unknown>;
+  const visible = fields
+    .filter((f) => f.is_visible)
+    .sort((a, b) => a.display_order - b.display_order);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+      {visible.map((f) => {
+        const rawValue = wireData[f.field_key];
+        const isMasked = MASKED_WIRE_FIELDS.has(f.field_key);
+
+        let displayValue: ReactNode;
+        if (isMasked && typeof rawValue === "string") {
+          displayValue = showWire ? rawValue : maskValue(rawValue);
+        } else if (f.field_type === "dropdown" && rawValue) {
+          displayValue = String(rawValue).charAt(0).toUpperCase() + String(rawValue).slice(1);
+        } else if (f.field_type === "date" && rawValue) {
+          displayValue = formatDate(rawValue as string);
+        } else {
+          displayValue = rawValue != null ? String(rawValue) : undefined;
+        }
+
+        return (
+          <FieldRow
+            key={f.field_key}
+            label={f.field_label}
+            value={displayValue}
+            mono={isMasked}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// --- Build edit dialog fields from layout data ---
+function buildEditFields(
+  fields: FieldLayout[],
+  dataObj: Record<string, unknown>,
+): CrmSectionField[] {
+  return fields
+    .filter((f) => f.is_visible)
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((f) => {
+      const propKey = FIELD_KEY_TO_PROP[f.field_key] ?? f.field_key;
+      const options = f.dropdown_options ?? DROPDOWN_FALLBACKS[f.field_key] ?? undefined;
+      let value = dataObj[propKey] as string | number | boolean | null | undefined;
+
+      // Format phone for edit input
+      if (f.field_type === "phone" && typeof value === "string") {
+        value = formatPhoneInput(value) || value;
+      }
+
+      return {
+        label: f.field_label,
+        fieldName: propKey,
+        fieldType: FC_TYPE_TO_CRM[f.field_type] ?? "text",
+        options,
+        value,
+      };
+    });
+}
 
 function ChipGroup({
   items,
@@ -86,6 +286,7 @@ export function CompanyOverviewTab({
   company,
   wireInstructions,
   files,
+  sectionFields,
   onEditLenderDetails,
 }: OverviewTabProps) {
   const router = useRouter();
@@ -131,22 +332,26 @@ export function CompanyOverviewTab({
     [company.id, router, toast]
   );
 
-  // --- Section field definitions for edit dialogs ---
+  // Data object for dynamic field rendering
+  const companyData = company as unknown as Record<string, unknown>;
 
-  const companyInfoFields: CrmSectionField[] = [
-    { label: "Legal Name", fieldName: "name", fieldType: "text", value: company.name },
-    { label: "DBA / Other Names", fieldName: "other_names", fieldType: "text", value: company.other_names },
-    {
-      label: "Company Type", fieldName: "company_type", fieldType: "select", value: company.company_type,
-      options: COMPANY_TYPE_OPTIONS,
-    },
-    { label: "Phone", fieldName: "phone", fieldType: "text", value: formatPhoneInput(company.phone ?? "") || company.phone },
-    { label: "Email", fieldName: "email", fieldType: "text", value: company.email },
-    { label: "Website", fieldName: "website", fieldType: "text", value: company.website },
-    { label: "Source", fieldName: "source", fieldType: "text", value: company.source },
-    { label: "Status", fieldName: "is_active", fieldType: "boolean", value: company.is_active },
-    { label: "Title Co. Verified", fieldName: "title_company_verified", fieldType: "boolean", value: company.title_company_verified },
-  ];
+  // --- Section field definitions for edit dialogs ---
+  const companyInfoFields: CrmSectionField[] = useMemo(
+    () => sectionFields.company_information?.length
+      ? buildEditFields(sectionFields.company_information, companyData)
+      : [
+          { label: "Legal Name", fieldName: "name", fieldType: "text", value: company.name },
+          { label: "DBA / Other Names", fieldName: "other_names", fieldType: "text", value: company.other_names },
+          { label: "Company Type", fieldName: "company_type", fieldType: "select", value: company.company_type, options: COMPANY_TYPE_OPTIONS },
+          { label: "Phone", fieldName: "phone", fieldType: "text", value: formatPhoneInput(company.phone ?? "") || company.phone },
+          { label: "Email", fieldName: "email", fieldType: "text", value: company.email },
+          { label: "Website", fieldName: "website", fieldType: "text", value: company.website },
+          { label: "Source", fieldName: "source", fieldType: "text", value: company.source },
+          { label: "Status", fieldName: "is_active", fieldType: "boolean", value: company.is_active },
+          { label: "Title Co. Verified", fieldName: "title_company_verified", fieldType: "boolean", value: company.title_company_verified },
+        ],
+    [sectionFields, companyData, company]
+  );
 
   const addressFields: CrmSectionField[] = [
     { label: "Address Line 1", fieldName: "address_line1", fieldType: "text", value: company.address_line1 },
@@ -198,36 +403,33 @@ export function CompanyOverviewTab({
 
       {/* Company Information */}
       <SectionCard title="Company Information" icon={Building2} action={<SectionEditButton onClick={() => setEditCompanyOpen(true)} />}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-          <FieldRow label="Legal Name" value={company.name} />
-          <FieldRow label="DBA / Other Names" value={company.other_names} />
-          <FieldRow label="Company Type" value={typeCfg.label} />
-          {company.company_subtype && (
-            <FieldRow
-              label="Subtype"
-              value={
-                SUBTYPE_LABELS[company.company_subtype] ||
-                company.company_subtype
-              }
-            />
+        {sectionFields.company_information?.length
+          ? renderDynamicFields(sectionFields.company_information, companyData, company)
+          : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+              <FieldRow label="Legal Name" value={company.name} />
+              <FieldRow label="DBA / Other Names" value={company.other_names} />
+              <FieldRow label="Company Type" value={typeCfg.label} />
+              {company.company_subtype && (
+                <FieldRow
+                  label="Subtype"
+                  value={SUBTYPE_LABELS[company.company_subtype] || company.company_subtype}
+                />
+              )}
+              <FieldRow
+                label="Phone"
+                value={company.phone ? <ClickToCallNumber number={company.phone} showIcon={false} /> : undefined}
+              />
+              <FieldRow label="Email" value={company.email} />
+              <FieldRow
+                label="Website"
+                value={company.website ? company.website.replace(/^https?:\/\//, "") : undefined}
+              />
+              <FieldRow label="Source" value={company.source} />
+              <FieldRow label="Status" value={company.is_active ? "Active" : "Inactive"} />
+              <FieldRow label="Title Co. Verified" value={company.title_company_verified ? "Yes" : "No"} />
+            </div>
           )}
-          <FieldRow
-            label="Phone"
-            value={company.phone ? <ClickToCallNumber number={company.phone} showIcon={false} /> : undefined}
-          />
-          <FieldRow label="Email" value={company.email} />
-          <FieldRow
-            label="Website"
-            value={
-              company.website
-                ? company.website.replace(/^https?:\/\//, "")
-                : undefined
-            }
-          />
-          <FieldRow label="Source" value={company.source} />
-          <FieldRow label="Status" value={company.is_active ? "Active" : "Inactive"} />
-          <FieldRow label="Title Co. Verified" value={company.title_company_verified ? "Yes" : "No"} />
-        </div>
       </SectionCard>
 
       {/* Address */}
@@ -428,54 +630,28 @@ export function CompanyOverviewTab({
         }
       >
         {wireInstructions ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-            <FieldRow label="Bank Name" value={wireInstructions.bank_name} />
-            <FieldRow
-              label="Account Name"
-              value={wireInstructions.account_name}
-            />
-            <FieldRow
-              label="Account Number"
-              value={
-                showWire
-                  ? wireInstructions.account_number
-                  : wireInstructions.account_number.replace(
-                      /./g,
-                      (c, i) =>
-                        i < wireInstructions.account_number.length - 4
-                          ? "●"
-                          : c
-                    )
-              }
-              mono
-            />
-            <FieldRow
-              label="Routing Number"
-              value={
-                showWire
-                  ? wireInstructions.routing_number
-                  : wireInstructions.routing_number.replace(
-                      /./g,
-                      (c, i) =>
-                        i < wireInstructions.routing_number.length - 4
-                          ? "●"
-                          : c
-                    )
-              }
-              mono
-            />
-            <FieldRow
-              label="Wire Type"
-              value={
-                wireInstructions.wire_type.charAt(0).toUpperCase() +
-                wireInstructions.wire_type.slice(1)
-              }
-            />
-            <FieldRow
-              label="Last Updated"
-              value={`${formatDate(wireInstructions.updated_at)}${wireInstructions.updated_by ? ` by ${wireInstructions.updated_by}` : ""}`}
-            />
-          </div>
+          sectionFields.wire_instructions?.length
+            ? renderWireFields(sectionFields.wire_instructions, wireInstructions, showWire)
+            : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+                <FieldRow label="Bank Name" value={wireInstructions.bank_name} />
+                <FieldRow label="Account Name" value={wireInstructions.account_name} />
+                <FieldRow
+                  label="Account Number"
+                  value={showWire ? wireInstructions.account_number : maskValue(wireInstructions.account_number)}
+                  mono
+                />
+                <FieldRow
+                  label="Routing Number"
+                  value={showWire ? wireInstructions.routing_number : maskValue(wireInstructions.routing_number)}
+                  mono
+                />
+                <FieldRow
+                  label="Wire Type"
+                  value={wireInstructions.wire_type.charAt(0).toUpperCase() + wireInstructions.wire_type.slice(1)}
+                />
+              </div>
+            )
         ) : (
           <span className="text-[13px] text-muted-foreground">
             No wire instructions on file.

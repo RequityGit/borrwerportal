@@ -33,6 +33,7 @@ import type {
   CompanyFollowerData,
   TabBadgeCounts,
 } from "./types";
+import type { FieldLayout } from "@/components/crm/contact-360/types";
 
 interface CompanyDetailClientProps {
   company: CompanyDetailData;
@@ -53,6 +54,7 @@ interface CompanyDetailClientProps {
   currentUserId: string;
   currentUserName: string;
   teamMembers: { id: string; full_name: string }[];
+  sectionFields: Record<string, FieldLayout[]>;
 }
 
 export function CompanyDetailClient({
@@ -69,6 +71,7 @@ export function CompanyDetailClient({
   currentUserId,
   currentUserName,
   teamMembers,
+  sectionFields,
 }: CompanyDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -174,6 +177,7 @@ export function CompanyDetailClient({
               company={company}
               wireInstructions={wireInstructions}
               files={files}
+              sectionFields={sectionFields}
             />
           )}
           {activeTab === "contacts" && (

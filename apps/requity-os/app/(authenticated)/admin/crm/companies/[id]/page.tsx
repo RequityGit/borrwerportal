@@ -15,6 +15,7 @@ import type {
   CompanyQuoteData,
   TabBadgeCounts,
 } from "@/components/crm/company-360/types";
+import type { FieldLayout } from "@/components/crm/contact-360/types";
 
 interface PageProps {
   params: { id: string };
@@ -290,6 +291,69 @@ export default async function CompanyDetailPage({ params }: PageProps) {
 
   const currentUserName = profileLookup[user.id] || user.email || "Unknown";
 
+  // --- Fetch field layout data for dynamic rendering ---
+  const companySectionKeys = ["company_information", "wire_instructions"];
+  const { data: companySectionRows } = await admin
+    .from("page_layout_sections" as never)
+    .select("id, section_key" as never)
+    .eq("page_type" as never, "company_detail" as never)
+    .in("section_key" as never, companySectionKeys as never);
+
+  const sectionFields: Record<string, FieldLayout[]> = {};
+
+  if (companySectionRows && (companySectionRows as Record<string, unknown>[]).length > 0) {
+    const sectionIdToKey: Record<string, string> = {};
+    for (const row of companySectionRows as { id: string; section_key: string }[]) {
+      sectionIdToKey[row.id] = row.section_key;
+    }
+    const sectionIds = Object.keys(sectionIdToKey);
+
+    const { data: layoutFieldRows } = await admin
+      .from("page_layout_fields" as never)
+      .select("section_id, field_config_id, display_order, column_position, is_visible" as never)
+      .in("section_id" as never, sectionIds as never)
+      .order("display_order" as never, { ascending: true } as never);
+
+    if (layoutFieldRows && (layoutFieldRows as Record<string, unknown>[]).length > 0) {
+      const typedLayoutFields = layoutFieldRows as {
+        section_id: string;
+        field_config_id: string;
+        display_order: number;
+        column_position: string;
+        is_visible: boolean;
+      }[];
+      const fieldConfigIds = Array.from(new Set(typedLayoutFields.map((f) => f.field_config_id)));
+
+      const { data: fieldConfigRows } = await admin
+        .from("field_configurations" as never)
+        .select("id, field_key, field_label, field_type, dropdown_options" as never)
+        .in("id" as never, fieldConfigIds as never);
+
+      if (fieldConfigRows) {
+        const configMap = new Map(
+          (fieldConfigRows as { id: string; field_key: string; field_label: string; field_type: string; dropdown_options: unknown }[])
+            .map((c) => [c.id, c])
+        );
+
+        for (const lf of typedLayoutFields) {
+          const sKey = sectionIdToKey[lf.section_id];
+          const cfg = configMap.get(lf.field_config_id);
+          if (!sKey || !cfg) continue;
+          if (!sectionFields[sKey]) sectionFields[sKey] = [];
+          sectionFields[sKey].push({
+            field_key: cfg.field_key,
+            field_label: cfg.field_label,
+            field_type: cfg.field_type,
+            column_position: lf.column_position,
+            display_order: lf.display_order,
+            is_visible: lf.is_visible,
+            dropdown_options: cfg.dropdown_options as FieldLayout["dropdown_options"],
+          });
+        }
+      }
+    }
+  }
+
   return (
     <CompanyDetailClient
       company={companyData}
@@ -305,6 +369,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
       currentUserId={user.id}
       currentUserName={currentUserName}
       teamMembers={teamMembers}
+      sectionFields={sectionFields}
     />
   );
 }
