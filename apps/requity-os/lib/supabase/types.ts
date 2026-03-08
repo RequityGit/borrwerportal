@@ -12882,12 +12882,17 @@ export type Database = {
           card_icon: string | null
           card_metrics: Json
           category: string
+          contact_field_groups: Json
+          contact_fields: Json
+          contact_roles: string[]
           created_at: string
           description: string | null
           detail_field_groups: Json
           detail_tabs: Json
           id: string
           label: string
+          property_field_groups: Json
+          property_fields: Json
           slug: string
           sort_order: number | null
           status: string
@@ -12902,12 +12907,17 @@ export type Database = {
           card_icon?: string | null
           card_metrics?: Json
           category: string
+          contact_field_groups?: Json
+          contact_fields?: Json
+          contact_roles?: string[]
           created_at?: string
           description?: string | null
           detail_field_groups?: Json
           detail_tabs?: Json
           id?: string
           label: string
+          property_field_groups?: Json
+          property_fields?: Json
           slug: string
           sort_order?: number | null
           status?: string
@@ -12922,12 +12932,17 @@ export type Database = {
           card_icon?: string | null
           card_metrics?: Json
           category?: string
+          contact_field_groups?: Json
+          contact_fields?: Json
+          contact_roles?: string[]
           created_at?: string
           description?: string | null
           detail_field_groups?: Json
           detail_tabs?: Json
           id?: string
           label?: string
+          property_field_groups?: Json
+          property_fields?: Json
           slug?: string
           sort_order?: number | null
           status?: string
