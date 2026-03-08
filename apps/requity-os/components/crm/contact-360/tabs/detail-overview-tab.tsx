@@ -227,6 +227,7 @@ export function DetailOverviewTab({
       ],
     },
     { label: "Company", fieldName: "company_name", fieldType: "text", value: contact.company_name },
+    { label: "Country", fieldName: "country", fieldType: "text", value: contact.country },
   ];
 
   const borrowerFields: CrmSectionField[] = borrower
@@ -474,6 +475,7 @@ export function DetailOverviewTab({
             }
           />
           <FieldRow label="Company" value={contact.company_name} />
+          <FieldRow label="Country" value={contact.country} />
         </div>
       </SectionCard>
     ),
