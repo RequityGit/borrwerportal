@@ -12,6 +12,8 @@ import {
   Wrench,
   ScrollText,
   Layers,
+  Contact,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,6 +45,26 @@ export const NAV_GROUPS: NavGroup[] = [
         desc: "View all portal users, grant or revoke roles, and manage activation status.",
         href: "/control-center/users",
         icon: Users,
+      },
+    ],
+  },
+  {
+    id: "page-layouts",
+    label: "Page Layouts",
+    items: [
+      {
+        id: "page-manager-contacts",
+        label: "Contacts Layout",
+        desc: "Manage sections and fields on the Contact detail page.",
+        href: "/control-center/page-manager/contacts",
+        icon: Contact,
+      },
+      {
+        id: "page-manager-companies",
+        label: "Companies Layout",
+        desc: "Manage sections and fields on the Company detail page.",
+        href: "/control-center/page-manager/companies",
+        icon: Building2,
       },
     ],
   },
