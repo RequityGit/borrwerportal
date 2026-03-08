@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DealFilters, type FilterState } from "./DealFilters";
 import { PipelineKanban } from "./PipelineKanban";
 import { PipelineTable } from "./PipelineTable";
-import { NewDealSheet } from "./NewDealSheet";
+import { NewDealDialog } from "./NewDealDialog";
 import type {
   UnifiedDeal,
   UnifiedCardType,
@@ -112,7 +112,7 @@ export function PipelineView({
         />
       )}
 
-      <NewDealSheet
+      <NewDealDialog
         open={newDealOpen}
         onOpenChange={setNewDealOpen}
         cardTypes={cardTypes}
