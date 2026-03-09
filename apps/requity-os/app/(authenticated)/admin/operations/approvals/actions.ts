@@ -124,6 +124,37 @@ function evaluateConditions(
 // Checklist Validation
 // ---------------------------------------------------------------------------
 
+// Map field_configurations types to UwField types
+function mapFieldConfigType(
+  fcType: string
+): ChecklistResult["field_type"] {
+  switch (fcType) {
+    case "percentage":
+      return "percent";
+    case "dropdown":
+      return "select";
+    case "currency":
+      return "currency";
+    case "number":
+      return "number";
+    case "boolean":
+      return "boolean";
+    case "date":
+      return "date";
+    case "text":
+    default:
+      return "text";
+  }
+}
+
+// Special fields that need custom UI instead of standard UwField inputs
+const SPECIAL_FIELDS: Record<string, ChecklistResult["is_special"]> = {
+  borrower_id: "borrower_picker",
+  borrower_name: "borrower_picker",
+  primary_contact_id: "borrower_picker",
+  loan_amount: "loan_amount",
+};
+
 export async function validateChecklist(
   entityType: ApprovalEntityType,
   entityData: Record<string, unknown>
@@ -152,6 +183,48 @@ export async function validateChecklist(
   for (const item of items) {
     const result = evaluateChecklistItem(item, entityData);
     results.push(result);
+  }
+
+  // Fetch field configurations to attach type metadata for inline editing
+  const fieldKeys = items.map((i) => i.field);
+  const { data: fieldConfigs } = await admin
+    .from("field_configurations")
+    .select("field_key, field_type, dropdown_options, module")
+    .in("module", ["uw_deal", "uw_property", "uw_borrower", "loan_details", "property", "borrower_entity"])
+    .in("field_key", fieldKeys);
+
+  // Build lookup map: field_key -> config
+  const configMap = new Map<string, { field_type: string; dropdown_options: string[] | null }>();
+  if (fieldConfigs) {
+    for (const fc of fieldConfigs) {
+      // First match wins (uw_ modules take priority)
+      if (!configMap.has(fc.field_key)) {
+        configMap.set(fc.field_key, {
+          field_type: fc.field_type,
+          dropdown_options: fc.dropdown_options as string[] | null,
+        });
+      }
+    }
+  }
+
+  // Enrich results with field type metadata
+  for (const result of results) {
+    // Check for special fields first
+    if (SPECIAL_FIELDS[result.field]) {
+      result.is_special = SPECIAL_FIELDS[result.field];
+      continue;
+    }
+
+    const config = configMap.get(result.field);
+    if (config) {
+      result.field_type = mapFieldConfigType(config.field_type);
+      if (config.dropdown_options && config.dropdown_options.length > 0) {
+        result.options = config.dropdown_options;
+      }
+    } else {
+      // Default to text for unknown fields
+      result.field_type = "text";
+    }
   }
 
   return {
@@ -213,6 +286,107 @@ function evaluateChecklistItem(
   }
 
   return { label: item.label, field: item.field, passed: true };
+}
+
+// ---------------------------------------------------------------------------
+// Save field from approval dialog (inline editing)
+// ---------------------------------------------------------------------------
+
+export async function saveApprovalFieldAction(
+  entityId: string,
+  entityType: ApprovalEntityType,
+  fieldKey: string,
+  value: unknown
+): Promise<{ success?: true; error?: string }> {
+  try {
+    const auth = await requireAuth();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    // Special case: loan_amount -> update deal amount
+    if (fieldKey === "loan_amount") {
+      if (entityType === "opportunity") {
+        const { error } = await admin
+          .from("unified_deals")
+          .update({ amount: value as number })
+          .eq("id", entityId);
+        if (error) return { error: error.message };
+      } else if (entityType === "loan") {
+        const { error } = await admin
+          .from("loans")
+          .update({ loan_amount: value as number })
+          .eq("id", entityId);
+        if (error) return { error: error.message };
+      }
+      return { success: true };
+    }
+
+    // Special case: borrower -> update primary_contact_id on the deal
+    if (fieldKey === "borrower_id" || fieldKey === "borrower_name" || fieldKey === "primary_contact_id") {
+      if (entityType === "opportunity") {
+        const { error } = await admin
+          .from("unified_deals")
+          .update({ primary_contact_id: value as string })
+          .eq("id", entityId);
+        if (error) return { error: error.message };
+      }
+      return { success: true };
+    }
+
+    // Default: use the pipeline updateUwDataAction pattern
+    // Import the logic inline to avoid circular deps
+    const { updateUwDataAction } = await import(
+      "@/app/(authenticated)/admin/pipeline-v2/actions"
+    );
+    const uwResult = await updateUwDataAction(entityId, fieldKey, value);
+    if (uwResult.error) return { error: uwResult.error };
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to save field";
+    console.error("saveApprovalFieldAction error:", err);
+    return { error: message };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Search contacts for borrower picker in approval dialog
+// ---------------------------------------------------------------------------
+
+export async function searchContactsForApproval(
+  query: string
+): Promise<{ contacts: { id: string; name: string }[]; error?: string }> {
+  try {
+    const auth = await requireAuth();
+    if ("error" in auth) return { contacts: [], error: auth.error };
+
+    const admin = createAdminClient();
+
+    let q = admin
+      .from("crm_contacts")
+      .select("id, first_name, last_name")
+      .order("last_name", { ascending: true })
+      .limit(50);
+
+    if (query && query.trim().length > 0) {
+      q = q.or(
+        `first_name.ilike.%${query}%,last_name.ilike.%${query}%`
+      );
+    }
+
+    const { data, error } = await q;
+    if (error) return { contacts: [], error: error.message };
+
+    const contacts = (data ?? []).map((c) => ({
+      id: c.id,
+      name: [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unnamed",
+    }));
+
+    return { contacts };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to search contacts";
+    return { contacts: [], error: message };
+  }
 }
 
 // ---------------------------------------------------------------------------

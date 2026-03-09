@@ -90,6 +90,12 @@ export interface ChecklistResult {
   field: string;
   passed: boolean;
   reason?: string;
+  /** Field input type for inline editing in the approval dialog */
+  field_type?: "currency" | "percent" | "number" | "text" | "boolean" | "select" | "date";
+  /** Dropdown options (when field_type is "select") */
+  options?: string[];
+  /** Special fields that need custom UI instead of UwField */
+  is_special?: "borrower_picker" | "loan_amount";
 }
 
 export interface RoutingResult {
