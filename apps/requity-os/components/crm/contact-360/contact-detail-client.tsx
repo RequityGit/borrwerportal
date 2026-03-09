@@ -19,7 +19,6 @@ import { ContactDetailSidebar } from "./contact-detail-sidebar";
 import { EmailComposeSheet } from "@/components/crm/email-compose-sheet";
 import { DetailOverviewTab } from "./tabs/detail-overview-tab";
 import { DetailActivityTab } from "./tabs/detail-activity-tab";
-import { DetailEmailsTab } from "./tabs/detail-emails-tab";
 import { DetailDealsTab } from "./tabs/detail-deals-tab";
 import { DetailEntitiesTab } from "./tabs/detail-entities-tab";
 import { DetailTasksTab } from "./tabs/detail-tasks-tab";
@@ -123,8 +122,7 @@ export function ContactDetailClient({
         count: loans.length + investorCommitments.length,
       },
       { id: "entities", label: "Entities", count: entities.length },
-      { id: "emails", label: "Emails", count: emails.length },
-      { id: "activity", label: "Activity", count: activities.length },
+      { id: "activity", label: "Activity", count: activities.length + emails.length },
     ],
     [
       activities.length,
@@ -285,18 +283,14 @@ export function ContactDetailClient({
               </div>
             )}
 
-            {loadedTabs.has("emails") && (
-              <div className={activeTab !== "emails" ? "hidden" : undefined}>
-                <DetailEmailsTab emails={emails} onCompose={() => setEmailComposeOpen(true)} />
-              </div>
-            )}
-
             {loadedTabs.has("activity") && (
               <div className={activeTab !== "activity" ? "hidden" : undefined}>
                 <DetailActivityTab
                   contactId={contact.id}
                   activities={activities}
+                  emails={emails}
                   currentUserId={currentUserId}
+                  onComposeEmail={() => setEmailComposeOpen(true)}
                 />
               </div>
             )}
