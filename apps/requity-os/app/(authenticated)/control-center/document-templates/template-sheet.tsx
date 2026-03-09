@@ -59,7 +59,7 @@ const SOURCE_TABLES = [
 ];
 
 const FORMAT_OPTIONS = [
-  { value: "", label: "None" },
+  { value: "__none__", label: "None" },
   { value: "currency", label: "Currency ($1,234)" },
   { value: "currency_cents", label: "Currency Cents ($1,234.56)" },
   { value: "percentage", label: "Percentage (7.50%)" },
@@ -422,10 +422,10 @@ export function TemplateSheet({ open, onOpenChange, template, onSuccess }: Props
                       <div>
                         <Label className="text-[11px]">Format</Label>
                         <Select
-                          value={field.format ?? ""}
+                          value={field.format ?? "__none__"}
                           onValueChange={(v) =>
                             updateMergeField(index, {
-                              format: v || null,
+                              format: v === "__none__" ? null : v,
                             })
                           }
                         >
