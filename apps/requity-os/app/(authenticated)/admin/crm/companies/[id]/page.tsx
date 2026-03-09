@@ -46,25 +46,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
 
   if (!company) notFound();
 
-  // Build profile lookup
-  const { data: profiles } = await admin
-    .from("profiles")
-    .select("id, full_name, email")
-    .eq("role", "admin")
-    .order("full_name");
-
-  const profileLookup: Record<string, string> = {};
-  const teamMembers: { id: string; full_name: string }[] = [];
-  (profiles ?? []).forEach(
-    (t: { id: string; full_name: string | null; email: string | null }) => {
-      const displayName = t.full_name || t.email || "Unknown";
-      profileLookup[t.id] = displayName;
-      teamMembers.push({ id: t.id, full_name: displayName });
-    }
-  );
-
-  // Fetch all related data in parallel
+  // Fetch all related data in parallel (profiles + tab data + layout config)
   const [
+    profilesResult,
     contactsResult,
     primaryContactResult,
     activitiesResult,
@@ -73,7 +57,14 @@ export default async function CompanyDetailPage({ params }: PageProps) {
     notesResult,
     wireResult,
     followersResult,
+    sectionRowsResult,
   ] = await Promise.all([
+    // Profiles for lookup
+    admin
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("role", "admin")
+      .order("full_name"),
     // Contacts
     admin
       .from("crm_contacts")
@@ -132,7 +123,25 @@ export default async function CompanyDetailPage({ params }: PageProps) {
       .from("crm_followers")
       .select("id, user_id")
       .eq("company_id", id),
+    // Layout config
+    admin
+      .from("page_layout_sections" as never)
+      .select("id, section_key, display_order, is_visible, visibility_rule" as never)
+      .eq("page_type" as never, "company_detail" as never)
+      .eq("sidebar" as never, false as never)
+      .order("display_order" as never, { ascending: true }),
   ]);
+
+  // Build profile lookup
+  const profileLookup: Record<string, string> = {};
+  const teamMembers: { id: string; full_name: string }[] = [];
+  (profilesResult.data ?? []).forEach(
+    (t: { id: string; full_name: string | null; email: string | null }) => {
+      const displayName = t.full_name || t.email || "Unknown";
+      profileLookup[t.id] = displayName;
+      teamMembers.push({ id: t.id, full_name: displayName });
+    }
+  );
 
   // Map contacts
   const contacts: CompanyContactData[] = (contactsResult.data ?? []).map(
@@ -248,15 +257,8 @@ export default async function CompanyDetailPage({ params }: PageProps) {
     })
   );
 
-  // Fetch page layout section order for company_detail
-  const { data: sectionRows } = await admin
-    .from("page_layout_sections" as never)
-    .select("id, section_key, display_order, is_visible, visibility_rule" as never)
-    .eq("page_type" as never, "company_detail" as never)
-    .eq("sidebar" as never, false as never)
-    .order("display_order" as never, { ascending: true });
-
-  const sectionOrder: SectionLayout[] = (sectionRows ?? []).map(
+  // Map layout config from parallel results
+  const sectionOrder: SectionLayout[] = (sectionRowsResult.data ?? []).map(
     (r: Record<string, unknown>) => ({
       section_key: r.section_key as string,
       display_order: r.display_order as number,
@@ -269,7 +271,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const fieldSectionKeys = ["company_information", "address", "agreements", "wire_instructions"];
   const sectionIdToKey: Record<string, string> = {};
   const sectionIds: string[] = [];
-  for (const row of (sectionRows ?? []) as Record<string, unknown>[]) {
+  for (const row of (sectionRowsResult.data ?? []) as Record<string, unknown>[]) {
     if (fieldSectionKeys.includes(row.section_key as string)) {
       sectionIdToKey[row.id as string] = row.section_key as string;
       sectionIds.push(row.id as string);
