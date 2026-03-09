@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -117,7 +117,6 @@ export function DealDetailPage({
   tasks,
   commercialUWData,
 }: DealDetailPageProps) {
-  const router = useRouter();
   // Universal 10-tab layout — same for ALL card types
   const UNIVERSAL_TABS = [
     "Overview",
@@ -132,7 +131,35 @@ export function DealDetailPage({
     "Notes",
   ] as const;
   const tabs = UNIVERSAL_TABS;
-  const [activeTab, setActiveTab] = useState<string>(tabs[0]);
+
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabs.find((t) => t.toLowerCase() === tabParam?.toLowerCase()) ?? tabs[0];
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  // Track which tabs have been visited so we can keep them mounted
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(
+    () => new Set([initialTab])
+  );
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    setLoadedTabs((prev) => {
+      if (prev.has(tab)) return prev;
+      return new Set(prev).add(tab);
+    });
+    // Update URL without triggering Next.js navigation
+    const params = new URLSearchParams(window.location.search);
+    if (tab === tabs[0]) {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab.toLowerCase());
+    }
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [tabs]);
 
   const displayId = deal.deal_number ?? deal.id.slice(0, 8);
   const days = deal.days_in_stage ?? daysInStage(deal.stage_entered_at);
@@ -205,7 +232,7 @@ export function DealDetailPage({
             {tabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg border-none px-3.5 py-[7px] text-[13px] cursor-pointer transition-all duration-150",
                   activeTab === tab
@@ -221,21 +248,98 @@ export function DealDetailPage({
 
         {/* Content Area: main + sidebar */}
         <div className="grid grid-cols-[1fr_320px] gap-6 items-start">
-          {/* Left: Tab Content */}
+          {/* Left: Tab Content — visited tabs stay mounted to preserve state */}
           <div className="flex flex-col gap-5 min-w-0">
-            <TabContent
-              activeTab={activeTab}
-              deal={deal}
-              cardType={cardType}
-              checklist={checklist}
-              conditions={conditions}
-              activities={activities}
-              currentUserId={currentUserId}
-              documents={documents}
-              tasks={tasks}
-              teamMembers={teamMembers}
-              commercialUWData={commercialUWData}
-            />
+            {loadedTabs.has("Overview") && (
+              <div className={activeTab !== "Overview" ? "hidden" : undefined}>
+                <EditableOverview
+                  dealId={deal.id}
+                  uwData={deal.uw_data}
+                  cardType={cardType}
+                  checklist={checklist}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Property") && (
+              <div className={activeTab !== "Property" ? "hidden" : undefined}>
+                <PropertyTab
+                  dealId={deal.id}
+                  propertyData={(deal.property_data as Record<string, unknown>) ?? {}}
+                  cardType={cardType}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Financials") && (
+              <div className={activeTab !== "Financials" ? "hidden" : undefined}>
+                <FinancialsContent
+                  deal={deal}
+                  cardType={cardType}
+                  commercialUWData={commercialUWData}
+                  currentUserId={currentUserId}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Underwriting") && (
+              <div className={activeTab !== "Underwriting" ? "hidden" : undefined}>
+                <UnderwritingContent
+                  deal={deal}
+                  cardType={cardType}
+                  commercialUWData={commercialUWData}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Contacts") && (
+              <div className={activeTab !== "Contacts" ? "hidden" : undefined}>
+                <ContactsTab
+                  deal={deal}
+                  dealId={deal.id}
+                  uwData={(deal.uw_data as Record<string, unknown>) ?? {}}
+                  cardType={cardType}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Conditions") && (
+              <div className={activeTab !== "Conditions" ? "hidden" : undefined}>
+                <ConditionsTab conditions={conditions} dealId={deal.id} />
+              </div>
+            )}
+            {loadedTabs.has("Documents") && (
+              <div className={activeTab !== "Documents" ? "hidden" : undefined}>
+                <DocumentsTab
+                  documents={documents as unknown as { id: string; deal_id: string; document_name: string; file_url: string; file_size_bytes: number | null; mime_type: string | null; category: string | null; uploaded_by: string | null; created_at: string; review_status: string | null; storage_path: string | null; _uploaded_by_name?: string | null }[]}
+                  dealId={deal.id}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Tasks") && (
+              <div className={activeTab !== "Tasks" ? "hidden" : undefined}>
+                <DealTasks
+                  dealId={deal.id}
+                  dealLabel={deal.deal_number ?? deal.name}
+                  dealEntityType="deal"
+                  tasks={tasks}
+                  profiles={teamMembers}
+                  currentUserId={currentUserId}
+                />
+              </div>
+            )}
+            {loadedTabs.has("Activity") && (
+              <div className={activeTab !== "Activity" ? "hidden" : undefined}>
+                <ActivityContent activities={activities} />
+              </div>
+            )}
+            {loadedTabs.has("Notes") && (
+              <div className={activeTab !== "Notes" ? "hidden" : undefined}>
+                <UnifiedNotes
+                  entityType="deal"
+                  entityId={deal.id}
+                  dealId={deal.id}
+                  showInternalToggle={true}
+                  showFilters={true}
+                  showPinning={true}
+                />
+              </div>
+            )}
           </div>
 
           {/* Right: Sidebar */}
@@ -338,157 +442,88 @@ function DealHeader({
   );
 }
 
-// ─── Tab Content ───
+// ─── Financials Content ───
 
-function TabContent({
-  activeTab,
+function FinancialsContent({
   deal,
   cardType,
-  checklist,
-  conditions,
-  activities,
-  currentUserId,
-  documents,
-  tasks,
-  teamMembers,
   commercialUWData,
+  currentUserId,
 }: {
-  activeTab: string;
   deal: UnifiedDeal;
   cardType: UnifiedCardType;
-  checklist: ChecklistItem[];
-  conditions: DealCondition[];
-  activities: DealActivity[];
+  commercialUWData: CommercialUWData | null;
   currentUserId: string;
-  documents: Record<string, unknown>[];
-  tasks: OpsTask[];
-  teamMembers: Profile[];
+}) {
+  if (commercialUWData) {
+    return (
+      <FinancialsTab
+        data={commercialUWData as FinancialsUWData}
+        dealId={deal.id}
+        currentUserId={currentUserId}
+      />
+    );
+  }
+  if (cardType.uw_grid?.rows?.length) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium mb-1">Grid Pro Forma</h3>
+          <p className="text-xs text-muted-foreground">
+            Click any cell to override its value or formula.
+          </p>
+        </div>
+        <GridProForma
+          template={cardType.uw_grid}
+          uwData={deal.uw_data}
+          overrides={deal.uw_grid_overrides ?? {}}
+          onOverridesChange={async (overrides) => {
+            const result = await saveGridOverrides(deal.id, overrides);
+            if (result.error) {
+              toast.error(result.error);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-dashed p-8 text-center">
+      <p className="text-sm text-muted-foreground">
+        Financial modeling is available for commercial deals. Use the
+        Underwriting tab for standard deal metrics.
+      </p>
+    </div>
+  );
+}
+
+// ─── Underwriting Content ───
+
+function UnderwritingContent({
+  deal,
+  cardType,
+  commercialUWData,
+}: {
+  deal: UnifiedDeal;
+  cardType: UnifiedCardType;
   commercialUWData: CommercialUWData | null;
 }) {
   const isCommercial = cardType.slug === "comm_debt";
-
-  switch (activeTab) {
-    case "Overview":
-      return (
-        <EditableOverview
-          dealId={deal.id}
-          uwData={deal.uw_data}
-          cardType={cardType}
-          checklist={checklist}
-        />
-      );
-    case "Property":
-      return (
-        <PropertyTab
-          dealId={deal.id}
-          propertyData={(deal.property_data as Record<string, unknown>) ?? {}}
-          cardType={cardType}
-        />
-      );
-    case "Financials":
-      if (commercialUWData) {
-        return (
-          <FinancialsTab
-            data={commercialUWData as FinancialsUWData}
-            dealId={deal.id}
-            currentUserId={currentUserId}
-          />
-        );
-      }
-      if (cardType.uw_grid?.rows?.length) {
-        return (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium mb-1">Grid Pro Forma</h3>
-              <p className="text-xs text-muted-foreground">
-                Click any cell to override its value or formula.
-              </p>
-            </div>
-            <GridProForma
-              template={cardType.uw_grid}
-              uwData={deal.uw_data}
-              overrides={deal.uw_grid_overrides ?? {}}
-              onOverridesChange={async (overrides) => {
-                const result = await saveGridOverrides(deal.id, overrides);
-                if (result.error) {
-                  toast.error(result.error);
-                }
-              }}
-            />
-          </div>
-        );
-      }
-      return (
-        <div className="rounded-xl border border-dashed p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Financial modeling is available for commercial deals. Use the
-            Underwriting tab for standard deal metrics.
-          </p>
-        </div>
-      );
-    case "Underwriting":
-      if (isCommercial && commercialUWData) {
-        return (
-          <CommercialUnderwritingTab
-            data={commercialUWData}
-            dealId={deal.id}
-          />
-        );
-      }
-      return (
-        <UnderwritingPanel
-          cardType={cardType}
-          dealId={deal.id}
-          uwData={deal.uw_data}
-        />
-      );
-    case "Contacts":
-      return (
-        <ContactsTab
-          deal={deal}
-          dealId={deal.id}
-          uwData={(deal.uw_data as Record<string, unknown>) ?? {}}
-          cardType={cardType}
-        />
-      );
-    case "Conditions":
-      return (
-        <ConditionsTab conditions={conditions} dealId={deal.id} />
-      );
-    case "Documents":
-      return (
-        <DocumentsTab
-          documents={documents as unknown as { id: string; deal_id: string; document_name: string; file_url: string; file_size_bytes: number | null; mime_type: string | null; category: string | null; uploaded_by: string | null; created_at: string; review_status: string | null; storage_path: string | null; _uploaded_by_name?: string | null }[]}
-          dealId={deal.id}
-        />
-      );
-    case "Tasks":
-      return (
-        <DealTasks
-          dealId={deal.id}
-          dealLabel={deal.deal_number ?? deal.name}
-          dealEntityType="deal"
-          tasks={tasks}
-          profiles={teamMembers}
-          currentUserId={currentUserId}
-        />
-      );
-    case "Activity":
-      return <ActivityContent activities={activities} />;
-    case "Notes":
-      return (
-        <UnifiedNotes
-          entityType="deal"
-          entityId={deal.id}
-          dealId={deal.id}
-          showInternalToggle={true}
-          showFilters={true}
-          showPinning={true}
-        />
-      );
-    default:
-      return null;
+  if (isCommercial && commercialUWData) {
+    return (
+      <CommercialUnderwritingTab
+        data={commercialUWData}
+        dealId={deal.id}
+      />
+    );
   }
+  return (
+    <UnderwritingPanel
+      cardType={cardType}
+      dealId={deal.id}
+      uwData={deal.uw_data}
+    />
+  );
 }
 
 // ─── Activity ───

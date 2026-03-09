@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -78,7 +78,6 @@ export function CompanyDetailClient({
   sectionOrder,
   sectionFields,
 }: CompanyDetailClientProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const openTasks = useMemo(
@@ -104,29 +103,32 @@ export function CompanyDetailClient({
   const initialTab = isValidTab ? tabParam! : "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  // Track which tabs have been visited so we can keep them mounted
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(
+    () => new Set([initialTab])
+  );
+
   const handleTabChange = useCallback(
     (value: string) => {
       setActiveTab(value);
-      const params = new URLSearchParams(searchParams.toString());
+      setLoadedTabs((prev) => {
+        if (prev.has(value)) return prev;
+        return new Set(prev).add(value);
+      });
+      // Use history.replaceState to update URL without triggering Next.js navigation
+      const params = new URLSearchParams(window.location.search);
       if (value === "overview") {
         params.delete("tab");
       } else {
         params.set("tab", value);
       }
       const newUrl = params.toString()
-        ? `?${params.toString()}`
+        ? `${window.location.pathname}?${params.toString()}`
         : window.location.pathname;
-      router.replace(newUrl, { scroll: false });
+      window.history.replaceState(null, "", newUrl);
     },
-    [router, searchParams]
+    []
   );
-
-  useEffect(() => {
-    const newTab = searchParams.get("tab") || "overview";
-    if (tabs.some((t) => t.id === newTab) && newTab !== activeTab) {
-      setActiveTab(newTab);
-    }
-  }, [searchParams, tabs, activeTab]);
 
   return (
     <div className="min-h-screen">
@@ -177,54 +179,68 @@ export function CompanyDetailClient({
             ))}
           </div>
 
-          {/* Tab Content */}
-          {activeTab === "overview" && (
-            <CompanyOverviewTab
-              company={company}
-              wireInstructions={wireInstructions}
-              files={files}
-              sectionOrder={sectionOrder}
-              sectionFields={sectionFields}
-            />
+          {/* Tab content: visited tabs stay mounted (hidden) to preserve state & subscriptions */}
+          {loadedTabs.has("overview") && (
+            <div className={activeTab !== "overview" ? "hidden" : undefined}>
+              <CompanyOverviewTab
+                company={company}
+                wireInstructions={wireInstructions}
+                files={files}
+                sectionOrder={sectionOrder}
+                sectionFields={sectionFields}
+              />
+            </div>
           )}
-          {activeTab === "contacts" && (
-            <CompanyContactsTab
-              contacts={contacts}
-              companyId={company.id}
-              companyName={company.name}
-              primaryContactId={company.primary_contact_id}
-              teamMembers={teamMembers}
-              currentUserId={currentUserId}
-            />
+          {loadedTabs.has("contacts") && (
+            <div className={activeTab !== "contacts" ? "hidden" : undefined}>
+              <CompanyContactsTab
+                contacts={contacts}
+                companyId={company.id}
+                companyName={company.name}
+                primaryContactId={company.primary_contact_id}
+                teamMembers={teamMembers}
+                currentUserId={currentUserId}
+              />
+            </div>
           )}
-          {activeTab === "notes" && (
-            <UnifiedNotes
-              entityType="company"
-              entityId={company.id}
-            />
+          {loadedTabs.has("notes") && (
+            <div className={activeTab !== "notes" ? "hidden" : undefined}>
+              <UnifiedNotes
+                entityType="company"
+                entityId={company.id}
+              />
+            </div>
           )}
-          {activeTab === "tasks" && (
-            <CompanyTasksTab
-              tasks={tasks}
-              companyId={company.id}
-              currentUserId={currentUserId}
-            />
+          {loadedTabs.has("tasks") && (
+            <div className={activeTab !== "tasks" ? "hidden" : undefined}>
+              <CompanyTasksTab
+                tasks={tasks}
+                companyId={company.id}
+                currentUserId={currentUserId}
+              />
+            </div>
           )}
-          {activeTab === "deals" && (
-            <CompanyDealsTab company={company} />
+          {loadedTabs.has("deals") && (
+            <div className={activeTab !== "deals" ? "hidden" : undefined}>
+              <CompanyDealsTab company={company} />
+            </div>
           )}
-          {activeTab === "files" && (
-            <CompanyFilesTab
-              files={files}
-              companyId={company.id}
-            />
+          {loadedTabs.has("files") && (
+            <div className={activeTab !== "files" ? "hidden" : undefined}>
+              <CompanyFilesTab
+                files={files}
+                companyId={company.id}
+              />
+            </div>
           )}
-          {activeTab === "activity" && (
-            <CompanyActivityTab
-              companyId={company.id}
-              activities={activities}
-              currentUserId={currentUserId}
-            />
+          {loadedTabs.has("activity") && (
+            <div className={activeTab !== "activity" ? "hidden" : undefined}>
+              <CompanyActivityTab
+                companyId={company.id}
+                activities={activities}
+                currentUserId={currentUserId}
+              />
+            </div>
           )}
         </div>
 
