@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Trash2, Search, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   createTemplate,
   updateTemplate,
   type MergeField,
@@ -32,6 +37,11 @@ import {
   type TemplateFormData,
 } from "./actions";
 import { TERM_SHEET_SECTIONS } from "@/lib/term-sheet-fields";
+import {
+  searchFields,
+  getFieldsByCategory,
+  type MergeFieldOption,
+} from "@/lib/merge-field-registry";
 
 const TEMPLATE_TYPES = [
   { value: "nda", label: "NDA" },
@@ -119,6 +129,94 @@ const EMPTY_ROLE: SignatureRole = {
   email_source: "",
   order: 1,
 };
+
+/** Searchable combobox for merge field keys — auto-populates key, label, source, column, format */
+function FieldSearchCombobox({
+  value,
+  onSelect,
+}: {
+  value: string;
+  onSelect: (field: MergeFieldOption) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep the input in sync with the external value
+  useEffect(() => {
+    setSearch(value);
+  }, [value]);
+
+  const results = searchFields(search);
+  const grouped = new Map<string, MergeFieldOption[]>();
+  for (const f of results) {
+    const list = grouped.get(f.category) ?? [];
+    list.push(f);
+    grouped.set(f.category, list);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={inputRef}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (!open) setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            placeholder="Search fields..."
+            className="h-8 text-xs font-mono pl-7"
+          />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[280px] p-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <div className="max-h-[260px] overflow-y-auto">
+          {results.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              No matching fields
+            </p>
+          )}
+          {Array.from(grouped.entries()).map(([category, fields]) => (
+            <div key={category}>
+              <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50 sticky top-0">
+                {category}
+              </div>
+              {fields.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
+                  onClick={() => {
+                    onSelect(f);
+                    setSearch(f.key);
+                    setOpen(false);
+                  }}
+                >
+                  {f.key === value && (
+                    <Check className="h-3 w-3 text-primary shrink-0" />
+                  )}
+                  <div className="flex flex-col items-start min-w-0">
+                    <span className="font-mono truncate">{f.key}</span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {f.label}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function TemplateSheet({ open, onOpenChange, template, onSuccess }: Props) {
   const isEditing = !!template;
@@ -365,13 +463,17 @@ export function TemplateSheet({ open, onOpenChange, template, onSuccess }: Props
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <Label className="text-[11px]">Key</Label>
-                        <Input
+                        <FieldSearchCombobox
                           value={field.key}
-                          onChange={(e) =>
-                            updateMergeField(index, { key: e.target.value })
+                          onSelect={(f) =>
+                            updateMergeField(index, {
+                              key: f.key,
+                              label: f.label,
+                              source: f.source,
+                              column: f.column,
+                              format: f.format,
+                            })
                           }
-                          placeholder="borrower_name"
-                          className="h-8 text-xs font-mono"
                         />
                       </div>
                       <div>
