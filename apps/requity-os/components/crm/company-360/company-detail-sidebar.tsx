@@ -48,39 +48,6 @@ interface CompanyDetailSidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-function computeNdaOnFile(company: CompanyDetailData): {
-  status: boolean;
-  warning: boolean;
-  detail: string | null;
-} {
-  if (!company.nda_created_date) {
-    return { status: false, warning: false, detail: null };
-  }
-  if (!company.nda_expiration_date) {
-    return { status: true, warning: false, detail: null };
-  }
-  const exp = new Date(company.nda_expiration_date);
-  const now = new Date();
-  if (exp < now) {
-    return { status: false, warning: false, detail: "Expired" };
-  }
-  const daysLeft = Math.floor(
-    (exp.getTime() - now.getTime()) / 86400000
-  );
-  if (daysLeft < 45) {
-    return {
-      status: true,
-      warning: true,
-      detail: `Expires ${formatDate(company.nda_expiration_date)}`,
-    };
-  }
-  return {
-    status: true,
-    warning: false,
-    detail: `Expires ${formatDate(company.nda_expiration_date)}`,
-  };
-}
-
 export function CompanyDetailSidebar({
   company,
   contacts,
@@ -91,7 +58,6 @@ export function CompanyDetailSidebar({
   const router = useRouter();
   const { toast } = useToast();
 
-  const ndaInfo = computeNdaOnFile(company);
   const hasW9 = files.some((f) => f.file_type === "w9");
   const rateSheet = files.find((f) => f.file_type === "rate_sheet");
 
@@ -275,18 +241,6 @@ export function CompanyDetailSidebar({
         <div className="flex flex-col gap-2">
           {[
             {
-              label: "NDA",
-              status: ndaInfo.status,
-              warning: ndaInfo.warning,
-              detail: ndaInfo.detail,
-            },
-            {
-              label: "Fee Agreement",
-              status: !!company.fee_agreement_on_file,
-              warning: false,
-              detail: null,
-            },
-            {
               label: "W-9",
               status: hasW9,
               warning: false,
@@ -303,7 +257,7 @@ export function CompanyDetailSidebar({
           ].map((doc, i) => (
             <div
               key={i}
-              className={`flex items-center gap-2 py-1.5${i < 3 ? " border-b border-border/40" : ""}`}
+              className={`flex items-center gap-2 py-1.5${i < 1 ? " border-b border-border/40" : ""}`}
             >
               <div
                 className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
