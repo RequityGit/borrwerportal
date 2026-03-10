@@ -260,7 +260,10 @@ export function DealDetailPage({
               <div className={activeTab !== "Overview" ? "hidden" : undefined}>
                 <EditableOverview
                   dealId={deal.id}
-                  uwData={deal.uw_data}
+                  uwData={{
+                    ...deal.uw_data,
+                    expected_close_date: deal.expected_close_date,
+                  }}
                   cardType={cardType}
                   checklist={checklist}
                 />
