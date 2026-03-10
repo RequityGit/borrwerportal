@@ -396,7 +396,7 @@ export function LayoutTab({
 
   // Available palette fields (not yet placed)
   const paletteFields = useMemo(() => {
-    return fields.filter((f) => !f.is_archived && f.is_visible && !placedFieldKeys.has(f.field_key));
+    return fields.filter((f) => !f.is_archived && !placedFieldKeys.has(f.field_key));
   }, [fields, placedFieldKeys]);
 
   // ---------------------------------------------------------------------------
