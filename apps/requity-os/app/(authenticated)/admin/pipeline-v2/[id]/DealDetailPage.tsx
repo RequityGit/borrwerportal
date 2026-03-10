@@ -46,6 +46,7 @@ import {
   Plus,
   Loader2,
   FileText,
+  X,
 } from "lucide-react";
 import { GenerateDocumentDialog } from "@/components/documents/GenerateDocumentDialog";
 import { StageStepper } from "@/components/pipeline-v2/StageStepper";
@@ -79,12 +80,31 @@ import {
 } from "@/app/(authenticated)/admin/pipeline-v2/actions";
 import { DealActivityTab } from "@/components/pipeline-v2/tabs/DealActivityTab";
 import { UnifiedNotes } from "@/components/shared/UnifiedNotes";
-import { logQuickActionV2, assignTeamMemberV2, saveGridOverrides } from "./actions";
+import { logQuickActionV2, assignTeamMemberV2, addDealTeamMember, removeDealTeamMember, saveGridOverrides } from "./actions";
 import { SubmitForApprovalDialog } from "@/components/approvals/submit-for-approval-dialog";
 import { LoanApprovalSection } from "@/components/approvals/loan-approval-section";
 import type { ApprovalEntityType } from "@/lib/approvals/types";
 import type { OpsTask, Profile } from "@/lib/tasks";
 import type { ActivityData, EmailData } from "@/components/crm/contact-360/types";
+
+// ─── Types ───
+
+export interface DealTeamMember {
+  id: string;
+  deal_id: string;
+  profile_id: string;
+  role: string;
+  created_at: string;
+}
+
+const TEAM_ROLE_OPTIONS = [
+  "Assigned To",
+  "Originator",
+  "Processor",
+  "Underwriter",
+  "Closer",
+  "Team Member",
+] as const;
 
 // ─── Props ───
 
@@ -98,6 +118,7 @@ interface DealDetailPageProps {
   crmActivities: ActivityData[];
   crmEmails: EmailData[];
   teamMembers: Profile[];
+  dealTeamMembers: DealTeamMember[];
   currentUserId: string;
   currentUserName: string;
   documents: Record<string, unknown>[];
@@ -117,6 +138,7 @@ export function DealDetailPage({
   crmActivities,
   crmEmails,
   teamMembers,
+  dealTeamMembers,
   currentUserId,
   currentUserName,
   documents,
@@ -205,9 +227,8 @@ export function DealDetailPage({
           deal={deal}
           shortLabel={shortLabel}
           days={days}
-          assignedName={
-            teamMembers.find((t) => t.id === deal.assigned_to)?.full_name
-          }
+          dealTeamMembers={dealTeamMembers}
+          teamMembers={teamMembers}
         />
 
         {/* Stage Stepper */}
@@ -361,6 +382,7 @@ export function DealDetailPage({
             cardType={cardType}
             stageConfigs={stageConfigs}
             teamMembers={teamMembers}
+            dealTeamMembers={dealTeamMembers}
             currentUserId={currentUserId}
             currentUserName={currentUserName}
           />
@@ -376,14 +398,22 @@ function DealHeader({
   deal,
   shortLabel,
   days,
-  assignedName,
+  dealTeamMembers,
+  teamMembers,
 }: {
   deal: UnifiedDeal;
   shortLabel: string;
   days: number;
-  assignedName?: string;
+  dealTeamMembers: DealTeamMember[];
+  teamMembers: Profile[];
 }) {
   const currentStage = STAGES.find((s) => s.key === deal.stage);
+
+  // Resolve team member names for header display
+  const resolvedMembers = dealTeamMembers.map((dtm) => {
+    const profile = teamMembers.find((t) => t.id === dtm.profile_id);
+    return { ...dtm, full_name: profile?.full_name ?? "Unknown" };
+  });
 
   return (
     <div className="flex items-start justify-between gap-5">
@@ -432,22 +462,39 @@ function DealHeader({
         </div>
       </div>
 
-      {/* Assigned */}
-      {assignedName && (
+      {/* Team Avatars */}
+      {resolvedMembers.length > 0 && (
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex flex-col items-end gap-0.5">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Assigned
+              Team
             </span>
-            <span className="text-xs text-foreground">{assignedName}</span>
+            <span className="text-xs text-foreground">
+              {resolvedMembers.length === 1
+                ? resolvedMembers[0].full_name
+                : `${resolvedMembers.length} members`}
+            </span>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-medium">
-            {assignedName
-              .split(" ")
-              .map((w) => w[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase()}
+          <div className="flex -space-x-1.5">
+            {resolvedMembers.slice(0, 3).map((m) => (
+              <div
+                key={m.id}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-medium ring-2 ring-background"
+                title={`${m.full_name} (${m.role})`}
+              >
+                {m.full_name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            ))}
+            {resolvedMembers.length > 3 && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground text-xs font-medium ring-2 ring-background">
+                +{resolvedMembers.length - 3}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -546,6 +593,7 @@ function DealSidebar({
   cardType,
   stageConfigs,
   teamMembers,
+  dealTeamMembers,
   currentUserId,
   currentUserName,
 }: {
@@ -553,6 +601,7 @@ function DealSidebar({
   cardType: UnifiedCardType;
   stageConfigs: StageConfig[];
   teamMembers: Profile[];
+  dealTeamMembers: DealTeamMember[];
   currentUserId: string;
   currentUserName: string;
 }) {
@@ -572,9 +621,8 @@ function DealSidebar({
   const [emailNotes, setEmailNotes] = useState("");
   const [closingDate, setClosingDate] = useState("");
   const [closingNotes, setClosingNotes] = useState("");
-  const [selectedProfileId, setSelectedProfileId] = useState(
-    deal.assigned_to ?? ""
-  );
+  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [selectedRole, setSelectedRole] = useState<string>("Team Member");
   const [actionLoading, setActionLoading] = useState(false);
 
   // Next stage
@@ -649,27 +697,53 @@ function DealSidebar({
     }
   }, [deal.id, closingDate, closingNotes, router]);
 
-  const handleAssignTeam = useCallback(async () => {
-    if (!selectedProfileId) return;
+  const handleAddTeamMember = useCallback(async () => {
+    if (!selectedProfileId || !selectedRole) return;
     setActionLoading(true);
     try {
-      const result = await assignTeamMemberV2(
+      const result = await addDealTeamMember(
         deal.id,
-        selectedProfileId || null
+        selectedProfileId,
+        selectedRole
       );
       if (result.error) {
-        toast.error(`Failed to assign: ${result.error}`);
+        toast.error(`Failed to add: ${result.error}`);
       } else {
-        toast.success("Team member assigned");
+        toast.success("Team member added");
         router.refresh();
       }
       setTeamAssignOpen(false);
+      setSelectedProfileId("");
+      setSelectedRole("Team Member");
     } finally {
       setActionLoading(false);
     }
-  }, [deal.id, selectedProfileId, router]);
+  }, [deal.id, selectedProfileId, selectedRole, router]);
 
-  const assignedMember = teamMembers.find((t) => t.id === deal.assigned_to);
+  const handleRemoveTeamMember = useCallback(async (memberId: string) => {
+    setActionLoading(true);
+    try {
+      const result = await removeDealTeamMember(deal.id, memberId);
+      if (result.error) {
+        toast.error(`Failed to remove: ${result.error}`);
+      } else {
+        toast.success("Team member removed");
+        router.refresh();
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  }, [deal.id, router]);
+
+  // Resolve team member profiles for display
+  const resolvedTeamMembers = dealTeamMembers.map((dtm) => {
+    const profile = teamMembers.find((t) => t.id === dtm.profile_id);
+    return {
+      ...dtm,
+      full_name: profile?.full_name ?? "Unknown",
+      avatar_url: profile?.avatar_url ?? null,
+    };
+  });
 
   const dates = [
     { label: "Created", value: deal.created_at },
@@ -769,43 +843,56 @@ function DealSidebar({
 
       {/* Team */}
       <SidebarSection title="Team" icon={Users}>
-        <button
-          className="flex items-center gap-2.5 w-full bg-transparent border-0 cursor-pointer rounded-lg px-1 -mx-1 py-1 transition-colors hover:bg-muted"
-          onClick={() => {
-            setSelectedProfileId(deal.assigned_to ?? "");
-            setTeamAssignOpen(true);
-          }}
-        >
-          {assignedMember ? (
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-[10px] font-medium">
-              {assignedMember.full_name
-                .split(" ")
-                .map((w) => w[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
+        <div className="flex flex-col gap-1">
+          {resolvedTeamMembers.map((member) => (
+            <div
+              key={member.id}
+              className="group flex items-center gap-2.5 rounded-lg px-1 -mx-1 py-1 transition-colors hover:bg-muted"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-[10px] font-medium">
+                {member.full_name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+              <div className="text-left min-w-0 flex-1">
+                <div className="text-xs font-medium text-foreground truncate">
+                  {member.full_name}
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {member.role}
+                </div>
+              </div>
+              <button
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10 bg-transparent border-0 cursor-pointer"
+                onClick={() => handleRemoveTeamMember(member.id)}
+                disabled={actionLoading}
+              >
+                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+              </button>
             </div>
-          ) : (
+          ))}
+          {resolvedTeamMembers.length === 0 && (
+            <p className="text-xs text-muted-foreground italic px-1">
+              No team members assigned
+            </p>
+          )}
+          <button
+            className="flex items-center gap-2.5 w-full bg-transparent border-0 cursor-pointer rounded-lg px-1 -mx-1 py-1 transition-colors hover:bg-muted mt-0.5"
+            onClick={() => {
+              setSelectedProfileId("");
+              setSelectedRole("Team Member");
+              setTeamAssignOpen(true);
+            }}
+          >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-dashed border-border">
               <Plus className="h-3 w-3 text-muted-foreground" />
             </div>
-          )}
-          <div className="text-left">
-            <div
-              className={cn(
-                "text-xs font-medium",
-                assignedMember
-                  ? "text-foreground"
-                  : "text-muted-foreground italic"
-              )}
-            >
-              {assignedMember?.full_name ?? "Unassigned"}
-            </div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Assigned To
-            </div>
-          </div>
-        </button>
+            <span className="text-xs text-muted-foreground">Add Member</span>
+          </button>
+        </div>
       </SidebarSection>
 
       {/* Key Dates */}
@@ -981,27 +1068,59 @@ function DealSidebar({
       <Dialog open={teamAssignOpen} onOpenChange={setTeamAssignOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Team Member</DialogTitle>
+            <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
-              Select a team member to assign to this deal.
+              Select a team member and their role on this deal.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
-            <Select
-              value={selectedProfileId}
-              onValueChange={setSelectedProfileId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select team member..." />
-              </SelectTrigger>
-              <SelectContent>
-                {teamMembers.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Team Member
+              </label>
+              <Select
+                value={selectedProfileId}
+                onValueChange={setSelectedProfileId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select team member..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers
+                    .filter(
+                      (p) =>
+                        !dealTeamMembers.some(
+                          (dtm) => dtm.profile_id === p.id
+                        )
+                    )
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.full_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Role
+              </label>
+              <Select
+                value={selectedRole}
+                onValueChange={setSelectedRole}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEAM_ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -1011,13 +1130,13 @@ function DealSidebar({
               Cancel
             </Button>
             <Button
-              onClick={handleAssignTeam}
-              disabled={actionLoading || !selectedProfileId}
+              onClick={handleAddTeamMember}
+              disabled={actionLoading || !selectedProfileId || !selectedRole}
             >
               {actionLoading && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
               )}
-              Assign
+              Add
             </Button>
           </DialogFooter>
         </DialogContent>
