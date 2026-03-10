@@ -13,6 +13,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { TabBtn } from "@/components/crm/contact-360/contact-detail-shared";
+import { EmailComposeSheet } from "@/components/crm/email-compose-sheet";
 import { CompanyDetailHeader } from "./company-detail-header";
 import { CompanyDetailSidebar } from "./company-detail-sidebar";
 import { CompanyOverviewTab } from "./tabs/overview-tab";
@@ -79,6 +80,7 @@ export function CompanyDetailClient({
   sectionFields,
 }: CompanyDetailClientProps) {
   const searchParams = useSearchParams();
+  const [emailComposeOpen, setEmailComposeOpen] = useState(false);
 
   const openTasks = useMemo(
     () => tasks.filter((t) => t.status !== "completed").length,
@@ -216,7 +218,13 @@ export function CompanyDetailClient({
               <CompanyTasksTab
                 tasks={tasks}
                 companyId={company.id}
+                companyName={company.name}
                 currentUserId={currentUserId}
+                profiles={teamMembers.map((m) => ({
+                  id: m.id,
+                  full_name: m.full_name,
+                  avatar_url: null,
+                }))}
               />
             </div>
           )}
@@ -254,9 +262,19 @@ export function CompanyDetailClient({
             currentUserId={currentUserId}
             currentUserName={currentUserName}
             onTabChange={handleTabChange}
+            onComposeEmail={() => setEmailComposeOpen(true)}
           />
         </div>
       </div>
+
+      <EmailComposeSheet
+        open={emailComposeOpen}
+        onOpenChange={setEmailComposeOpen}
+        toEmail={company.email || ""}
+        toName={company.name}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+      />
     </div>
   );
 }
