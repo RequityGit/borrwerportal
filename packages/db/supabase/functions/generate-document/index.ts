@@ -9,6 +9,8 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Expose-Headers":
+    "X-Document-Id, X-Missing-Fields, Content-Disposition",
 };
 
 // ---------- Google Drive helpers ----------
@@ -241,6 +243,9 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+    // Extract raw JWT from "Bearer <token>"
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+
     // Auth client uses the user's JWT
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -249,15 +254,21 @@ Deno.serve(async (req: Request) => {
     // Admin client for data queries
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Authenticate user
+    // Authenticate user — pass token directly for reliability in Deno
     const {
       data: { user },
       error: authError,
-    } = await supabaseAuth.auth.getUser();
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
+      console.error("generate-document auth failed:", {
+        error: authError?.message,
+        code: authError?.status,
+        hasToken: !!token,
+        tokenLength: token?.length,
+      });
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: authError?.message || "User validation failed" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
