@@ -264,7 +264,6 @@ export function CompanyDetailClient({
             company={company}
             contacts={contacts}
             followers={followers}
-            files={files}
             currentUserId={currentUserId}
             currentUserName={currentUserName}
             onTabChange={handleTabChange}
