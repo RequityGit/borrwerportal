@@ -529,3 +529,32 @@ export async function fetchRelationshipCounts(): Promise<{
     return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Fetch fields for multiple modules at once (for related entity fields)
+// ---------------------------------------------------------------------------
+
+export async function fetchFieldsForModules(modules: string[]): Promise<{
+  data?: FieldConfig[];
+  error?: string;
+}> {
+  try {
+    if (modules.length === 0) return { data: [] };
+
+    const auth = await requireSuperAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from(FIELD_CFG)
+      .select("*" as never)
+      .in("module" as never, modules as never)
+      .eq("is_archived" as never, false as never)
+      .order("display_order" as never, { ascending: true });
+
+    if (error) return { error: error.message };
+    return { data: (data ?? []) as unknown as FieldConfig[] };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
+  }
+}
