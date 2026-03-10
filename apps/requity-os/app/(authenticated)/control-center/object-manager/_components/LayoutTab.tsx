@@ -38,6 +38,7 @@ interface Props {
   layoutFields: PageField[];
   fields: FieldConfig[];
   relationships: ObjectRelationship[];
+  relatedFields: Record<string, FieldConfig[]>;
   objects: ObjectDefinition[];
   onSelectSection: (section: PageSection) => void;
   onSelectTab: (tab: TabInfo) => void;
@@ -50,6 +51,7 @@ export function LayoutTab({
   layoutFields,
   fields,
   relationships,
+  relatedFields,
   objects,
   onSelectSection,
   onSelectTab,
@@ -412,30 +414,56 @@ export function LayoutTab({
                 );
               })}
 
-            {/* Relationship fields */}
-            {relationships
-              .filter((r) => r.parent_object_key === objectKey)
-              .map((rel) => {
-                const child = objects.find((o) => o.object_key === rel.child_object_key);
-                const inherited = Array.isArray(rel.inherited_fields) ? rel.inherited_fields : [];
+            {/* Relationship fields (both parent and child directions) */}
+            {relationships.map((rel) => {
+                const isParent = rel.parent_object_key === objectKey;
+                const relatedObjectKey = isParent
+                  ? rel.child_object_key
+                  : rel.parent_object_key;
+                const relatedObject = objects.find(
+                  (o) => o.object_key === relatedObjectKey
+                );
+                const inherited = Array.isArray(rel.inherited_fields)
+                  ? rel.inherited_fields
+                  : [];
                 if (inherited.length === 0) return null;
+
+                const entityFields = relatedFields[relatedObjectKey] || [];
 
                 return (
                   <div key={rel.id} className="mt-2.5">
                     <div className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground px-1.5 mb-1 flex items-center gap-1">
                       <span className="w-1 h-1 rounded-full bg-purple-500" />
-                      {child?.label}
+                      <span className="truncate">{relatedObject?.label}</span>
+                      <span className="ml-auto text-[8px] font-medium text-purple-400">
+                        {isParent ? "child" : "parent"}
+                      </span>
                     </div>
-                    {inherited.map((fieldKey) => (
-                      <div
-                        key={fieldKey}
-                        className="flex items-center gap-1.5 px-1.5 py-1 rounded text-xs text-muted-foreground hover:bg-purple-500/10 hover:text-foreground cursor-grab mb-px border-l-2 border-purple-500/20"
-                      >
-                        <Grip size={9} className="text-muted-foreground" />
-                        <span className="flex-1 truncate">{fieldKey}</span>
-                        <ExternalLink size={8} className="text-purple-500 shrink-0" />
-                      </div>
-                    ))}
+                    {inherited.map((fieldKey) => {
+                      const fieldConfig = entityFields.find(
+                        (f) => f.field_key === fieldKey
+                      );
+                      const ft = getFieldType(
+                        fieldConfig?.field_type || "text"
+                      );
+                      const FI = ft.icon;
+                      return (
+                        <div
+                          key={fieldKey}
+                          className="flex items-center gap-1.5 px-1.5 py-1 rounded text-xs text-muted-foreground hover:bg-purple-500/10 hover:text-foreground cursor-grab mb-px border-l-2 border-purple-500/20"
+                        >
+                          <Grip size={9} className="text-muted-foreground" />
+                          <FI size={10} style={{ color: ft.color }} />
+                          <span className="flex-1 truncate">
+                            {fieldConfig?.field_label || fieldKey}
+                          </span>
+                          <ExternalLink
+                            size={8}
+                            className="text-purple-500 shrink-0"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
