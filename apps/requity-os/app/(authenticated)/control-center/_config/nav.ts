@@ -53,6 +53,13 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Page Layouts",
     items: [
       {
+        id: "field-manager",
+        label: "Field Manager",
+        desc: "Configure field visibility and ordering across deal detail modules.",
+        href: "/control-center/field-manager",
+        icon: Settings2,
+      },
+      {
         id: "page-manager-contacts",
         label: "Contacts Layout",
         desc: "Manage sections and fields on the Contact detail page.",
@@ -161,13 +168,6 @@ export const NAV_GROUPS: NavGroup[] = [
         desc: "Design and manage workflow automations and approval rules.",
         href: "/control-center/workflow-builder",
         icon: GitBranch,
-      },
-      {
-        id: "field-manager",
-        label: "Field Manager",
-        desc: "Configure field visibility and ordering across deal detail modules.",
-        href: "/control-center/field-manager",
-        icon: Settings2,
       },
       {
         id: "system-settings",
