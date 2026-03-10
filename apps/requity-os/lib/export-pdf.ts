@@ -1,5 +1,66 @@
 import { toast } from "sonner";
 
+/** Create an off-screen container styled for PDF rendering and append it to the DOM. */
+function createPdfContainer(htmlContent: string): HTMLElement {
+  const container = document.createElement("div");
+  container.style.position = "absolute";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "816px";
+  container.style.padding = "0";
+  container.style.background = "white";
+  container.style.color = "#1a1a1a";
+  container.style.fontSize = "0.875rem";
+  container.style.lineHeight = "1.625";
+  container.style.fontFamily =
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  container.innerHTML = htmlContent;
+
+  applyDocumentStyles(container);
+  document.body.appendChild(container);
+  return container;
+}
+
+/** Shared html2pdf options. */
+function getPdfOptions(filename?: string) {
+  return {
+    margin: [0.7, 0.75, 0.7, 0.75] as number[],
+    ...(filename ? { filename } : {}),
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+    },
+    jsPDF: {
+      unit: "in",
+      format: "letter",
+      orientation: "portrait",
+    },
+    pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+  };
+}
+
+/**
+ * Generate a PDF Blob from HTML content (for use as an email attachment).
+ * Does NOT trigger a download.
+ */
+export async function generatePdfBlob(htmlContent: string): Promise<Blob> {
+  const html2pdf = (await import("html2pdf.js")).default;
+  const container = createPdfContainer(htmlContent);
+
+  try {
+    const worker = html2pdf()
+      .set(getPdfOptions() as Record<string, unknown>)
+      .from(container);
+
+    const blob: Blob = await worker.outputPdf("blob");
+    return blob;
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
 /**
  * Export HTML content as a PDF file download.
  * Uses html2pdf.js (jsPDF + html2canvas) for client-side conversion.
@@ -11,50 +72,13 @@ export async function exportHtmlAsPdf(
   const toastId = toast.loading("Generating PDF...");
 
   try {
-    // Dynamic import to avoid SSR issues
     const html2pdf = (await import("html2pdf.js")).default;
-
-    // Create an off-screen container with document styles
-    const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
-    container.style.top = "0";
-    container.style.width = "816px";
-    container.style.padding = "0";
-    container.style.background = "white";
-    container.style.color = "#1a1a1a";
-    container.style.fontSize = "0.875rem";
-    container.style.lineHeight = "1.625";
-    container.style.fontFamily =
-      'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-    container.innerHTML = htmlContent;
-
-    // Apply inline styles to match TipTap editor rendering
-    applyDocumentStyles(container);
-
-    document.body.appendChild(container);
+    const container = createPdfContainer(htmlContent);
 
     const safeName = filename.replace(/\.pdf$/i, "").replace(/[^a-zA-Z0-9_\- ]/g, "_");
 
-    const opts = {
-      margin: [0.7, 0.75, 0.7, 0.75] as number[], // top, left, bottom, right (inches)
-      filename: `${safeName}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        letterRendering: true,
-      },
-      jsPDF: {
-        unit: "in",
-        format: "letter",
-        orientation: "portrait",
-      },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-    };
-
     await html2pdf()
-      .set(opts as Record<string, unknown>)
+      .set(getPdfOptions(`${safeName}.pdf`) as Record<string, unknown>)
       .from(container)
       .save();
 
