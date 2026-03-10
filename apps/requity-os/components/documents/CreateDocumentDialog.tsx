@@ -209,7 +209,7 @@ export function CreateDocumentDialog() {
         const detail = err?.error || err?.message || res.statusText;
         const message =
           status === 401
-            ? `Authentication failed (${status}): session may have expired. Please reload and try again.`
+            ? `Authentication failed (${status}): ${detail || "session may have expired. Please reload and try again."}`
             : status === 403
               ? `Access denied (${status}): admin role required to generate documents.`
               : status === 404
