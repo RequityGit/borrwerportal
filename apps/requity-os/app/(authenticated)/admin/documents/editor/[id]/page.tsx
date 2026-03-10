@@ -42,6 +42,7 @@ export default async function DocumentEditorPage({ params }: PageProps) {
         documentId={doc.id}
         fileName={doc.file_name}
         status={doc.status}
+        initialContent={doc.content ?? ""}
         mergeData={doc.merge_data_snapshot as Record<string, string>}
         templateName={(template?.name as string) ?? ""}
         templateVersion={doc.template_version}

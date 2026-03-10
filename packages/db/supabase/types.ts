@@ -7028,6 +7028,7 @@ export type Database = {
       }
       generated_documents: {
         Row: {
+          content: string | null
           expires_at: string | null
           file_format: Database["public"]["Enums"]["doc_format_enum"]
           file_name: string
@@ -7047,6 +7048,7 @@ export type Database = {
           template_version: number
         }
         Insert: {
+          content?: string | null
           expires_at?: string | null
           file_format: Database["public"]["Enums"]["doc_format_enum"]
           file_name: string
@@ -7066,6 +7068,7 @@ export type Database = {
           template_version: number
         }
         Update: {
+          content?: string | null
           expires_at?: string | null
           file_format?: Database["public"]["Enums"]["doc_format_enum"]
           file_name?: string
