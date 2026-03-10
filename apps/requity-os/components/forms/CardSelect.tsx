@@ -6,10 +6,11 @@ import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FormFieldOption } from "@/lib/form-engine/types";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getLucideIcon(name: string): any {
   const icon = (LucideIcons as Record<string, unknown>)[name];
   if (typeof icon === "function" || (typeof icon === "object" && icon !== null)) {
-    return icon as React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+    return icon;
   }
   return FileText;
 }

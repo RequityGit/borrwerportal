@@ -28,6 +28,7 @@ export async function loadPrefillData(
 
   // Load primary record
   if (recordType === "opportunity") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: opportunity } = await supabase
       .from("opportunities")
       .select("*")
@@ -35,7 +36,8 @@ export async function loadPrefillData(
       .single();
 
     if (opportunity) {
-      const opp = opportunity as unknown as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const opp: Record<string, any> = opportunity as any;
       const oppFields = entityFields.get("opportunity") || [];
       for (const field of oppFields) {
         if (field.mapped_column && opp[field.mapped_column] !== undefined) {
@@ -54,7 +56,8 @@ export async function loadPrefillData(
           .single();
 
         if (contact) {
-          const c = contact as unknown as Record<string, unknown>;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const c: Record<string, any> = contact as any;
           const contactFields = entityFields.get("crm_contact") || [];
           for (const field of contactFields) {
             if (field.mapped_column && c[field.mapped_column] !== undefined) {
@@ -75,7 +78,8 @@ export async function loadPrefillData(
           .single();
 
         if (property) {
-          const p = property as unknown as Record<string, unknown>;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const p: Record<string, any> = property as any;
           const propertyFields = entityFields.get("property") || [];
           for (const field of propertyFields) {
             if (field.mapped_column && p[field.mapped_column] !== undefined) {

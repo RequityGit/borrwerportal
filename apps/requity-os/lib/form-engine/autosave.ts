@@ -9,9 +9,9 @@ export async function saveSubmission(
   data: Record<string, unknown>,
   currentStepId: string | null
 ): Promise<void> {
-  const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const supabase: any = createClient();
+  const { error } = await supabase
     .from("form_submissions")
     .update({
       data,
@@ -50,9 +50,9 @@ export async function createSubmission(
   data: Record<string, unknown>,
   currentStepId: string | null
 ): Promise<{ id: string; session_token: string } | null> {
-  const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: submission, error } = await (supabase as any)
+  const supabase: any = createClient();
+  const { data: submission, error } = await supabase
     .from("form_submissions")
     .insert({
       form_id: formId,

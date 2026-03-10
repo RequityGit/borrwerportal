@@ -10,9 +10,9 @@ export async function lookupContactByEmail(
     return { found: false };
   }
 
-  const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.rpc as any)("lookup_contact_by_email", {
+  const supabase: any = createClient();
+  const { data, error } = await supabase.rpc("lookup_contact_by_email", {
     p_email: email,
   });
 

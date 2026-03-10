@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createAdminClient() as any;
+    const supabase: any = createAdminClient();
 
     // 1. Load form definition
     const { data: formDef, error: formError } = await supabase

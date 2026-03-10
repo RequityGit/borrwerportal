@@ -16,6 +16,7 @@ import type {
   FormEngineProps,
   FormState,
   FormStep,
+  SubmissionType,
 } from "@/lib/form-engine/types";
 import { toast } from "sonner";
 
@@ -51,8 +52,9 @@ export function FormEngine({
   // Load form definition
   useEffect(() => {
     async function loadForm() {
-      const supabase = createClient();
-      let query = (supabase as any).from("form_definitions").select("*");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supabase: any = createClient();
+      let query = supabase.from("form_definitions").select("*");
 
       if (formId) {
         query = query.eq("id", formId);
@@ -81,8 +83,7 @@ export function FormEngine({
 
       // Resume from session token
       if (sessionToken) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: submission } = await (supabase as any)
+        const { data: submission } = await supabase
           .from("form_submissions")
           .select("*")
           .eq("session_token", sessionToken)
@@ -244,7 +245,7 @@ export function FormEngine({
       submissionId: state.submissionId,
       formId: formDef.id,
       data: state.data,
-      mode: mode === "edit" ? "update" : "create",
+      mode: (mode === "edit" ? "update" : "create") as "create" | "update",
       recordId,
     });
 
@@ -256,7 +257,7 @@ export function FormEngine({
           id: result.submission_id,
           form_id: formDef.id,
           status: "submitted",
-          type: mode === "edit" ? "update" : "create",
+          type: (mode === "edit" ? "update" : "create") as SubmissionType,
           data: state.data,
           current_step_id: null,
           session_token: state.sessionToken || "",

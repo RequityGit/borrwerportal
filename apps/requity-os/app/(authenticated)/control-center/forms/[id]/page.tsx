@@ -102,9 +102,9 @@ export default function FormEditorPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const supabase: any = createClient();
+      const { data, error } = await supabase
         .from("form_definitions")
         .select("*")
         .eq("id", formId)
@@ -129,9 +129,9 @@ export default function FormEditorPage() {
 
   const loadSubmissions = useCallback(async () => {
     setSubmissionsLoading(true);
-    const supabase = createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
+    const supabase: any = createClient();
+    const { data } = await supabase
       .from("form_submissions")
       .select("id, status, submitted_by_email, current_step_id, entity_ids, created_at, data")
       .eq("form_id", formId)
@@ -153,9 +153,9 @@ export default function FormEditorPage() {
     if (!formDef) return;
     setSaving(true);
 
-    const supabase = createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const supabase: any = createClient();
+    const { error } = await supabase
       .from("form_definitions")
       .update({
         name: formDef.name,

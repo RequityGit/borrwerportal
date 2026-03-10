@@ -54,9 +54,9 @@ export default function FormsListPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
+      const supabase: any = createClient();
+      const { data } = await supabase
         .from("form_definitions")
         .select("id, name, slug, status, mode, contexts, steps, updated_at")
         .order("updated_at", { ascending: false });
@@ -93,9 +93,9 @@ export default function FormsListPage() {
         <Button
           onClick={() => {
             // Create new form and redirect to editor
-            const supabase = createClient();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (supabase as any)
+            const supabase: any = createClient();
+            supabase
               .from("form_definitions")
               .insert({
                 name: "Untitled Form",
