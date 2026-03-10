@@ -1,7 +1,7 @@
 // Supabase Edge Function: generate-document
 // Generates a document from a template by merging fields from source records.
-// Downloads a .docx template from Google Drive, merges data via docxtemplater,
-// uploads the result back to Drive, and records it in generated_documents.
+// Reads HTML content from document_templates, merges data, and saves the
+// result to generated_documents for in-portal editing.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -10,135 +10,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Expose-Headers":
-    "X-Document-Id, X-Missing-Fields, Content-Disposition",
+    "X-Document-Id, X-Missing-Fields",
 };
-
-// ---------- Google Drive helpers ----------
-
-async function getGoogleAccessToken(serviceAccountKey: string): Promise<string> {
-  const key = JSON.parse(serviceAccountKey);
-  const now = Math.floor(Date.now() / 1000);
-
-  // Build JWT header + claim set
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claimSet = btoa(
-    JSON.stringify({
-      iss: key.client_email,
-      scope: "https://www.googleapis.com/auth/drive",
-      aud: "https://oauth2.googleapis.com/token",
-      exp: now + 3600,
-      iat: now,
-    })
-  );
-
-  const unsignedToken = `${header}.${claimSet}`;
-
-  // Sign with RSA private key
-  const pemContents = key.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\n/g, "");
-  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    new TextEncoder().encode(unsignedToken)
-  );
-
-  const sig = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  const jwt = `${unsignedToken}.${sig}`;
-
-  // Exchange JWT for access token
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  if (!tokenRes.ok) {
-    throw new Error(`Google token exchange failed: ${tokenRes.status}`);
-  }
-
-  const tokenData = await tokenRes.json();
-  return tokenData.access_token;
-}
-
-async function downloadFromDrive(
-  fileId: string,
-  accessToken: string
-): Promise<Uint8Array> {
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  if (!res.ok) {
-    throw new Error(`Google Drive download failed: ${res.status} ${res.statusText}`);
-  }
-  return new Uint8Array(await res.arrayBuffer());
-}
-
-async function uploadToDrive(
-  fileName: string,
-  fileBytes: Uint8Array,
-  mimeType: string,
-  folderId: string | null,
-  accessToken: string
-): Promise<string> {
-  const metadata: Record<string, unknown> = { name: fileName };
-  if (folderId) metadata.parents = [folderId];
-
-  const boundary = "doc_gen_boundary";
-  const metaJson = JSON.stringify(metadata);
-
-  const parts = [
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaJson}\r\n`,
-    `--${boundary}\r\nContent-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n`,
-  ];
-
-  // base64-encode file bytes
-  let base64 = "";
-  const chunk = 32768;
-  for (let i = 0; i < fileBytes.length; i += chunk) {
-    base64 += String.fromCharCode(
-      ...fileBytes.subarray(i, Math.min(i + chunk, fileBytes.length))
-    );
-  }
-  base64 = btoa(base64);
-
-  const body = parts[0] + parts[1] + base64 + `\r\n--${boundary}--`;
-
-  const res = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body,
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error(`Google Drive upload failed: ${res.status} ${res.statusText}`);
-  }
-
-  const data = await res.json();
-  return data.id;
-}
 
 // ---------- Merge field formatting ----------
 
@@ -222,6 +95,40 @@ function resolveSystemField(column: string): string {
   }
 }
 
+// ---------- HTML merge helpers ----------
+
+function mergeHtmlContent(
+  html: string,
+  mergeData: Record<string, string>
+): string {
+  let result = html;
+
+  // Replace <span data-merge-field="key">...</span> with the resolved value.
+  // The spans may have additional attributes (fieldkey, sourcetable, sourcecolumn, class).
+  result = result.replace(
+    /<span\s[^>]*?data-merge-field="([^"]+)"[^>]*>.*?<\/span>/gi,
+    (_match, fieldKey: string) => {
+      const value = mergeData[fieldKey];
+      if (value !== undefined && value !== "") {
+        return value;
+      }
+      // Keep placeholder visible if no value resolved
+      return `<span data-merge-field="${fieldKey}" class="merge-field-node merge-field-missing">{${fieldKey}}</span>`;
+    }
+  );
+
+  // Also replace plain {key} text placeholders that aren't inside merge-field spans
+  for (const [key, value] of Object.entries(mergeData)) {
+    if (value !== "") {
+      // Replace {key} but not ones already inside data-merge-field spans
+      const placeholder = `{${key}}`;
+      result = result.split(placeholder).join(value);
+    }
+  }
+
+  return result;
+}
+
 // ---------- Main handler ----------
 
 Deno.serve(async (req: Request) => {
@@ -254,7 +161,7 @@ Deno.serve(async (req: Request) => {
     // Admin client for data queries
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Authenticate user — pass token directly for reliability in Deno
+    // Authenticate user
     const {
       data: { user },
       error: authError,
@@ -290,7 +197,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { template_id, record_id, format = "docx", page_record_type } = await req.json();
+    const { template_id, record_id, page_record_type } = await req.json();
 
     if (!template_id || !record_id) {
       return new Response(
@@ -299,7 +206,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Fetch template
+    // Fetch template (including HTML content)
     const { data: template, error: templateError } = await supabaseAdmin
       .from("document_templates")
       .select("*")
@@ -311,6 +218,14 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: "Template not found or inactive" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify template has HTML content
+    if (!template.content) {
+      return new Response(
+        JSON.stringify({ error: "Template has no content. Please edit the template in the document editor first." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -328,7 +243,6 @@ Deno.serve(async (req: Request) => {
 
       if (loan) {
         sourceData["loans"] = loan;
-        // Resolve related contact
         if (loan.borrower_contact_id) {
           const { data: contact } = await supabaseAdmin
             .from("crm_contacts")
@@ -348,7 +262,6 @@ Deno.serve(async (req: Request) => {
           }
         }
       } else {
-        // Fallback: record may be a unified_deals ID (loan template used from deal page)
         const { data: deal } = await supabaseAdmin
           .from("unified_deals")
           .select("*")
@@ -365,7 +278,6 @@ Deno.serve(async (req: Request) => {
         const uwData = (dealRecord.uw_data ?? {}) as Record<string, unknown>;
         const propertyData = (dealRecord.property_data ?? {}) as Record<string, unknown>;
         sourceData["loans"] = { ...dealRecord, ...uwData, ...propertyData };
-        // Resolve related contact
         if (dealRecord.primary_contact_id) {
           const { data: contact } = await supabaseAdmin
             .from("crm_contacts")
@@ -428,13 +340,10 @@ Deno.serve(async (req: Request) => {
       }
       const dealRecord = deal as Record<string, unknown>;
       sourceData["unified_deals"] = dealRecord;
-      // Flatten uw_data and property_data so merge fields can access nested values
       const uwData = (dealRecord.uw_data ?? {}) as Record<string, unknown>;
       const propertyData = (dealRecord.property_data ?? {}) as Record<string, unknown>;
       const flatDeal = { ...dealRecord, ...uwData, ...propertyData };
-      // Also store under "loans" alias for backwards compat with loan templates
       sourceData["loans"] = flatDeal;
-      // Resolve related contact
       if (dealRecord.primary_contact_id) {
         const { data: contact } = await supabaseAdmin
           .from("crm_contacts")
@@ -453,7 +362,6 @@ Deno.serve(async (req: Request) => {
           }
         }
       }
-      // Also resolve company directly from deal
       if (dealRecord.company_id && !sourceData["companies"]) {
         const { data: company } = await supabaseAdmin
           .from("companies")
@@ -493,11 +401,8 @@ Deno.serve(async (req: Request) => {
         const raw = resolveSystemField(field.column);
         mergeData[field.key] = formatValue(raw, field.format);
       } else if (field.source === "template_config") {
-        // Template config fields can have defaults set by the user at generation time
-        // For now, use empty string as placeholder
         mergeData[field.key] = "";
       } else {
-        // Look up from source data — handle table name variations
         const tableAliases: Record<string, string[]> = {
           crm_contacts: ["crm_contacts"],
           crm_companies: ["companies", "crm_companies"],
@@ -525,61 +430,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Get Google service account key
-    const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
-    if (!serviceAccountKey) {
-      return new Response(
-        JSON.stringify({ error: "Google service account not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const accessToken = await getGoogleAccessToken(serviceAccountKey);
-
-    // Download template from Google Drive
-    let templateBytes: Uint8Array;
-    try {
-      templateBytes = await downloadFromDrive(template.gdrive_file_id, accessToken);
-    } catch (err) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to download template from Google Drive",
-          details: err instanceof Error ? err.message : String(err),
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Merge data into template using docxtemplater
-    let outputBytes: Uint8Array;
-    try {
-      const PizZip = (await import("https://esm.sh/pizzip@3.1.7")).default;
-      const Docxtemplater = (await import("https://esm.sh/docxtemplater@3.48.0"))
-        .default;
-
-      const zip = new PizZip(templateBytes);
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-        delimiters: { start: "{", end: "}" },
-      });
-      doc.setData(mergeData);
-      doc.render();
-      outputBytes = doc.getZip().generate({ type: "uint8array" });
-    } catch (err) {
-      return new Response(
-        JSON.stringify({
-          error: "Document merge failed",
-          details: err instanceof Error ? err.message : String(err),
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // TODO: PDF conversion when format === "pdf"
-    const fileFormat = "docx";
-    const mimeType =
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    // Merge fields into HTML content
+    const mergedContent = mergeHtmlContent(template.content, mergeData);
 
     // Build file name
     const contactName =
@@ -590,30 +442,9 @@ Deno.serve(async (req: Request) => {
       (sourceData["loans"]?.loan_number as string) ??
       (sourceData["unified_deals"]?.deal_number as string) ??
       new Date().toISOString().split("T")[0];
-    const fileName = `${template.template_type}_${contactName}_${loanNumber}.${fileFormat}`;
+    const fileName = `${template.template_type}_${contactName}_${loanNumber}`;
 
-    // Upload to Google Drive
-    const uploadFolderId = template.gdrive_folder_id ?? null;
-    let uploadedFileId: string;
-    try {
-      uploadedFileId = await uploadToDrive(
-        fileName,
-        outputBytes,
-        mimeType,
-        uploadFolderId,
-        accessToken
-      );
-    } catch (err) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to upload to Google Drive",
-          details: err instanceof Error ? err.message : String(err),
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Insert generated_documents record
+    // Insert generated_documents record with merged HTML content
     const { data: genDoc, error: insertError } = await supabaseAdmin
       .from("generated_documents")
       .insert({
@@ -622,8 +453,8 @@ Deno.serve(async (req: Request) => {
         record_type: template.record_type,
         record_id,
         file_name: fileName,
-        file_format: fileFormat,
-        gdrive_file_id: uploadedFileId,
+        file_format: "docx",
+        content: mergedContent,
         merge_data_snapshot: mergeData,
         status: "draft",
         generated_by: user.id,
@@ -639,17 +470,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Return the generated file
-    return new Response(outputBytes, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": mimeType,
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-        "X-Document-Id": genDoc.id,
-        "X-Missing-Fields": missingFields.join(","),
-      },
-    });
+    // Return JSON response with document ID
+    return new Response(
+      JSON.stringify({
+        document_id: genDoc.id,
+        file_name: fileName,
+        missing_fields: missingFields,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "X-Document-Id": genDoc.id,
+          "X-Missing-Fields": missingFields.join(","),
+        },
+      }
+    );
   } catch (err) {
     console.error("generate-document error:", err);
     return new Response(

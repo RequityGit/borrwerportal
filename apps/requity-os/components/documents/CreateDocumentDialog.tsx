@@ -5,8 +5,6 @@ import {
   FileText,
   Check,
   AlertTriangle,
-  Download,
-  ExternalLink,
   Pencil,
   ChevronRight,
   Loader2,
@@ -28,8 +26,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
@@ -77,7 +73,7 @@ interface Template {
   requires_signature: boolean;
 }
 
-type Step = "record_type" | "record_select" | "template" | "preview" | "format" | "result";
+type Step = "record_type" | "record_select" | "template" | "preview" | "result";
 
 export function CreateDocumentDialog() {
   const [open, setOpen] = useState(false);
@@ -99,13 +95,11 @@ export function CreateDocumentDialog() {
   const [resolvedFields, setResolvedFields] = useState<ResolvedField[]>([]);
   const [loadingFields, setLoadingFields] = useState(false);
 
-  // Format & result state
-  const [fileFormat, setFileFormat] = useState<"docx" | "pdf">("docx");
+  // Result state
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{
     documentId: string;
     fileName: string;
-    blob: Blob;
   } | null>(null);
 
   // Reset on open
@@ -160,11 +154,6 @@ export function CreateDocumentDialog() {
     const { fields } = await resolveTemplateData(template.id, selectedRecord!.id);
     setResolvedFields(fields);
     setLoadingFields(false);
-    if (template.template_type === "term_sheet") {
-      setFileFormat("pdf");
-    } else {
-      setFileFormat("docx");
-    }
   }
 
   async function handleGenerate() {
@@ -174,9 +163,6 @@ export function CreateDocumentDialog() {
     try {
       const supabase = createClient();
 
-      // Force an explicit token refresh so the access_token is guaranteed
-      // fresh. Unlike getUser() (which only validates), refreshSession()
-      // exchanges the refresh_token for a new access_token and returns it.
       const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError || !session) {
         toast.error("Session expired. Please sign in again.");
@@ -198,7 +184,7 @@ export function CreateDocumentDialog() {
           body: JSON.stringify({
             template_id: selectedTemplate.id,
             record_id: selectedRecord.id,
-            format: fileFormat,
+            page_record_type: recordType,
           }),
         }
       );
@@ -214,23 +200,24 @@ export function CreateDocumentDialog() {
               ? `Access denied (${status}): admin role required to generate documents.`
               : status === 404
                 ? `Not found (${status}): ${detail || "template or record not found"}`
-                : status === 502
-                  ? `Google Drive error (${status}): ${detail || "could not download or upload file"}`
-                  : `Generation failed (${status}): ${detail || "unknown error"}`;
+                : `Generation failed (${status}): ${detail || "unknown error"}`;
         toast.error(message);
         setGenerating(false);
         return;
       }
 
-      const documentId = res.headers.get("X-Document-Id") ?? "";
-      const disposition = res.headers.get("Content-Disposition") ?? "";
-      const fileNameMatch = disposition.match(/filename="(.+)"/);
-      const fileName = fileNameMatch?.[1] ?? `document.${fileFormat}`;
-
-      const blob = await res.blob();
-      setResult({ documentId, fileName, blob });
+      const data = await res.json();
+      setResult({
+        documentId: data.document_id,
+        fileName: data.file_name,
+      });
       setStep("result");
-      toast.success(`Document generated: ${fileName}`);
+
+      if (data.missing_fields?.length > 0) {
+        toast.success(`Document generated with ${data.missing_fields.length} missing field(s).`);
+      } else {
+        toast.success("Document generated successfully.");
+      }
     } catch (err) {
       console.error("Generate document error:", err);
       const message =
@@ -241,16 +228,6 @@ export function CreateDocumentDialog() {
     }
 
     setGenerating(false);
-  }
-
-  function handleDownload() {
-    if (!result) return;
-    const url = URL.createObjectURL(result.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = result.fileName;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   const missingFields = resolvedFields.filter((f) => f.value === null);
@@ -271,7 +248,6 @@ export function CreateDocumentDialog() {
             {step === "record_select" && `Search and select a ${recordType}.`}
             {step === "template" && `Select a template for ${selectedRecord?.label}.`}
             {step === "preview" && "Review the data that will be merged into the document."}
-            {step === "format" && "Choose the output format."}
             {step === "result" && "Document generated successfully."}
           </DialogDescription>
         </DialogHeader>
@@ -387,7 +363,7 @@ export function CreateDocumentDialog() {
           </div>
         )}
 
-        {/* Step 4: Preview Data */}
+        {/* Step 4: Preview Data & Generate */}
         {step === "preview" && selectedTemplate && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -412,7 +388,7 @@ export function CreateDocumentDialog() {
                   <div className="flex items-start gap-2 p-2.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                     <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
                     <p className="text-xs text-amber-800 dark:text-amber-300">
-                      {missingFields.length} field{missingFields.length !== 1 ? "s" : ""} missing — will be blank in the document.
+                      {missingFields.length} field{missingFields.length !== 1 ? "s" : ""} missing -- will be blank in the document.
                     </p>
                   </div>
                 )}
@@ -451,46 +427,7 @@ export function CreateDocumentDialog() {
               <Button variant="outline" size="sm" onClick={() => setStep("template")}>
                 Back
               </Button>
-              <Button size="sm" onClick={() => setStep("format")} disabled={loadingFields}>
-                Continue
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Format Selection */}
-        {step === "format" && selectedTemplate && (
-          <div className="space-y-4">
-            <RadioGroup
-              value={fileFormat}
-              onValueChange={(v) => setFileFormat(v as "docx" | "pdf")}
-              className="space-y-2"
-            >
-              <div className="flex items-center gap-3 border rounded-md p-3">
-                <RadioGroupItem value="docx" id="create-docx" />
-                <Label htmlFor="create-docx" className="flex-1 cursor-pointer">
-                  <span className="text-sm font-medium">DOCX (Editable)</span>
-                  <p className="text-xs text-muted-foreground">
-                    Can be edited in the portal before sending.
-                  </p>
-                </Label>
-              </div>
-              <div className="flex items-center gap-3 border rounded-md p-3">
-                <RadioGroupItem value="pdf" id="create-pdf" />
-                <Label htmlFor="create-pdf" className="flex-1 cursor-pointer">
-                  <span className="text-sm font-medium">PDF (Locked)</span>
-                  <p className="text-xs text-muted-foreground">
-                    Finalized document, ready for signature.
-                  </p>
-                </Label>
-              </div>
-            </RadioGroup>
-
-            <div className="flex justify-between">
-              <Button variant="outline" size="sm" onClick={() => setStep("preview")}>
-                Back
-              </Button>
-              <Button size="sm" onClick={handleGenerate} disabled={generating}>
+              <Button size="sm" onClick={handleGenerate} disabled={loadingFields || generating}>
                 {generating ? (
                   <>
                     <Loader2 size={14} className="mr-1.5 animate-spin" />
@@ -504,7 +441,7 @@ export function CreateDocumentDialog() {
           </div>
         )}
 
-        {/* Step 6: Result */}
+        {/* Step 5: Result */}
         {step === "result" && result && (
           <div className="space-y-4 text-center">
             <div className="flex items-center justify-center">
@@ -521,12 +458,7 @@ export function CreateDocumentDialog() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Button onClick={handleDownload} className="w-full">
-                <Download size={14} className="mr-1.5" />
-                Download
-              </Button>
               <Button
-                variant="outline"
                 className="w-full"
                 onClick={() => {
                   setOpen(false);
@@ -534,7 +466,7 @@ export function CreateDocumentDialog() {
                 }}
               >
                 <Pencil size={14} className="mr-1.5" />
-                Edit in Portal
+                Open in Editor
               </Button>
             </div>
           </div>
