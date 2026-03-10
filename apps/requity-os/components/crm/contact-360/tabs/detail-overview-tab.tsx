@@ -13,6 +13,7 @@ import {
 import {
   CrmEditSectionDialog,
 } from "@/components/crm/crm-edit-section-dialog";
+import { QuickAddCompanyDialog } from "@/components/crm/quick-add-company-dialog";
 import { formatCurrency, formatPercent, formatDate } from "@/lib/format";
 import {
   renderDynamicFields,
@@ -72,6 +73,8 @@ export function DetailOverviewTab({
   const [editBorrowerOpen, setEditBorrowerOpen] = useState(false);
   const [editInvestorOpen, setEditInvestorOpen] = useState(false);
   const [editDescriptionOpen, setEditDescriptionOpen] = useState(false);
+  const [quickAddCompanyOpen, setQuickAddCompanyOpen] = useState(false);
+  const [localCompanies, setLocalCompanies] = useState<CompanyData[]>(allCompanies);
 
   async function updateBorrowerField(
     field: string,
@@ -204,9 +207,9 @@ export function DetailOverviewTab({
   }, [teamMembers]);
   const companyLookup = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const c of allCompanies) map[c.id] = c.name;
+    for (const c of localCompanies) map[c.id] = c.name;
     return map;
-  }, [allCompanies]);
+  }, [localCompanies]);
   const contactData = useMemo(() => {
     const data = { ...contact } as Record<string, unknown>;
     // For display rendering, resolve assigned_to UUID to name
@@ -240,13 +243,15 @@ export function DetailOverviewTab({
           return {
             ...f,
             fieldType: "select" as const,
-            options: allCompanies.map((c) => ({ label: c.name, value: c.id })),
+            options: localCompanies.map((c) => ({ label: c.name, value: c.id })),
+            onCreateNew: () => setQuickAddCompanyOpen(true),
+            createNewLabel: "New Company",
           };
         }
         return f;
       });
     },
-    [sectionFields, contactData, isSuperAdmin, teamMembers, allCompanies]
+    [sectionFields, contactData, isSuperAdmin, teamMembers, localCompanies]
   );
 
   const borrowerEditFields = useMemo(
@@ -395,6 +400,13 @@ export function DetailOverviewTab({
         title="Description"
         fields={[{ label: "Description", fieldName: "notes", fieldType: "textarea", value: contact.notes }]}
         onSave={updateContactField}
+      />
+      <QuickAddCompanyDialog
+        open={quickAddCompanyOpen}
+        onOpenChange={setQuickAddCompanyOpen}
+        onCompanyCreated={(company) => {
+          setLocalCompanies((prev) => [...prev, { id: company.id, name: company.name, company_type: company.company_type }]);
+        }}
       />
     </div>
   );
