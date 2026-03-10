@@ -50,7 +50,7 @@ export function CompanyFilesTab({ files, companyId }: FilesTabProps) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const filterTypes = ["all", "nda", "fee_agreement", "rate_sheet", "w9", "other"];
+  const filterTypes = ["all", "nda", "fee_agreement", "other"];
   const filtered =
     filter === "all" ? files : files.filter((f) => f.file_type === filter);
 

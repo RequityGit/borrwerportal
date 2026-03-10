@@ -206,8 +206,6 @@ export const CAPABILITY_LABELS: Record<string, string> = {
 export const FILE_TYPE_LABELS: Record<string, string> = {
   nda: "NDA",
   fee_agreement: "Fee Agreement",
-  rate_sheet: "Rate Sheet",
-  w9: "W-9",
   tear_sheet: "Tear Sheet",
   broker_agreement: "Broker Agreement",
   guidelines: "Guidelines",
@@ -217,8 +215,6 @@ export const FILE_TYPE_LABELS: Record<string, string> = {
 export const FILE_TYPE_COLORS: Record<string, string> = {
   nda: "#E5930E",
   fee_agreement: "#22A861",
-  rate_sheet: "#3B82F6",
-  w9: "#8B5CF6",
   tear_sheet: "#3B82F6",
   broker_agreement: "#E5930E",
   guidelines: "#6B6B6B",

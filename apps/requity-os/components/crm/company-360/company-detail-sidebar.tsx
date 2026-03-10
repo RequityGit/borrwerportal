@@ -13,13 +13,9 @@ import {
   DollarSign,
   Bell,
   Users,
-  Shield,
   Hash,
   Phone,
   Plus,
-  Check,
-  X,
-  AlertCircle,
   FileText,
 } from "lucide-react";
 import { GenerateDocumentDialog } from "@/components/documents/GenerateDocumentDialog";
@@ -35,14 +31,12 @@ import type {
   CompanyDetailData,
   CompanyContactData,
   CompanyFollowerData,
-  CompanyFileData,
 } from "./types";
 
 interface CompanyDetailSidebarProps {
   company: CompanyDetailData;
   contacts: CompanyContactData[];
   followers: CompanyFollowerData[];
-  files: CompanyFileData[];
   currentUserId: string;
   currentUserName: string;
   onTabChange: (tab: string) => void;
@@ -54,16 +48,12 @@ export function CompanyDetailSidebar({
   company,
   contacts,
   followers,
-  files,
   onTabChange,
   onComposeEmail,
   onLogCall,
 }: CompanyDetailSidebarProps) {
   const router = useRouter();
   const { toast } = useToast();
-
-  const hasW9 = files.some((f) => f.file_type === "w9");
-  const rateSheet = files.find((f) => f.file_type === "rate_sheet");
 
   const topContacts = [...contacts]
     .sort((a, b) => {
@@ -237,61 +227,6 @@ export function CompanyDetailSidebar({
               );
             })
           )}
-        </div>
-      </SectionCard>
-
-      {/* Document Status */}
-      <SectionCard title="Document Status" icon={Shield}>
-        <div className="flex flex-col gap-2">
-          {[
-            {
-              label: "W-9",
-              status: hasW9,
-              warning: false,
-              detail: null,
-            },
-            {
-              label: "Rate Sheet",
-              status: !!rateSheet,
-              warning: false,
-              detail: rateSheet?.uploaded_at
-                ? `Updated ${formatDate(rateSheet.uploaded_at)}`
-                : null,
-            },
-          ].map((doc, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-2 py-1.5${i < 1 ? " border-b border-border/40" : ""}`}
-            >
-              <div
-                className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
-                  doc.status
-                    ? doc.warning
-                      ? "bg-amber-50 dark:bg-amber-900/20"
-                      : "bg-green-50 dark:bg-green-900/20"
-                    : "bg-red-50 dark:bg-red-900/20"
-                }`}
-              >
-                {doc.status ? (
-                  doc.warning ? (
-                    <AlertCircle size={12} className="text-[#E5930E]" strokeWidth={1.5} />
-                  ) : (
-                    <Check size={12} className="text-[#22A861]" strokeWidth={1.5} />
-                  )
-                ) : (
-                  <X size={12} className="text-[#E5453D]" strokeWidth={1.5} />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="text-xs font-medium text-foreground">
-                  {doc.label}
-                </div>
-                {doc.detail && (
-                  <div className="text-[10px] text-muted-foreground">{doc.detail}</div>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
       </SectionCard>
 
