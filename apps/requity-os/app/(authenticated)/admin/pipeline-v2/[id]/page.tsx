@@ -65,6 +65,7 @@ export default async function DealDetailRoute({ params }: PageProps) {
     conditionsRaw,
     documentsRaw,
     tasksRaw,
+    dealTeamMembersRaw,
   ] = await Promise.all([
     admin
       .from("unified_card_types" as never)
@@ -111,6 +112,11 @@ export default async function DealDetailRoute({ params }: PageProps) {
       .select("*")
       .eq("linked_entity_id", id)
       .order("created_at", { ascending: false }),
+    admin
+      .from("deal_team_members" as never)
+      .select("id, deal_id, profile_id, role, created_at" as never)
+      .eq("deal_id" as never, id as never)
+      .order("created_at" as never),
   ]);
 
   const cardTypeResult = cardTypeRaw as unknown as {
@@ -126,6 +132,16 @@ export default async function DealDetailRoute({ params }: PageProps) {
   const conditions = ((conditionsRaw as unknown as { data: DealCondition[] | null }).data ?? []);
   const documents = ((documentsRaw as unknown as { data: Record<string, unknown>[] | null }).data ?? []);
   const tasks = ((tasksRaw as unknown as { data: OpsTask[] | null }).data ?? []);
+
+  type DealTeamMemberRow = {
+    id: string;
+    deal_id: string;
+    profile_id: string;
+    role: string;
+    created_at: string;
+  };
+  const dealTeamMembers: DealTeamMemberRow[] =
+    ((dealTeamMembersRaw as unknown as { data: DealTeamMemberRow[] | null }).data ?? []);
 
   // ─── Fetch CRM activities & emails for primary contact ───
   type CrmActivityRow = {
@@ -327,6 +343,7 @@ export default async function DealDetailRoute({ params }: PageProps) {
       conditions={conditions}
       documents={documents}
       tasks={tasks}
+      dealTeamMembers={dealTeamMembers}
       commercialUWData={commercialUWData}
     />
   );

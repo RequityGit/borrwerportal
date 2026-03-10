@@ -168,6 +168,96 @@ export async function assignTeamMemberV2(
   }
 }
 
+// ─── Add Deal Team Member ───
+
+export async function addDealTeamMember(
+  dealId: string,
+  profileId: string,
+  role: string
+) {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { error } = await admin
+      .from("deal_team_members" as never)
+      .insert({
+        deal_id: dealId,
+        profile_id: profileId,
+        role,
+      } as never);
+
+    if (error) {
+      if (error.code === "23505") {
+        return { error: "This team member is already assigned to the deal" };
+      }
+      console.error("addDealTeamMember error:", error);
+      return { error: error.message };
+    }
+
+    // Log activity
+    await admin.from("unified_deal_activity" as never).insert({
+      deal_id: dealId,
+      activity_type: "team_updated",
+      title: "Team member added",
+      description: `Added with role: ${role}`,
+      metadata: { profile_id: profileId, role },
+      created_by: auth.user.id,
+    } as never);
+
+    revalidateDeal(dealId);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("addDealTeamMember error:", err);
+    return {
+      error: err instanceof Error ? err.message : "An unexpected error occurred",
+    };
+  }
+}
+
+// ─── Remove Deal Team Member ───
+
+export async function removeDealTeamMember(
+  dealId: string,
+  memberId: string
+) {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { error } = await admin
+      .from("deal_team_members" as never)
+      .delete()
+      .eq("id" as never, memberId as never);
+
+    if (error) {
+      console.error("removeDealTeamMember error:", error);
+      return { error: error.message };
+    }
+
+    // Log activity
+    await admin.from("unified_deal_activity" as never).insert({
+      deal_id: dealId,
+      activity_type: "team_updated",
+      title: "Team member removed",
+      metadata: { removed_member_id: memberId },
+      created_by: auth.user.id,
+    } as never);
+
+    revalidateDeal(dealId);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("removeDealTeamMember error:", err);
+    return {
+      error: err instanceof Error ? err.message : "An unexpected error occurred",
+    };
+  }
+}
+
 // ─── Document Actions ───
 
 /**
