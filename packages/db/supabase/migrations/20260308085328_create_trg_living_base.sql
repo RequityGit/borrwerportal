@@ -76,3 +76,24 @@ CREATE TRIGGER on_pm_communities_updated BEFORE UPDATE ON public.pm_communities
 
 CREATE TRIGGER on_pm_posts_updated BEFORE UPDATE ON public.pm_posts
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Create the Site Settings table for Remote Layout Management
+CREATE TABLE IF NOT EXISTS public.pm_site_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    key TEXT UNIQUE NOT NULL, 
+    value TEXT, 
+    description TEXT
+);
+
+-- Enable RLS
+ALTER TABLE public.pm_site_settings ENABLE ROW LEVEL SECURITY;
+
+-- Public Read Policy
+CREATE POLICY "Allow public read settings" ON public.pm_site_settings FOR SELECT USING (true);
+
+-- Initial Branding Data
+INSERT INTO public.pm_site_settings (key, value, description) VALUES 
+('site_name', 'TRG Living', 'The main title in the header'),
+('brand_color', '#2563eb', 'The primary blue color used for buttons')
+ON CONFLICT (key) DO NOTHING;

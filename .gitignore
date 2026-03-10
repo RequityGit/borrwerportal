@@ -1,67 +1,40 @@
-# dependencies
-node_modules
+# --- Dependencies ---
+node_modules/
 .pnp
 .pnp.js
-.yarn/install-state.gz
+*.lock
+*-lock.yaml
 
-# testing
-coverage
-playwright-report/
-test-results/
-tests/.auth/
-
-# next.js
+# --- Next.js & Build Output ---
 .next/
 out/
+build/
+dist/
+.turbo/
 
-# production
-build
-dist
-
-# turbo
-.turbo
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# local env files
+# --- Environment & Secrets ---
 .env
 .env*.local
+.env.test
+*.pem
 
-# vercel
-.vercel
+# --- Database & Local Tooling ---
+.supabase/
+supabase/.temp/
+**/migrations/*_local_*
+**/migrations/*_backup_*
+**/migrations/remote_schema.sql
 
-# netlify
-.netlify
-
-# typescript
+# --- IDE & System Files ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 
-# supabase
-supabase/.temp
-
-# lock files (pnpm only)
-package-lock.json
-yarn.lock
-
-# Claude local
-.claude/settings.local.json
-
-# --- DAY 1 CLEANUP IGNORES ---
-# Ignore the quarantine folders
-packages/db/supabase/INCOHERENT_MIGRATIONS/
-packages/db/supabase/OLD_GHOST_MIGRATIONS/
-
-# Ignore the Master Blueprint (we want to keep this locally, but not push it yet)
-packages/db/supabase/migrations/20260307999999_remote_schema.sql
-
-# Ignore Supabase CLI internal temp files
-packages/db/supabase/.temp/
+# --- AI & Agent Logs ---
+.claude/
+!.claude/settings.json
+journal.md
+*.log
