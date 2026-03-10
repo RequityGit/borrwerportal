@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Loader2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, X, Check, ChevronsUpDown, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +21,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export type CrmFieldType =
   | "text"
@@ -42,6 +47,10 @@ export interface CrmSectionField {
   value: string | number | boolean | string[] | null | undefined;
   /** Pass through to DatePicker for date fields (e.g. date of birth) */
   showYearNavigation?: boolean;
+  /** When provided, shows a "New" button at the bottom of the select dropdown */
+  onCreateNew?: () => void;
+  /** Label for the create-new button (defaults to "New {label}") */
+  createNewLabel?: string;
 }
 
 interface CrmEditSectionDialogProps {
@@ -148,7 +157,7 @@ export function CrmEditSectionDialog({
   }, [editableFields, values, multiValues, onSave, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange} modal>
       <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit {title}</DialogTitle>
@@ -226,6 +235,20 @@ export function CrmEditSectionDialog({
               const opts = f.fieldType === "boolean"
                 ? [{ label: "Yes", value: "true" }, { label: "No", value: "false" }]
                 : f.options!;
+
+              // Use Popover-based selector when onCreateNew is provided
+              if (f.onCreateNew) {
+                return (
+                  <SelectWithCreateNew
+                    key={f.fieldName}
+                    field={f}
+                    options={opts}
+                    value={values[f.fieldName] || ""}
+                    onChange={(val) => handleChange(f.fieldName, val)}
+                  />
+                );
+              }
+
               return (
                 <div key={f.fieldName} className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor={f.fieldName} className="text-right">
@@ -309,5 +332,113 @@ export function CrmEditSectionDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------
+ * Popover-based select with a sticky "New" button at the bottom
+ * ----------------------------------------------------------------*/
+function SelectWithCreateNew({
+  field,
+  options,
+  value,
+  onChange,
+}: {
+  field: CrmSectionField;
+  options: { label: string; value: string }[];
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  const filtered = search
+    ? options.filter((o) =>
+        o.label.toLowerCase().includes(search.toLowerCase())
+      )
+    : options;
+
+  return (
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label className="text-right">{field.label}</Label>
+      <div className="col-span-3">
+        <Popover open={open} onOpenChange={setOpen} modal>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between font-normal"
+            >
+              <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>
+                {selectedLabel || `Select ${field.label.toLowerCase()}`}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="p-0" align="start">
+            <div className="flex flex-col">
+              {/* Search input */}
+              <div className="flex items-center border-b px-3">
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={`Search ${field.label.toLowerCase()}...`}
+                  className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                />
+              </div>
+              {/* Options list */}
+              <div className="max-h-[200px] overflow-y-auto p-1">
+                {filtered.length === 0 && (
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    No results found.
+                  </div>
+                )}
+                {filtered.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={cn(
+                      "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                      opt.value === value && "bg-accent"
+                    )}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        opt.value === value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {/* Fixed "New" button at bottom */}
+              <div className="border-t p-1">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    setOpen(false);
+                    setSearch("");
+                    field.onCreateNew?.();
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  {field.createNewLabel || `New ${field.label}`}
+                </button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
   );
 }
