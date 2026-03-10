@@ -28,6 +28,7 @@ export default async function DocumentEditorPage({ params }: PageProps) {
   if (error || !doc) notFound();
 
   const template = (doc as Record<string, unknown>).document_templates as Record<string, unknown> | null;
+  const styledLayout = template?.styled_layout as Record<string, unknown> | null;
 
   // Get the generating user's name and current user's profile
   const [{ data: generatorProfile }, { data: currentProfile }] = await Promise.all([
@@ -69,6 +70,7 @@ export default async function DocumentEditorPage({ params }: PageProps) {
         generatedAt={doc.generated_at}
         currentUserId={user.id}
         currentUserName={currentProfile?.full_name ?? undefined}
+        styledLayout={styledLayout}
       />
     </div>
   );

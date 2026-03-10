@@ -1,0 +1,51 @@
+@media print {
+  /* Force light mode */
+  .styled-doc-container {
+    background: #fff !important;
+    color: #1a1a1a !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+
+  .styled-doc-container * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Keep the title banner dark */
+  .title-banner {
+    background: #1a1a1a !important;
+    color: #ffffff !important;
+  }
+  .title-banner * {
+    color: inherit !important;
+  }
+  .title-banner .text-destructive {
+    color: #E54D42 !important;
+  }
+
+  /* Force light mode borders and highlights */
+  .section-header-line { border-bottom-color: #1a1a1a !important; }
+  .term-row-border { border-bottom-color: #e4e4e7 !important; }
+  .term-row-highlight { background: #f7f7f8 !important; }
+
+  /* Disclaimer no page break */
+  .disclaimer-box {
+    break-inside: avoid;
+    background: #f7f7f8 !important;
+    border-left-color: #6b6b6b !important;
+  }
+
+  /* Signature blocks no page break */
+  .signature-block-container { break-inside: avoid; }
+
+  /* Hide interactive elements */
+  .no-print { display: none !important; }
+
+  /* Page margins */
+  @page {
+    margin: 0.75in;
+  }
+}
