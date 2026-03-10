@@ -34,6 +34,8 @@ export default async function TemplateEditorPage({ params }: PageProps) {
     format?: string | null;
   }>) ?? [];
 
+  const styledLayout = (template as Record<string, unknown>).styled_layout as Record<string, unknown> | null;
+
   return (
     <div className="-m-4 md:-m-6 lg:-m-8 h-[calc(100vh-64px)]">
       <TemplateEditorClient
@@ -45,6 +47,7 @@ export default async function TemplateEditorPage({ params }: PageProps) {
         isActive={template.is_active}
         initialContent={template.content ?? ""}
         mergeFields={mergeFields}
+        styledLayout={styledLayout}
       />
     </div>
   );

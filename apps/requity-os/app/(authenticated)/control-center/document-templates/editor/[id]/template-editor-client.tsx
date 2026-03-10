@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { DocumentEditor } from "@/components/documents/editor/DocumentEditor";
+import { LayoutEditor } from "@/components/documents/layout-editor/LayoutEditor";
 import { saveTemplateContent } from "../../actions";
+import type { StyledLayout } from "@/components/documents/styled-doc-parts/types";
 
 interface Props {
   templateId: string;
@@ -21,6 +23,7 @@ interface Props {
     column: string;
     format?: string | null;
   }>;
+  styledLayout?: Record<string, unknown> | null;
 }
 
 export function TemplateEditorClient({
@@ -32,8 +35,12 @@ export function TemplateEditorClient({
   isActive,
   initialContent,
   mergeFields,
+  styledLayout,
 }: Props) {
   const router = useRouter();
+  const [editorMode, setEditorMode] = useState<"tiptap" | "layout">(
+    styledLayout ? "layout" : "tiptap"
+  );
 
   const handleSave = useCallback(
     async (content: string) => {
@@ -44,6 +51,22 @@ export function TemplateEditorClient({
     },
     [templateId]
   );
+
+  const goBack = () => router.push("/control-center/document-templates");
+
+  if (editorMode === "layout") {
+    return (
+      <LayoutEditor
+        template={{
+          id: templateId,
+          name: templateName,
+          styled_layout: styledLayout as StyledLayout | null,
+          merge_fields: mergeFields,
+        }}
+        onBack={goBack}
+      />
+    );
+  }
 
   return (
     <DocumentEditor
@@ -58,7 +81,7 @@ export function TemplateEditorClient({
         status: isActive ? "Active" : "Inactive",
       }}
       onSave={handleSave}
-      onClose={() => router.push("/control-center/document-templates")}
+      onClose={goBack}
     />
   );
 }
