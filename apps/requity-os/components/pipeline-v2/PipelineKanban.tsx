@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DealCard, DealCardOverlay } from "./DealCard";
+import { IntakeCard } from "./IntakeCard";
 import { advanceStageAction } from "@/app/(authenticated)/admin/pipeline-v2/actions";
 import {
   type UnifiedDeal,
@@ -26,6 +27,7 @@ import {
   STAGES,
   formatCurrency,
 } from "./pipeline-types";
+import type { IntakeItem } from "@/lib/intake/types";
 
 interface PipelineKanbanProps {
   deals: UnifiedDeal[];
@@ -33,6 +35,8 @@ interface PipelineKanbanProps {
   stageConfigs: StageConfig[];
   relationshipDealIds: Set<string>;
   onDealClick: (deal: UnifiedDeal) => void;
+  intakeItems?: IntakeItem[];
+  onIntakeClick?: (item: IntakeItem) => void;
 }
 
 function StageColumn({
@@ -63,6 +67,8 @@ export function PipelineKanban({
   stageConfigs,
   relationshipDealIds,
   onDealClick,
+  intakeItems = [],
+  onIntakeClick,
 }: PipelineKanbanProps) {
   const { toast } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -158,6 +164,8 @@ export function PipelineKanban({
               (sum, d) => sum + (d.amount ?? 0),
               0
             );
+            const isLead = stage.key === "lead";
+            const columnCount = stageDeals.length + (isLead ? intakeItems.length : 0);
 
             return (
               <div key={stage.key} className="flex flex-col w-72 shrink-0">
@@ -166,7 +174,7 @@ export function PipelineKanban({
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-medium">{stage.label}</h3>
                     <span className="text-xs text-muted-foreground num">
-                      {stageDeals.length}
+                      {columnCount}
                     </span>
                   </div>
                   {totalAmount > 0 && (
@@ -178,7 +186,18 @@ export function PipelineKanban({
 
                 {/* Droppable column */}
                 <StageColumn stageKey={stage.key}>
-                  {stageDeals.length === 0 ? (
+                  {/* Intake cards at the top of the Lead column */}
+                  {isLead &&
+                    intakeItems.map((item) => (
+                      <IntakeCard
+                        key={item.id}
+                        item={item}
+                        onClick={() => onIntakeClick?.(item)}
+                      />
+                    ))}
+
+                  {/* Regular deal cards */}
+                  {stageDeals.length === 0 && (!isLead || intakeItems.length === 0) ? (
                     <p className="text-xs text-muted-foreground text-center py-8">
                       No deals
                     </p>

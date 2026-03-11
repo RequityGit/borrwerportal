@@ -6,6 +6,17 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { validateStageAdvancement } from "@/lib/pipeline/validate-stage-advancement";
 import type { Database, Json } from "@/lib/supabase/types";
 import { FIELD_MAPPING_MAP } from "@/lib/pipeline/uw-field-mappings";
+import type {
+  IntakeDecisions,
+  IntakeEntityKey,
+  IntakeParsedData,
+} from "@/lib/intake/types";
+import {
+  INCOMING_DATA_MAP,
+  ENTITY_FIELD_MAP,
+  isEmpty,
+  valsMatch,
+} from "@/lib/intake/types";
 
 type UnifiedDealInsert = Database["public"]["Tables"]["unified_deals"]["Insert"];
 type UnifiedDealUpdate = Database["public"]["Tables"]["unified_deals"]["Update"];
@@ -867,5 +878,335 @@ export async function resolveIntakeItemAction(data: {
   } catch (err: unknown) {
     console.error("resolveIntakeItemAction error:", err);
     return { error: err instanceof Error ? err.message : "Failed to resolve intake item" };
+  }
+}
+
+// ─── Process Intake Item (new entity-merge flow) ───
+
+export async function processIntakeItemAction(
+  intakeItemId: string,
+  decisions: IntakeDecisions | null
+) {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    // If decisions is null, dismiss the item
+    if (!decisions) {
+      const { error } = await admin
+        .from("intake_items" as never)
+        .update({
+          status: "dismissed",
+          processed_by: auth.user.id,
+          processed_at: new Date().toISOString(),
+        } as never)
+        .eq("id" as never, intakeItemId as never);
+
+      if (error) return { error: error.message };
+      revalidatePipeline();
+      return { success: true };
+    }
+
+    // Fetch the intake item
+    const { data: item, error: fetchErr } = await admin
+      .from("intake_items" as never)
+      .select("*" as never)
+      .eq("id" as never, intakeItemId as never)
+      .single();
+
+    if (fetchErr || !item) return { error: "Intake item not found" };
+
+    const parsed = (item as Record<string, unknown>).parsed_data as IntakeParsedData;
+    const autoMatches = (item as Record<string, unknown>).auto_matches as Record<string, { match_id: string; snapshot: Record<string, unknown> } | null>;
+
+    let contactId: string | null = null;
+    let companyId: string | null = null;
+    let propertyId: string | null = null;
+
+    // Process Contact
+    if (decisions.entityModes.contact === "new") {
+      const incoming = INCOMING_DATA_MAP.contact(parsed);
+      const { data: contact, error } = await admin
+        .from("crm_contacts" as never)
+        .insert({
+          first_name: incoming.first_name || null,
+          last_name: incoming.last_name || null,
+          name: incoming.name || null,
+          email: incoming.email || null,
+          phone: incoming.phone || null,
+          contact_type: "borrower",
+          source: "email_intake",
+        } as never)
+        .select("id" as never)
+        .single();
+
+      if (error) {
+        console.error("Failed to create contact:", error);
+        return { error: `Failed to create contact: ${error.message}` };
+      }
+      contactId = (contact as { id: string }).id;
+    } else if (decisions.entityModes.contact === "merge" && autoMatches?.contact) {
+      contactId = autoMatches.contact.match_id;
+      const fieldChoices = decisions.fieldChoices.contact || {};
+      const updates: Record<string, unknown> = {};
+      const incoming = INCOMING_DATA_MAP.contact(parsed);
+      const existing = autoMatches.contact.snapshot;
+
+      for (const f of ENTITY_FIELD_MAP.contact) {
+        const inc = incoming[f.key];
+        const ext = existing[f.key];
+        if (isEmpty(inc) || valsMatch(inc, ext)) continue;
+
+        if (isEmpty(ext)) {
+          // Auto-fill empty field
+          updates[f.key] = inc;
+        } else if (fieldChoices[f.key] === "incoming") {
+          updates[f.key] = inc;
+        } else if (fieldChoices[f.key] === "both") {
+          // "Keep both" appends to notes since crm_contacts doesn't have secondary fields
+          const label = f.key === "phone" ? "Alt phone" : f.key === "email" ? "Alt email" : f.key;
+          const existingNotes = (autoMatches.contact.snapshot.notes as string) || "";
+          updates["notes"] = existingNotes
+            ? `${existingNotes}\n${label}: ${inc}`
+            : `${label}: ${inc}`;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await admin
+          .from("crm_contacts" as never)
+          .update(updates as never)
+          .eq("id" as never, contactId as never);
+      }
+    }
+
+    // Process Company
+    if (decisions.entityModes.company === "new" && parsed.companyName) {
+      const incoming = INCOMING_DATA_MAP.company(parsed);
+      const { data: company, error } = await admin
+        .from("companies" as never)
+        .insert({
+          name: incoming.name || "Unknown Company",
+          company_type: "borrower",
+          state: incoming.state || null,
+          primary_contact_id: contactId,
+        } as never)
+        .select("id" as never)
+        .single();
+
+      if (error) {
+        console.error("Failed to create company:", error);
+      } else {
+        companyId = (company as { id: string }).id;
+      }
+    } else if (decisions.entityModes.company === "merge" && autoMatches?.company) {
+      companyId = autoMatches.company.match_id;
+      const fieldChoices = decisions.fieldChoices.company || {};
+      const updates: Record<string, unknown> = {};
+      const incoming = INCOMING_DATA_MAP.company(parsed);
+      const existing = autoMatches.company.snapshot;
+
+      for (const f of ENTITY_FIELD_MAP.company) {
+        const inc = incoming[f.key];
+        const ext = existing[f.key];
+        if (isEmpty(inc) || valsMatch(inc, ext)) continue;
+        if (isEmpty(ext)) {
+          updates[f.key] = inc;
+        } else if (fieldChoices[f.key] === "incoming") {
+          updates[f.key] = inc;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await admin
+          .from("companies" as never)
+          .update(updates as never)
+          .eq("id" as never, companyId as never);
+      }
+    }
+
+    // Link contact to company if both exist
+    if (contactId && companyId) {
+      await admin
+        .from("crm_contacts" as never)
+        .update({ company_id: companyId } as never)
+        .eq("id" as never, contactId as never);
+    }
+
+    // Process Property
+    if (decisions.entityModes.property === "new" && parsed.propertyAddress) {
+      const incoming = INCOMING_DATA_MAP.property(parsed);
+      const { data: property, error } = await admin
+        .from("properties" as never)
+        .insert({
+          address_line1: incoming.address_line1 || null,
+          city: incoming.city || null,
+          state: incoming.state || null,
+          property_type: incoming.property_type || null,
+          number_of_units: incoming.number_of_units || null,
+          gross_building_area_sqft: incoming.gross_building_area_sqft || null,
+          year_built: incoming.year_built || null,
+          zoning: incoming.zoning || null,
+        } as never)
+        .select("id" as never)
+        .single();
+
+      if (error) {
+        console.error("Failed to create property:", error);
+      } else {
+        propertyId = (property as { id: string }).id;
+      }
+    } else if (decisions.entityModes.property === "merge" && autoMatches?.property) {
+      propertyId = autoMatches.property.match_id;
+      const fieldChoices = decisions.fieldChoices.property || {};
+      const updates: Record<string, unknown> = {};
+      const incoming = INCOMING_DATA_MAP.property(parsed);
+      const existing = autoMatches.property.snapshot;
+
+      for (const f of ENTITY_FIELD_MAP.property) {
+        const inc = incoming[f.key];
+        const ext = existing[f.key];
+        if (isEmpty(inc) || valsMatch(inc, ext)) continue;
+        if (isEmpty(ext)) {
+          updates[f.key] = inc;
+        } else if (fieldChoices[f.key] === "incoming") {
+          updates[f.key] = inc;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await admin
+          .from("properties" as never)
+          .update(updates as never)
+          .eq("id" as never, propertyId as never);
+      }
+    }
+
+    // Process Opportunity (Deal) - always create a new deal in Lead stage
+    const opportunityData = INCOMING_DATA_MAP.opportunity(parsed);
+    const dealName = [
+      parsed.contactName || parsed.companyName || "Unknown",
+      parsed.propertyAddress?.split(",")[0],
+    ]
+      .filter(Boolean)
+      .join(" - ");
+
+    // Try to determine a card type from the loan type
+    let cardTypeId: string | null = null;
+    if (parsed.loanType) {
+      const loanTypeLower = parsed.loanType.toLowerCase();
+      const slugMap: Record<string, string> = {
+        dscr: "res_debt_dscr",
+        rtl: "res_debt_rtl",
+        "comm debt": "comm_debt",
+        "comm eq": "comm_equity",
+        commercial: "comm_debt",
+      };
+      const targetSlug = slugMap[loanTypeLower];
+      if (targetSlug) {
+        const { data: ct } = await admin
+          .from("unified_card_types" as never)
+          .select("id" as never)
+          .eq("slug" as never, targetSlug as never)
+          .eq("status" as never, "active" as never)
+          .limit(1)
+          .single();
+        if (ct) cardTypeId = (ct as { id: string }).id;
+      }
+    }
+
+    // Fall back to first active card type if none matched
+    if (!cardTypeId) {
+      const { data: fallbackCt } = await admin
+        .from("unified_card_types" as never)
+        .select("id" as never)
+        .eq("status" as never, "active" as never)
+        .order("sort_order" as never)
+        .limit(1)
+        .single();
+      if (fallbackCt) cardTypeId = (fallbackCt as { id: string }).id;
+    }
+
+    if (!cardTypeId) {
+      return { error: "No active card types found" };
+    }
+
+    // Get capital_side from card type
+    const { data: cardType } = await admin
+      .from("unified_card_types" as never)
+      .select("capital_side" as never)
+      .eq("id" as never, cardTypeId as never)
+      .single();
+
+    const insertData: UnifiedDealInsert = {
+      name: dealName,
+      card_type_id: cardTypeId,
+      capital_side: (cardType as { capital_side: string } | null)?.capital_side || "debt",
+      amount: (opportunityData.amount as number) || null,
+      primary_contact_id: contactId,
+      company_id: companyId,
+      property_id: propertyId,
+      created_by: auth.user.id,
+      source: "email_intake",
+      uw_data: {
+        loan_type: opportunityData.loan_type,
+        ltv: opportunityData.ltv,
+        rate: opportunityData.rate,
+        term: opportunityData.term,
+        dscr: opportunityData.dscr,
+        rehab_budget: opportunityData.rehab_budget,
+        arv: opportunityData.arv,
+      } as Json,
+    };
+
+    const { data: deal, error: dealError } = await admin
+      .from("unified_deals")
+      .insert(insertData)
+      .select("id, deal_number")
+      .single();
+
+    if (dealError) {
+      console.error("processIntakeItemAction create deal error:", dealError);
+      return { error: dealError.message };
+    }
+
+    // Generate conditions (non-fatal)
+    const { error: condErr } = await admin.rpc(
+      "generate_deal_conditions" as never,
+      { p_deal_id: deal.id } as never
+    );
+    if (condErr) console.error("Failed to generate conditions:", condErr);
+
+    // Log activity (non-fatal)
+    const { error: actErr } = await admin.from("unified_deal_activity").insert({
+      deal_id: deal.id,
+      activity_type: "status_change",
+      title: "Deal created from email intake (entity merge flow)",
+      created_by: auth.user.id,
+    });
+    if (actErr) console.error("Failed to log activity:", actErr);
+
+    // Mark intake item as processed
+    await admin
+      .from("intake_items" as never)
+      .update({
+        status: "processed",
+        processed_by: auth.user.id,
+        processed_at: new Date().toISOString(),
+        decisions: decisions as unknown as Json,
+        created_deal_id: deal.id,
+        created_contact_id: contactId,
+        created_company_id: companyId,
+        created_property_id: propertyId,
+      } as never)
+      .eq("id" as never, intakeItemId as never);
+
+    revalidatePipeline(deal.id);
+    return { success: true, deal };
+  } catch (err: unknown) {
+    console.error("processIntakeItemAction error:", err);
+    return { error: err instanceof Error ? err.message : "Failed to process intake item" };
   }
 }
