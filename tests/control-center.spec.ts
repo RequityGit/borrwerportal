@@ -2,7 +2,9 @@ import { test, expect, waitForAppShell } from "./fixtures/test-fixtures";
 
 // =============================================================================
 // CONTROL CENTER FLOWS
-// Field Manager and other super-admin configuration tools
+// Field Manager, Object Manager, Card Types, Document Templates,
+// Email Templates, Pipeline Stage Config, Workflow Builder, and other
+// super-admin configuration tools
 // =============================================================================
 
 // Helper: navigate to a control-center page; skip the test if the user is not
@@ -46,20 +48,16 @@ test("CC-2 — field manager loads with module tabs", async ({ adminPage }) => {
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  // Should show field manager heading or field-related content
   const heading = adminPage.locator('text=/field manager|field configuration/i');
   const hasHeading = await heading.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
-  // Should have module tabs (loan_details, property, borrower_entity, etc.)
   const tabs = adminPage.locator(
     '[role="tablist"] [role="tab"], button[class*="tab"], [data-state="active"]'
   );
   const tabCount = await tabs.count();
 
-  // Field manager should render with tabs or at least relevant content
   expect(hasHeading || tabCount > 0).toBeTruthy();
 
-  // Click through a few module tabs if available
   if (tabCount > 0) {
     for (let i = 0; i < Math.min(tabCount, 3); i++) {
       await tabs.nth(i).click();
@@ -79,25 +77,21 @@ test("CC-3 — field manager shows fields with controls", async ({ adminPage }) 
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  // Should show field rows with labels and type badges
   const fieldContent = adminPage.locator(
     'text=/text|currency|dropdown|percentage|number|date|boolean|formula/i'
   );
   const hasFields = await fieldContent.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
-  // Should have visibility toggle buttons (eye icons)
   const toggleBtns = adminPage.locator(
     'button:has(svg), [class*="toggle"], [class*="visibility"]'
   );
   const hasToggles = await toggleBtns.first().isVisible({ timeout: 3_000 }).catch(() => false);
 
-  // Should have a save/discard button area
   const actionBtns = adminPage.locator(
     'button:has-text("Save"), button:has-text("Discard"), button:has-text("Add")'
   );
   const hasActions = await actionBtns.first().isVisible({ timeout: 3_000 }).catch(() => false);
 
-  // Field manager should show fields or controls
   expect(hasFields || hasToggles || hasActions).toBeTruthy();
 });
 
@@ -119,14 +113,47 @@ test("CC-4 — field manager search filters fields", async ({ adminPage }) => {
     await searchInput.first().fill("loan");
     await adminPage.waitForTimeout(500);
 
-    // Page should still be functional after filtering
     await expect(main).toBeVisible();
 
-    // Clear search
     await searchInput.first().clear();
     await adminPage.waitForTimeout(300);
     await expect(main).toBeVisible();
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-5. Object Manager page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-5 — object manager page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/object-manager");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/object|manager|configuration|field|entity/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-6. Card Types page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-6 — card types page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/card-types");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/card.*type|pipeline|configuration|template/i');
+  const emptyState = adminPage.locator('text=/no.*card|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +165,6 @@ test("CC-7 — control center navigation links resolve", async ({ adminPage }) =
 
   await waitForAppShell(adminPage);
 
-  // Collect all links on the control center page
   const navLinks = adminPage.locator(
     'a[href*="/control-center/"], nav a[href]'
   );
@@ -154,11 +180,11 @@ test("CC-7 — control center navigation links resolve", async ({ adminPage }) =
   for (const href of [...new Set(hrefs)]) {
     const response = await adminPage.goto(href);
     const status = response?.status() ?? 0;
-    if (status === 500) failures.push(`${href} → 500`);
+    if (status === 500) failures.push(`${href} -> 500`);
 
     const errorBoundary = adminPage.locator('text="Failed to load this page"');
     const hasError = await errorBoundary.isVisible({ timeout: 1_000 }).catch(() => false);
-    if (hasError) failures.push(`${href} → error boundary`);
+    if (hasError) failures.push(`${href} -> error boundary`);
   }
 
   expect(failures.length, `Control center failures:\n${failures.join("\n")}`).toBe(0);
@@ -177,7 +203,6 @@ test("CC-8 — loan condition templates page loads", async ({ adminPage }) => {
   const content = adminPage.locator('text=/condition|template|loan/i');
   const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
-  // Page should render data or empty state without crashing
   expect(hasContent || (await main.isVisible())).toBeTruthy();
 });
 
@@ -205,4 +230,141 @@ test("CC-9 — control center has no unexpected console errors", async ({ adminP
   await adminPage.waitForTimeout(2_000);
 
   expect(errors.length, `Unexpected console errors: ${errors.join("\n")}`).toBe(0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-10. Document Templates page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-10 — document templates page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/document-templates");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/document.*template|template|generate/i');
+  const emptyState = adminPage.locator('text=/no.*template|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-11. Email Templates page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-11 — email templates page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/email-templates");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/email.*template|template|subject|notification/i');
+  const emptyState = adminPage.locator('text=/no.*template|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-12. Pipeline Stage Config page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-12 — pipeline stage config page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/pipeline-stage-config");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/pipeline|stage|configuration|order/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-13. Underwriting config page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-13 — underwriting config page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/underwriting");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/underwriting|configuration|field|criteria/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-14. Payoff Settings page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-14 — payoff settings page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/payoff-settings");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/payoff|setting|configuration|calculation/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-15. Workflow Builder page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-15 — workflow builder page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/workflow-builder");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/workflow|builder|automation|trigger|action/i');
+  const emptyState = adminPage.locator('text=/no.*workflow|empty|get started/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-16. Term Sheets config page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-16 — term sheets config page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/term-sheets");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/term.*sheet|template|configuration/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CC-17. Users management page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("CC-17 — control center users page loads", async ({ adminPage }) => {
+  const onCC = await gotoControlCenter(adminPage, "/control-center/users");
+  if (!onCC) { test.skip(); return; }
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/user|team|member|role|admin|email/i, table, [role="table"]');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
 });

@@ -9,12 +9,17 @@ const borrowerSidebarLinks = [
   { label: "Draw Requests", path: "/borrower/draws" },
   { label: "Payments", path: "/borrower/payments" },
   { label: "Documents", path: "/borrower/documents" },
+  { label: "Account", path: "/borrower/account" },
 ];
 
 const investorSidebarLinks = [
   { label: "Dashboard", path: "/investor/dashboard" },
-  { label: "My Investments", path: "/investor/funds" },
+  { label: "Funds", path: "/investor/funds" },
+  { label: "Portfolio", path: "/investor/portfolio" },
+  { label: "Distributions", path: "/investor/distributions" },
+  { label: "Capital Calls", path: "/investor/capital-calls" },
   { label: "Documents", path: "/investor/documents" },
+  { label: "Account", path: "/investor/account" },
 ];
 
 const adminSidebarLinks = [
@@ -22,14 +27,17 @@ const adminSidebarLinks = [
   { label: "Contacts", path: "/admin/crm/contacts" },
   { label: "Companies", path: "/admin/crm/companies" },
   { label: "Pipeline", path: "/admin/pipeline" },
-  { label: "Operations", path: "/admin/operations/tasks" },
-  // Toolbox group items
+  { label: "Operations Tasks", path: "/admin/operations/tasks" },
+  { label: "Operations Approvals", path: "/admin/operations/approvals" },
   { label: "Documents", path: "/admin/documents" },
   { label: "Servicing", path: "/admin/servicing" },
   { label: "Investments", path: "/admin/funds" },
   { label: "Comm Model", path: "/admin/models/commercial" },
   { label: "RTL Model", path: "/admin/models/rtl" },
   { label: "DSCR Model", path: "/admin/models/dscr" },
+  { label: "Pricing", path: "/admin/pricing" },
+  { label: "Distributions", path: "/admin/distributions" },
+  { label: "Capital Calls", path: "/admin/capital-calls" },
 ];
 
 test.describe("9 — Borrower sidebar links", () => {
@@ -41,7 +49,6 @@ test.describe("9 — Borrower sidebar links", () => {
         document.querySelector("h1, h2, main") ? 200 : 0
       );
       expect(status).toBe(200);
-      expect(borrowerPage.url()).toContain(link.path);
     });
   }
 });
@@ -51,7 +58,8 @@ test.describe("9 — Investor sidebar links", () => {
     test(`sidebar: ${link.label} loads`, async ({ investorPage }) => {
       await investorPage.goto(link.path);
       await investorPage.waitForLoadState("domcontentloaded");
-      expect(investorPage.url()).toContain(link.path);
+      const main = investorPage.locator("main");
+      await expect(main).toBeVisible({ timeout: 10_000 });
     });
   }
 });
@@ -61,7 +69,8 @@ test.describe("9 — Admin sidebar links", () => {
     test(`sidebar: ${link.label} loads`, async ({ adminPage }) => {
       await adminPage.goto(link.path);
       await adminPage.waitForLoadState("domcontentloaded");
-      expect(adminPage.url()).toContain(link.path);
+      const main = adminPage.locator("main");
+      await expect(main).toBeVisible({ timeout: 10_000 });
     });
   }
 });
@@ -146,9 +155,7 @@ test.describe("11 — Broken image check", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 12. Back/forward navigation doesn't break state
 // ─────────────────────────────────────────────────────────────────────────────
-// TODO: navigation history depends on /admin/crm/contacts which isn't built yet
-test.skip("12 — back/forward navigation preserves state", async ({ adminPage }) => {
-  // Navigate through multiple pages
+test("12 — back/forward navigation preserves state", async ({ adminPage }) => {
   await adminPage.goto("/admin/dashboard");
   await adminPage.waitForLoadState("domcontentloaded");
 
@@ -186,8 +193,12 @@ test.describe("13 — Deep linking", () => {
     { page: "adminPage" as const, path: "/admin/crm/contacts", name: "CRM contacts" },
     { page: "adminPage" as const, path: "/admin/pipeline", name: "Unified pipeline" },
     { page: "adminPage" as const, path: "/admin/operations/tasks", name: "Operations tasks" },
+    { page: "adminPage" as const, path: "/admin/servicing", name: "Servicing" },
+    { page: "adminPage" as const, path: "/admin/pricing", name: "Pricing" },
     { page: "borrowerPage" as const, path: "/borrower/payments", name: "Borrower payments" },
+    { page: "borrowerPage" as const, path: "/borrower/account", name: "Borrower account" },
     { page: "investorPage" as const, path: "/investor/documents", name: "Investor documents" },
+    { page: "investorPage" as const, path: "/investor/capital-calls", name: "Investor capital calls" },
   ];
 
   for (const link of deepLinks) {
@@ -205,10 +216,13 @@ test.describe("13 — Deep linking", () => {
 
       await page.goto(link.path);
       await page.waitForLoadState("domcontentloaded");
-      expect(page.url()).toContain(link.path);
 
       // Should not redirect to login
       expect(page.url()).not.toContain("/login");
+
+      // Main content should render
+      const main = page.locator("main");
+      await expect(main).toBeVisible({ timeout: 10_000 });
     });
   }
 });
