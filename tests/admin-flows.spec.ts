@@ -2,7 +2,8 @@ import { test, expect, waitForAppShell } from "./fixtures/test-fixtures";
 
 // =============================================================================
 // ADMIN / LENDING FLOWS
-// Dashboard, pipeline, loans, CRM, borrowers, investors, SOPs
+// Dashboard, pipeline, loans, CRM, borrowers, investors, SOPs, servicing,
+// equity, dialer, pricing, distributions, capital calls, users, email templates
 // =============================================================================
 
 // Helper: try multiple route patterns for admin pages
@@ -63,11 +64,11 @@ test("42 — admin sidebar links all resolve without 500", async ({ adminPage })
   for (const href of [...new Set(hrefs)]) {
     const response = await adminPage.goto(href);
     const status = response?.status() ?? 0;
-    if (status === 500) failures.push(`${href} → 500`);
+    if (status === 500) failures.push(`${href} -> 500`);
 
     const errorBoundary = adminPage.locator('text="Failed to load this page"');
     const hasError = await errorBoundary.isVisible({ timeout: 1_000 }).catch(() => false);
-    if (hasError) failures.push(`${href} → error boundary`);
+    if (hasError) failures.push(`${href} -> error boundary`);
   }
 
   expect(failures.length, `Admin sidebar failures:\n${failures.join("\n")}`).toBe(0);
@@ -94,11 +95,32 @@ test("43 — admin unified pipeline loads", async ({ adminPage }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 43b. Pipeline v2 page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("43b — admin pipeline v2 loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/pipeline-v2");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const pipelineUI = adminPage.locator(
+    'table, [role="table"], [class*="kanban"], [class*="pipeline"], [class*="stage"], [class*="column"], [draggable]'
+  );
+  const content = adminPage.locator('text=/pipeline|deal|stage/i');
+
+  const hasUI = await pipelineUI.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasUI || hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 44. Loans list page loads with data
 // ─────────────────────────────────────────────────────────────────────────────
 test("44 — admin loans list page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
-    "/lending/loans", "/admin/loans", "/loans",
+    "/admin/loans", "/lending/loans", "/loans",
   ]);
   if (!loaded) { test.skip(); return; }
 
@@ -128,7 +150,6 @@ test("45 — admin borrowers list page loads", async ({ adminPage }) => {
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  // /admin/borrowers may redirect to /admin/crm?tab=borrowers → /admin/crm/contacts
   const content = adminPage.locator('text=/borrower|contact|name|email|loan|crm/i, table, [role="table"]');
   const emptyState = adminPage.locator('text=/no.*borrower|no.*contact|empty|no data/i');
   const heading = adminPage.locator('h1, h2');
@@ -153,7 +174,6 @@ test("46 — admin investors list page loads", async ({ adminPage }) => {
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  // /admin/investors may redirect to /admin/crm?tab=investors → /admin/crm/contacts
   const content = adminPage.locator('text=/investor|contact|name|email|fund|entity|crm/i, table, [role="table"]');
   const emptyState = adminPage.locator('text=/no.*investor|no.*contact|empty|no data/i');
   const heading = adminPage.locator('h1, h2');
@@ -170,7 +190,7 @@ test("46 — admin investors list page loads", async ({ adminPage }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 test("47 — admin CRM contacts page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
-    "/crm/contacts", "/admin/contacts", "/contacts",
+    "/admin/crm/contacts", "/crm/contacts", "/contacts",
   ]);
   if (!loaded) { test.skip(); return; }
 
@@ -192,7 +212,7 @@ test("47 — admin CRM contacts page loads", async ({ adminPage }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 test("48 — admin CRM companies page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
-    "/crm/companies", "/admin/companies", "/companies",
+    "/admin/crm/companies", "/crm/companies", "/companies",
   ]);
   if (!loaded) { test.skip(); return; }
 
@@ -259,7 +279,7 @@ test("51 — admin notifications panel opens", async ({ adminPage }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 test("52 — admin settings page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
-    "/admin/account", "/settings", "/admin/settings",
+    "/admin/settings", "/admin/account", "/settings",
   ]);
   if (!loaded) { test.skip(); return; }
 
@@ -280,7 +300,7 @@ test("52 — admin settings page loads", async ({ adminPage }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 test("53 — admin operations page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
-    "/operations", "/admin/operations", "/ops",
+    "/admin/operations", "/operations", "/admin/operations/tasks",
   ]);
   if (!loaded) { test.skip(); return; }
 
@@ -349,7 +369,7 @@ test("55 — admin search bar accepts input", async ({ adminPage }) => {
 // 56. Loan detail page loads (first available loan)
 // ─────────────────────────────────────────────────────────────────────────────
 test("56 — admin loan detail page loads", async ({ adminPage }) => {
-  const loaded = await gotoFirstValid(adminPage, ["/lending/loans", "/admin/loans", "/loans"]);
+  const loaded = await gotoFirstValid(adminPage, ["/admin/loans", "/lending/loans", "/loans"]);
   if (!loaded) { test.skip(); return; }
 
   await adminPage.waitForLoadState("networkidle");
@@ -399,9 +419,7 @@ test("57 — pipeline deal detail loads with tabs and stepper", async ({ adminPa
     await expect(main).toBeVisible();
 
     // Check for stage stepper (rendered as rounded-full step circles)
-    const stepper = adminPage.locator(
-      'main .rounded-full'
-    );
+    const stepper = adminPage.locator('main .rounded-full');
     const hasStepper = await stepper.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
     // Check for tabs (custom buttons in an inline-flex container)
@@ -411,7 +429,7 @@ test("57 — pipeline deal detail loads with tabs and stepper", async ({ adminPa
     // Deal detail should have at least tabs or stepper
     expect(hasStepper || tabCount > 0).toBeTruthy();
 
-    // Click through available tabs — verify no crashes
+    // Click through available tabs -- verify no crashes
     if (tabCount > 0) {
       for (let i = 0; i < tabCount; i++) {
         await tabs.nth(i).click();
@@ -424,7 +442,7 @@ test("57 — pipeline deal detail loads with tabs and stepper", async ({ adminPa
     const errorHeading = adminPage.locator('text="Failed to load this page"');
     await expect(errorHeading).not.toBeVisible({ timeout: 2_000 });
   } else {
-    // No deals — pipeline page itself rendered fine
+    // No deals -- pipeline page itself rendered fine
     await expect(adminPage.locator("main")).toBeVisible();
   }
 });
@@ -457,17 +475,14 @@ test("58 — pipeline kanban renders draggable deal cards", async ({ adminPage }
 // 59. Old pipeline routes redirect to unified pipeline
 // ─────────────────────────────────────────────────────────────────────────────
 test("59 — old pipeline routes redirect to unified pipeline", async ({ adminPage }) => {
-  // /admin/pipeline/debt should redirect to /admin/pipeline
   await adminPage.goto("/admin/pipeline/debt");
   await adminPage.waitForLoadState("networkidle");
   expect(adminPage.url()).toContain("/admin/pipeline");
 
-  // /admin/pipeline/equity should redirect to /admin/pipeline
   await adminPage.goto("/admin/pipeline/equity");
   await adminPage.waitForLoadState("networkidle");
   expect(adminPage.url()).toContain("/admin/pipeline");
 
-  // Main content visible after redirect
   await expect(adminPage.locator("main")).toBeVisible();
 });
 
@@ -484,7 +499,6 @@ test("60 — admin document center loads", async ({ adminPage }) => {
   const content = adminPage.locator('text=/document|upload|file/i');
   const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
-  // Should show document table or upload form
   const table = adminPage.locator('table, [role="table"]');
   const hasTable = await table.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
@@ -530,7 +544,7 @@ test("62 — operations approvals page loads", async ({ adminPage }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 63. Toolbox — Servicing page loads
+// 63. Servicing page loads
 // ─────────────────────────────────────────────────────────────────────────────
 test("63 — admin servicing page loads", async ({ adminPage }) => {
   await adminPage.goto("/admin/servicing");
@@ -546,7 +560,26 @@ test("63 — admin servicing page loads", async ({ adminPage }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 64. Toolbox — Commercial model page loads
+// 63b. Servicing billing page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("63b — admin servicing billing page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/servicing/billing");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/billing|payment|invoice|servicing/i');
+  const emptyState = adminPage.locator('text=/no.*billing|no.*payment|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 64. Commercial model page loads
 // ─────────────────────────────────────────────────────────────────────────────
 test("64 — admin commercial model page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
@@ -565,7 +598,7 @@ test("64 — admin commercial model page loads", async ({ adminPage }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 65. Toolbox — RTL model page loads
+// 65. RTL model page loads
 // ─────────────────────────────────────────────────────────────────────────────
 test("65 — admin RTL model page loads", async ({ adminPage }) => {
   await adminPage.goto("/admin/models/rtl");
@@ -581,7 +614,7 @@ test("65 — admin RTL model page loads", async ({ adminPage }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 66. Toolbox — DSCR model page loads
+// 66. DSCR model page loads
 // ─────────────────────────────────────────────────────────────────────────────
 test("66 — admin DSCR model page loads", async ({ adminPage }) => {
   await adminPage.goto("/admin/models/dscr");
@@ -591,6 +624,200 @@ test("66 — admin DSCR model page loads", async ({ adminPage }) => {
   await expect(main).toBeVisible();
 
   const content = adminPage.locator('text=/dscr|model|debt.*service|coverage/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 67. Equity pipeline page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("67 — admin equity pipeline page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/equity-pipeline");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/equity|pipeline|deal|acquisition|property/i');
+  const emptyState = adminPage.locator('text=/no.*deal|no.*equity|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 68. Pricing page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("68 — admin pricing page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/pricing");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/pricing|rate|calculator|tier/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 69. Funds management page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("69 — admin funds page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/funds");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/fund|investment|portfolio|investor/i, table, [role="table"]');
+  const emptyState = adminPage.locator('text=/no.*fund|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 70. Distributions management page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("70 — admin distributions page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/distributions");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/distribution|payment|payout|investor/i');
+  const emptyState = adminPage.locator('text=/no.*distribution|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 71. Capital calls management page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("71 — admin capital calls page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/capital-calls");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/capital.*call|commitment|investor|amount/i');
+  const emptyState = adminPage.locator('text=/no.*capital|no.*call|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 72. User management page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("72 — admin users page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/users");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/user|team|member|role|admin|email/i, table, [role="table"]');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 73. Email templates page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("73 — admin email templates page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/email-templates");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/email|template|subject|notification/i');
+  const emptyState = adminPage.locator('text=/no.*template|empty/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 74. Dialer page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("74 — admin dialer page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/dialer");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/dialer|call|phone|list|campaign/i');
+  const emptyState = adminPage.locator('text=/no.*call|no.*list|empty|get started/i');
+
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+
+  expect(hasContent || hasEmpty).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 75. Conditions page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("75 — admin conditions page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/conditions");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/condition|template|loan|requirement/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 76. Originations page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("76 — admin originations page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/originations");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/origination|new.*loan|application|intake/i');
+  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+
+  expect(hasContent).toBeTruthy();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 77. Settings term sheets page loads
+// ─────────────────────────────────────────────────────────────────────────────
+test("77 — admin settings term sheets page loads", async ({ adminPage }) => {
+  await adminPage.goto("/admin/settings/term-sheets");
+  await adminPage.waitForLoadState("networkidle");
+
+  const main = adminPage.locator("main");
+  await expect(main).toBeVisible();
+
+  const content = adminPage.locator('text=/term.*sheet|template|document/i');
   const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
   expect(hasContent).toBeTruthy();
