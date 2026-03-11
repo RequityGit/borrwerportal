@@ -926,7 +926,10 @@ export function OperationsView({
   async function handleDeleteTask(taskId: string) {
     const { error } = await supabase.from("ops_tasks").delete().eq("id", taskId);
     if (error) {
-      toast({ title: "Error", description: "Could not delete task.", variant: "destructive" });
+      const description = error.message?.includes("foreign key constraint")
+        ? "Failed to delete task. It has related records that must be removed first."
+        : "Could not delete task.";
+      toast({ title: "Failed to delete task", description, variant: "destructive" });
       return;
     }
     toast({ title: "Task deleted" });
