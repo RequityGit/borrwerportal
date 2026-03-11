@@ -3,6 +3,11 @@ import type {
   UwFieldDef,
   UwFieldObject,
 } from "@/components/pipeline-v2/pipeline-types";
+import {
+  isVisible,
+  type VisibilityCondition,
+  type VisibilityContext,
+} from "@/lib/visibility-engine";
 
 /**
  * A field_configurations row (subset of columns needed for resolution).
@@ -16,6 +21,10 @@ export interface FieldConfigRecord {
   is_visible: boolean;
   is_archived: boolean;
   dropdown_options: string[] | null;
+  visibility_condition: VisibilityCondition | null;
+  formula_expression: string | null;
+  formula_output_format: string | null;
+  formula_decimal_places: number | null;
 }
 
 /**
@@ -68,11 +77,14 @@ export function buildFieldConfigMap(
  *
  * If refs is empty/missing, returns fallbackFields for backwards compatibility.
  * Fields that are archived or invisible in field_configurations are excluded.
+ * When visibilityContext is provided, fields whose visibility_condition doesn't
+ * match the deal's asset_class/loan_type are also excluded.
  */
 export function resolveCardTypeFields(
   refs: CardTypeFieldRef[] | undefined | null,
   fieldConfigMap: Map<string, FieldConfigRecord>,
-  fallbackFields?: UwFieldDef[]
+  fallbackFields?: UwFieldDef[],
+  visibilityContext?: VisibilityContext | null
 ): UwFieldDef[] {
   if (!refs || refs.length === 0) {
     return fallbackFields ?? [];
@@ -90,14 +102,27 @@ export function resolveCardTypeFields(
     if (fc.is_archived || !fc.is_visible) {
       continue;
     }
+    // Evaluate visibility condition when context is available
+    if (visibilityContext && !isVisible(fc.visibility_condition, visibilityContext)) {
+      continue;
+    }
+
+    const isFormula = fc.field_type === "formula" && fc.formula_expression;
 
     resolved.push({
       key: ref.field_key,
       label: fc.field_label,
-      type: mapFieldType(fc.field_type),
+      type: isFormula
+        ? mapFieldType(fc.formula_output_format ?? "number")
+        : mapFieldType(fc.field_type),
       required: ref.required,
       object: ref.object as UwFieldObject | undefined,
       options: fc.dropdown_options ?? undefined,
+      ...(isFormula && {
+        formulaExpression: fc.formula_expression!,
+        formulaOutputFormat: (fc.formula_output_format ?? "number") as UwFieldDef["formulaOutputFormat"],
+        formulaDecimalPlaces: fc.formula_decimal_places ?? 2,
+      }),
     });
   }
 

@@ -30,6 +30,10 @@ export interface UwFieldDef {
   required?: boolean;
   options?: string[];
   object?: UwFieldObject;
+  /** If set, this field is a computed formula. Render as read-only. */
+  formulaExpression?: string;
+  formulaOutputFormat?: "currency" | "percent" | "number" | "text";
+  formulaDecimalPlaces?: number;
 }
 
 export interface UwOutputDef {

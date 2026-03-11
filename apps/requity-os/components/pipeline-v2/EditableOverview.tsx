@@ -13,6 +13,8 @@ import {
   formatRatio,
 } from "./pipeline-types";
 import { useResolvedCardType } from "@/hooks/useResolvedCardType";
+import type { VisibilityContext } from "@/lib/visibility-engine";
+import { evaluateFormula } from "@/lib/formula-engine";
 import { StageChecklist } from "./StageChecklist";
 import { toast } from "sonner";
 import {
@@ -76,6 +78,13 @@ function formatFieldValue(field: UwFieldDef, value: unknown): React.ReactNode {
   }
 }
 
+function formatFormulaValue(field: UwFieldDef, computed: number | null | undefined): React.ReactNode {
+  if (computed == null) return "---";
+  if (field.formulaOutputFormat === "currency") return formatCurrency(computed);
+  if (field.formulaOutputFormat === "percent") return formatPercent(computed);
+  return computed.toFixed(field.formulaDecimalPlaces ?? 2);
+}
+
 // ── Convert UwFieldDef to CrmSectionField ──
 
 function uwFieldToCrmField(field: UwFieldDef, value: unknown): CrmSectionField {
@@ -101,6 +110,7 @@ interface EditableOverviewProps {
   uwData: Record<string, unknown>;
   cardType: UnifiedCardType;
   checklist: ChecklistItem[];
+  visibilityContext?: VisibilityContext | null;
 }
 
 // ── Main Component ──
@@ -110,12 +120,13 @@ export function EditableOverview({
   uwData,
   cardType: rawCardType,
   checklist,
+  visibilityContext,
 }: EditableOverviewProps) {
   const router = useRouter();
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
   // Resolve field refs from field_configurations (falls back to inline fields)
-  const cardType = useResolvedCardType(rawCardType);
+  const cardType = useResolvedCardType(rawCardType, visibilityContext);
 
   // Build a combined field map including property and contact fields
   const uwFieldMap = useMemo(() => {
@@ -124,6 +135,27 @@ export function EditableOverview({
     for (const f of cardType.contact_fields ?? []) map.set(f.key, f);
     return map;
   }, [cardType.uw_fields, cardType.property_fields, cardType.contact_fields]);
+
+  // Evaluate formula fields against current deal data
+  const formulaValues = useMemo(() => {
+    const values: Record<string, number | null> = {};
+    const formulaFields = Array.from(uwFieldMap.values()).filter((f) => f.formulaExpression);
+    if (formulaFields.length === 0) return values;
+    const vars: Record<string, number> = {};
+    for (const [k, v] of Object.entries(uwData)) {
+      if (typeof v === "number") vars[k] = v;
+      else if (typeof v === "string" && v !== "" && !isNaN(Number(v))) vars[k] = Number(v);
+    }
+    for (const field of formulaFields) {
+      try {
+        const result = evaluateFormula(field.formulaExpression!, vars);
+        values[field.key] = typeof result === "number" && isFinite(result) ? result : null;
+      } catch {
+        values[field.key] = null;
+      }
+    }
+    return values;
+  }, [uwFieldMap, uwData]);
 
   // Save handler for CrmEditSectionDialog
   const handleSave = useCallback(
@@ -186,11 +218,15 @@ export function EditableOverview({
             {group.fields.map((fieldKey) => {
               const fieldDef = uwFieldMap.get(fieldKey);
               if (!fieldDef) return null;
+              // Formula fields show computed value
+              const displayValue = fieldDef.formulaExpression
+                ? formatFormulaValue(fieldDef, formulaValues[fieldKey])
+                : formatFieldValue(fieldDef, uwData[fieldKey]);
               return (
                 <FieldRow
                   key={fieldKey}
                   label={fieldDef.label}
-                  value={formatFieldValue(fieldDef, uwData[fieldKey])}
+                  value={displayValue}
                   mono={["currency", "percent", "number"].includes(fieldDef.type)}
                 />
               );
@@ -216,7 +252,7 @@ export function EditableOverview({
           fields={group.fields
             .map((fieldKey) => {
               const fieldDef = uwFieldMap.get(fieldKey);
-              if (!fieldDef) return null;
+              if (!fieldDef || fieldDef.formulaExpression) return null;
               return uwFieldToCrmField(fieldDef, uwData[fieldKey]);
             })
             .filter((f): f is CrmSectionField => f != null)}
