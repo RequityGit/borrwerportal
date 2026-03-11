@@ -98,7 +98,6 @@ const adminNav: NavEntry[] = [
     moduleName: "pipeline",
     children: [
       { label: "Deals", href: "/admin/pipeline" },
-      { label: "Intake", href: "/admin/pipeline/intake" },
     ],
   },
   {

@@ -18,6 +18,7 @@ import {
   getBorrowerSelectColumns,
 } from "@/lib/pipeline/resolve-uw-data";
 import { getSessionData } from "@/lib/auth/session-cache";
+import type { IntakeItem } from "@/lib/intake/types";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function PipelineV2Page() {
     relationshipsResult,
     activitiesResult,
     teamResult,
+    intakeResult,
   ] = await Promise.all([
     admin
       .from("unified_card_types" as never)
@@ -69,6 +71,11 @@ export default async function PipelineV2Page() {
       .select("id, full_name")
       .eq("role", "admin")
       .order("full_name"),
+    admin
+      .from("intake_items" as never)
+      .select("*")
+      .eq("status" as never, "pending" as never)
+      .order("received_at" as never, { ascending: false }),
   ]);
 
   const cardTypes = (cardTypesResult.data ?? []) as unknown as UnifiedCardType[];
@@ -164,6 +171,8 @@ export default async function PipelineV2Page() {
     })
   );
 
+  const intakeItems = (intakeResult.data ?? []) as unknown as IntakeItem[];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -178,6 +187,7 @@ export default async function PipelineV2Page() {
         activities={activities}
         relationshipDealIds={relationshipDealIds}
         teamMembers={teamMembers}
+        intakeItems={intakeItems}
       />
     </div>
   );

@@ -6,6 +6,8 @@ import { DealFilters, type FilterState } from "./DealFilters";
 import { PipelineKanban } from "./PipelineKanban";
 import { PipelineTable } from "./PipelineTable";
 import { NewDealDialog } from "./NewDealDialog";
+import { IntakeBanner } from "./IntakeBanner";
+import { IntakeReviewModal } from "./IntakeReviewModal";
 import type {
   UnifiedDeal,
   UnifiedCardType,
@@ -13,6 +15,7 @@ import type {
   ChecklistItem,
   DealActivity,
 } from "./pipeline-types";
+import type { IntakeItem } from "@/lib/intake/types";
 
 interface PipelineViewProps {
   deals: UnifiedDeal[];
@@ -22,6 +25,7 @@ interface PipelineViewProps {
   activities: DealActivity[];
   relationshipDealIds: Set<string>;
   teamMembers: { id: string; full_name: string }[];
+  intakeItems?: IntakeItem[];
 }
 
 export function PipelineView({
@@ -32,6 +36,7 @@ export function PipelineView({
   activities,
   relationshipDealIds,
   teamMembers,
+  intakeItems = [],
 }: PipelineViewProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<FilterState>({
@@ -42,6 +47,7 @@ export function PipelineView({
     view: "kanban",
   });
   const [newDealOpen, setNewDealOpen] = useState(false);
+  const [reviewItem, setReviewItem] = useState<IntakeItem | null>(null);
 
   const cardTypeMap = useMemo(
     () => new Map(cardTypes.map((ct) => [ct.id, ct])),
@@ -86,8 +92,15 @@ export function PipelineView({
     [router]
   );
 
+  const handleIntakeClick = useCallback((item: IntakeItem) => {
+    setReviewItem(item);
+  }, []);
+
   return (
     <div className="space-y-4">
+      {/* Intake banner + email callout */}
+      <IntakeBanner items={intakeItems} />
+
       <DealFilters
         filters={filters}
         onChange={setFilters}
@@ -102,6 +115,8 @@ export function PipelineView({
           stageConfigs={stageConfigs}
           relationshipDealIds={relationshipDealIds}
           onDealClick={handleDealClick}
+          intakeItems={intakeItems}
+          onIntakeClick={handleIntakeClick}
         />
       ) : (
         <PipelineTable
@@ -117,6 +132,14 @@ export function PipelineView({
         onOpenChange={setNewDealOpen}
         cardTypes={cardTypes}
         teamMembers={teamMembers}
+      />
+
+      <IntakeReviewModal
+        item={reviewItem}
+        open={!!reviewItem}
+        onOpenChange={(open) => {
+          if (!open) setReviewItem(null);
+        }}
       />
     </div>
   );
