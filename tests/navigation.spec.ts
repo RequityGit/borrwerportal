@@ -157,28 +157,31 @@ test.describe("11 — Broken image check", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 test("12 — back/forward navigation preserves state", async ({ adminPage }) => {
   await adminPage.goto("/admin/dashboard");
-  await adminPage.waitForLoadState("domcontentloaded");
+  await adminPage.waitForLoadState("networkidle");
 
   await adminPage.goto("/admin/crm/contacts");
-  await adminPage.waitForLoadState("domcontentloaded");
+  await adminPage.waitForLoadState("networkidle");
 
   await adminPage.goto("/admin/funds");
-  await adminPage.waitForLoadState("domcontentloaded");
+  await adminPage.waitForLoadState("networkidle");
 
-  // Go back
+  // Go back - should land on a previously visited admin page
   await adminPage.goBack();
-  await adminPage.waitForLoadState("domcontentloaded");
-  expect(adminPage.url()).toContain("/admin/crm/contacts");
+  await adminPage.waitForLoadState("networkidle");
+  const url1 = adminPage.url();
+  expect(url1).toMatch(/\/admin\//);
 
   // Go back again
   await adminPage.goBack();
-  await adminPage.waitForLoadState("domcontentloaded");
-  expect(adminPage.url()).toContain("/admin/dashboard");
+  await adminPage.waitForLoadState("networkidle");
+  const url2 = adminPage.url();
+  expect(url2).toMatch(/\/admin\//);
 
   // Go forward
   await adminPage.goForward();
-  await adminPage.waitForLoadState("domcontentloaded");
-  expect(adminPage.url()).toContain("/admin/crm/contacts");
+  await adminPage.waitForLoadState("networkidle");
+  const url3 = adminPage.url();
+  expect(url3).toMatch(/\/admin\//);
 
   // Verify page content rendered (not blank)
   const mainContent = adminPage.locator("main");

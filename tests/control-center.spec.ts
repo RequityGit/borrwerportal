@@ -42,13 +42,13 @@ test("CC-1 — control center landing page loads", async ({ adminPage }) => {
 // CC-2. Field Manager loads with module tabs
 // ─────────────────────────────────────────────────────────────────────────────
 test("CC-2 — field manager loads with module tabs", async ({ adminPage }) => {
-  const onCC = await gotoControlCenter(adminPage, "/control-center/field-manager");
+  const onCC = await gotoControlCenter(adminPage, "/control-center/object-manager");
   if (!onCC) { test.skip(); return; }
 
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  const heading = adminPage.locator('text=/field manager|field configuration/i');
+  const heading = adminPage.locator('text=/field manager|field configuration|object manager/i');
   const hasHeading = await heading.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
   const tabs = adminPage.locator(
@@ -71,7 +71,7 @@ test("CC-2 — field manager loads with module tabs", async ({ adminPage }) => {
 // CC-3. Field Manager shows field list with visibility toggles
 // ─────────────────────────────────────────────────────────────────────────────
 test("CC-3 — field manager shows fields with controls", async ({ adminPage }) => {
-  const onCC = await gotoControlCenter(adminPage, "/control-center/field-manager");
+  const onCC = await gotoControlCenter(adminPage, "/control-center/object-manager");
   if (!onCC) { test.skip(); return; }
 
   const main = adminPage.locator("main");
@@ -99,7 +99,7 @@ test("CC-3 — field manager shows fields with controls", async ({ adminPage }) 
 // CC-4. Field Manager search filters fields
 // ─────────────────────────────────────────────────────────────────────────────
 test("CC-4 — field manager search filters fields", async ({ adminPage }) => {
-  const onCC = await gotoControlCenter(adminPage, "/control-center/field-manager");
+  const onCC = await gotoControlCenter(adminPage, "/control-center/object-manager");
   if (!onCC) { test.skip(); return; }
 
   const main = adminPage.locator("main");

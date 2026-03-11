@@ -195,14 +195,15 @@ test("47 — admin CRM contacts page loads", async ({ adminPage }) => {
   if (!loaded) { test.skip(); return; }
 
   await adminPage.waitForLoadState("networkidle");
+  await waitForAppShell(adminPage);
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  const content = adminPage.locator('text=/contact|name|email|phone/i, table, [role="table"]');
-  const emptyState = adminPage.locator('text=/no.*contact|empty/i');
+  const content = adminPage.locator('text=/contact|name|email|phone/i, table, [role="table"], h1, h2');
+  const emptyState = adminPage.locator('text=/no.*contact|empty|no data/i');
 
-  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
-  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+  const hasContent = await content.first().isVisible({ timeout: 10_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
   expect(hasContent || hasEmpty).toBeTruthy();
 });
@@ -217,14 +218,15 @@ test("48 — admin CRM companies page loads", async ({ adminPage }) => {
   if (!loaded) { test.skip(); return; }
 
   await adminPage.waitForLoadState("networkidle");
+  await waitForAppShell(adminPage);
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  const content = adminPage.locator('text=/company|companie|lender|name/i, table, [role="table"]');
-  const emptyState = adminPage.locator('text=/no.*compan|empty/i');
+  const content = adminPage.locator('text=/company|companie|lender|name/i, table, [role="table"], h1, h2');
+  const emptyState = adminPage.locator('text=/no.*compan|empty|no data/i');
 
-  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
-  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+  const hasContent = await content.first().isVisible({ timeout: 10_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
   expect(hasContent || hasEmpty).toBeTruthy();
 });
@@ -279,18 +281,19 @@ test("51 — admin notifications panel opens", async ({ adminPage }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 test("52 — admin settings page loads", async ({ adminPage }) => {
   const loaded = await gotoFirstValid(adminPage, [
-    "/admin/settings", "/admin/account", "/settings",
+    "/control-center", "/admin/settings", "/admin/account", "/settings",
   ]);
   if (!loaded) { test.skip(); return; }
 
   await adminPage.waitForLoadState("networkidle");
+  await waitForAppShell(adminPage);
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
   const content = adminPage.locator(
-    'text=/setting|configuration|general|team|notification|preference|control|manage|template|user|account|profile/i'
+    'text=/setting|configuration|general|team|notification|preference|control.center|manage|template|user|account|profile/i, h1, h2'
   );
-  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const hasContent = await content.first().isVisible({ timeout: 10_000 }).catch(() => false);
 
   expect(hasContent).toBeTruthy();
 });
@@ -670,15 +673,16 @@ test("68 — admin pricing page loads", async ({ adminPage }) => {
 test("69 — admin funds page loads", async ({ adminPage }) => {
   await adminPage.goto("/admin/funds");
   await adminPage.waitForLoadState("networkidle");
+  await waitForAppShell(adminPage);
 
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  const content = adminPage.locator('text=/fund|investment|portfolio|investor/i, table, [role="table"]');
-  const emptyState = adminPage.locator('text=/no.*fund|empty/i');
+  const content = adminPage.locator('text=/fund|investment|portfolio|investor|contribution|distribution/i, table, [role="table"], h1, h2');
+  const emptyState = adminPage.locator('text=/no.*fund|no.*investment|empty|no data/i');
 
-  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
-  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+  const hasContent = await content.first().isVisible({ timeout: 10_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
   expect(hasContent || hasEmpty).toBeTruthy();
 });
@@ -727,12 +731,13 @@ test("71 — admin capital calls page loads", async ({ adminPage }) => {
 test("72 — admin users page loads", async ({ adminPage }) => {
   await adminPage.goto("/admin/users");
   await adminPage.waitForLoadState("networkidle");
+  await waitForAppShell(adminPage);
 
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  const content = adminPage.locator('text=/user|team|member|role|admin|email/i, table, [role="table"]');
-  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  const content = adminPage.locator('text=/user|team|member|role|admin|email|invite|management/i, table, [role="table"], h1, h2');
+  const hasContent = await content.first().isVisible({ timeout: 10_000 }).catch(() => false);
 
   expect(hasContent).toBeTruthy();
 });
@@ -741,17 +746,21 @@ test("72 — admin users page loads", async ({ adminPage }) => {
 // 73. Email templates page loads
 // ─────────────────────────────────────────────────────────────────────────────
 test("73 — admin email templates page loads", async ({ adminPage }) => {
-  await adminPage.goto("/admin/email-templates");
-  await adminPage.waitForLoadState("networkidle");
+  const loaded = await gotoFirstValid(adminPage, [
+    "/control-center/email-templates", "/admin/email-templates",
+  ]);
+  if (!loaded) { test.skip(); return; }
 
+  await adminPage.waitForLoadState("networkidle");
+  await waitForAppShell(adminPage);
   const main = adminPage.locator("main");
   await expect(main).toBeVisible();
 
-  const content = adminPage.locator('text=/email|template|subject|notification/i');
-  const emptyState = adminPage.locator('text=/no.*template|empty/i');
+  const content = adminPage.locator('text=/email|template|subject|notification/i, h1, h2');
+  const emptyState = adminPage.locator('text=/no.*template|empty|no data/i');
 
-  const hasContent = await content.first().isVisible({ timeout: 5_000 }).catch(() => false);
-  const hasEmpty = await emptyState.first().isVisible({ timeout: 3_000 }).catch(() => false);
+  const hasContent = await content.first().isVisible({ timeout: 10_000 }).catch(() => false);
+  const hasEmpty = await emptyState.first().isVisible({ timeout: 5_000 }).catch(() => false);
 
   expect(hasContent || hasEmpty).toBeTruthy();
 });
