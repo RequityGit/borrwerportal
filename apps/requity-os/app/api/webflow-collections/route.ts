@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import { getAllCMSData } from '@/lib/webflow';
 
 interface WebflowCollection {
@@ -23,6 +24,12 @@ interface CollectionSummary {
 
 export async function GET() {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     if (!process.env.WEBFLOW_API_TOKEN || !process.env.WEBFLOW_SITE_ID) {
       return Response.json(
         { error: 'WEBFLOW_API_TOKEN and WEBFLOW_SITE_ID env vars are required' },

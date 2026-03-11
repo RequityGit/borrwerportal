@@ -119,7 +119,6 @@ const adminNav: NavEntry[] = [
       "/admin/capital-calls",
       "/admin/distributions",
       "/admin/models",
-      "/admin/dscr",
       "/admin/dialer",
     ],
     children: [

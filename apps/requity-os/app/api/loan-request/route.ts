@@ -101,18 +101,8 @@ export async function POST(request: NextRequest) {
     return Response.json({ success: true, message: 'Loan request submitted successfully' });
   } catch (error: unknown) {
     console.error('Loan request error:', error);
-    const smtpError = error instanceof Error ? error : null;
-    const debugInfo = {
-      message: smtpError?.message ?? String(error),
-      code: (smtpError as NodeJS.ErrnoException | null)?.code ?? undefined,
-      command: smtpError && 'command' in smtpError ? (smtpError as { command: string }).command : undefined,
-      hasSmtpHost: !!process.env.SMTP_HOST,
-      hasSmtpUser: !!process.env.SMTP_USER,
-      hasSmtpPass: !!process.env.SMTP_PASS,
-      hasNotifyEmail: !!process.env.NOTIFY_EMAIL,
-    };
     return Response.json(
-      { error: 'Failed to submit loan request. Please try again.', debug: debugInfo },
+      { error: 'Failed to submit loan request. Please try again.' },
       { status: 500 }
     );
   }

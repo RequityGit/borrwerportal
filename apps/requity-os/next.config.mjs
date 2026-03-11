@@ -22,17 +22,17 @@ const nextConfig = {
       },
       {
         source: '/admin/equity-pipeline/:id',
-        destination: '/admin/pipeline/equity/:id',
+        destination: '/admin/pipeline/:id',
         permanent: true,
       },
       {
         source: '/admin/equity-pipeline',
-        destination: '/admin/pipeline/equity',
+        destination: '/admin/pipeline?tab=equity',
         permanent: true,
       },
       {
         source: '/admin/deals/:id',
-        destination: '/admin/pipeline/debt/:id',
+        destination: '/admin/pipeline/:id',
         permanent: true,
       },
       {
