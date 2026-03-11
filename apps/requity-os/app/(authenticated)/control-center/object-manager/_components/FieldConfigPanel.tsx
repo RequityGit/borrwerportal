@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -179,13 +180,63 @@ export function FieldConfigPanel({ field, onClose, onUpdate }: Props) {
             )}
 
             {/* Formula */}
-            {field.field_type === "formula" && field.formula_expression && (
-              <div>
-                <label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                  Formula
-                </label>
-                <div className="p-1.5 rounded border border-border bg-muted font-mono text-[10px] text-blue-500">
-                  {field.formula_expression}
+            {field.field_type === "formula" && (
+              <div className="space-y-2.5 border-t border-border pt-3">
+                <div>
+                  <label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                    Expression
+                  </label>
+                  <Textarea
+                    value={field.formula_expression ?? ""}
+                    onChange={(e) =>
+                      handleUpdate({ formula_expression: e.target.value || null })
+                    }
+                    placeholder="e.g. loan_amount * interest_rate / 100"
+                    className="min-h-[72px] text-xs font-mono resize-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground mt-1">
+                    Supports dot notation, arithmetic, and field_key references.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                      Output Format
+                    </label>
+                    <Select
+                      value={field.formula_output_format ?? "number"}
+                      onValueChange={(val) =>
+                        handleUpdate({ formula_output_format: val })
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="currency">Currency ($)</SelectItem>
+                        <SelectItem value="percent">Percent (%)</SelectItem>
+                        <SelectItem value="text">Text</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                      Decimal Places
+                    </label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={6}
+                      value={field.formula_decimal_places ?? 2}
+                      onChange={(e) =>
+                        handleUpdate({
+                          formula_decimal_places: parseInt(e.target.value, 10) || 0,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
+                  </div>
                 </div>
               </div>
             )}
