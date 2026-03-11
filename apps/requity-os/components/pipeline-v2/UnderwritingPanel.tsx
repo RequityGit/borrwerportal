@@ -12,6 +12,8 @@ import {
 } from "./pipeline-types";
 import { UwField } from "./UwField";
 import { useResolvedCardType } from "@/hooks/useResolvedCardType";
+import type { VisibilityContext } from "@/lib/visibility-engine";
+import { evaluateFormula } from "@/lib/formula-engine";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
@@ -26,6 +28,7 @@ interface UnderwritingPanelProps {
   dealId: string;
   uwData: Record<string, unknown>;
   readOnly?: boolean;
+  visibilityContext?: VisibilityContext | null;
 }
 
 export function UnderwritingPanel({
@@ -33,9 +36,10 @@ export function UnderwritingPanel({
   dealId,
   uwData,
   readOnly,
+  visibilityContext,
 }: UnderwritingPanelProps) {
   // Resolve field refs from field_configurations (falls back to inline fields)
-  const cardType = useResolvedCardType(rawCardType);
+  const cardType = useResolvedCardType(rawCardType, visibilityContext);
 
   const [localData, setLocalData] = useState<Record<string, unknown>>(uwData);
   const [pending, startTransition] = useTransition();
@@ -77,6 +81,27 @@ export function UnderwritingPanel({
 
   const activeOutputs = computedOutputs.filter((o) => o.value != null);
 
+  // Evaluate formula fields against current deal data
+  const formulaValues = useMemo(() => {
+    const values: Record<string, number | null> = {};
+    for (const field of cardType.uw_fields) {
+      if (field.formulaExpression) {
+        try {
+          const vars: Record<string, number> = {};
+          for (const [k, v] of Object.entries(localData)) {
+            if (typeof v === "number") vars[k] = v;
+            else if (typeof v === "string" && v !== "" && !isNaN(Number(v))) vars[k] = Number(v);
+          }
+          const result = evaluateFormula(field.formulaExpression, vars);
+          values[field.key] = typeof result === "number" && isFinite(result) ? result : null;
+        } catch {
+          values[field.key] = null;
+        }
+      }
+    }
+    return values;
+  }, [cardType.uw_fields, localData]);
+
   return (
     <div className="space-y-6">
       {/* Computed outputs summary */}
@@ -117,16 +142,40 @@ export function UnderwritingPanel({
               </Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {fields.map((field) => (
-                <UwField
-                  key={field.key}
-                  field={field}
-                  value={localData[field.key]}
-                  onChange={(val) => handleFieldChange(field.key, val)}
-                  onBlur={() => handleFieldBlur(field.key)}
-                  disabled={readOnly || pending}
-                />
-              ))}
+              {fields.map((field) => {
+                // Formula fields render as read-only computed values
+                if (field.formulaExpression) {
+                  const computed = formulaValues[field.key];
+                  const formatted =
+                    computed == null
+                      ? "---"
+                      : field.formulaOutputFormat === "currency"
+                        ? formatCurrency(computed)
+                        : field.formulaOutputFormat === "percent"
+                          ? formatPercent(computed)
+                          : computed.toFixed(field.formulaDecimalPlaces ?? 2);
+                  return (
+                    <div key={field.key} className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {field.label}
+                      </label>
+                      <div className="text-sm font-semibold num bg-muted/50 rounded px-3 py-2">
+                        {formatted}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <UwField
+                    key={field.key}
+                    field={field}
+                    value={localData[field.key]}
+                    onChange={(val) => handleFieldChange(field.key, val)}
+                    onBlur={() => handleFieldBlur(field.key)}
+                    disabled={readOnly || pending}
+                  />
+                );
+              })}
             </div>
           </div>
         );

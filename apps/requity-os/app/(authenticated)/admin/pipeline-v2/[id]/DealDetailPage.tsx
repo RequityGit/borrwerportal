@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -78,6 +78,7 @@ import {
 import {
   advanceStageAction,
 } from "@/app/(authenticated)/admin/pipeline-v2/actions";
+import { mapAssetClassToVisibility, type VisibilityContext } from "@/lib/visibility-engine";
 import { DealActivityTab } from "@/components/pipeline-v2/tabs/DealActivityTab";
 import { UnifiedNotes } from "@/components/shared/UnifiedNotes";
 import { logQuickActionV2, assignTeamMemberV2, addDealTeamMember, removeDealTeamMember, saveGridOverrides } from "./actions";
@@ -169,6 +170,12 @@ export function DealDetailPage({
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(
     () => new Set([initialTab])
   );
+
+  // Build visibility context for field filtering (asset_class x loan_type)
+  const visibilityContext = useMemo<VisibilityContext>(() => ({
+    asset_class: mapAssetClassToVisibility(deal.asset_class),
+    loan_type: (deal.uw_data?.loan_type as string) ?? "",
+  }), [deal.asset_class, deal.uw_data?.loan_type]);
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -294,6 +301,7 @@ export function DealDetailPage({
                   }}
                   cardType={cardType}
                   checklist={checklist}
+                  visibilityContext={visibilityContext}
                 />
               </div>
             )}
@@ -322,6 +330,7 @@ export function DealDetailPage({
                   deal={deal}
                   cardType={cardType}
                   commercialUWData={commercialUWData}
+                  visibilityContext={visibilityContext}
                 />
               </div>
             )}
@@ -573,10 +582,12 @@ function UnderwritingContent({
   deal,
   cardType,
   commercialUWData,
+  visibilityContext,
 }: {
   deal: UnifiedDeal;
   cardType: UnifiedCardType;
   commercialUWData: CommercialUWData | null;
+  visibilityContext: VisibilityContext;
 }) {
   const isCommercial = cardType.slug === "comm_debt";
   if (isCommercial && commercialUWData) {
@@ -592,6 +603,7 @@ function UnderwritingContent({
       cardType={cardType}
       dealId={deal.id}
       uwData={deal.uw_data}
+      visibilityContext={visibilityContext}
     />
   );
 }

@@ -71,6 +71,17 @@ export function hasCondition(condition: VisibilityCondition | null | undefined):
 }
 
 /**
+ * Map a DB asset_class enum value to the visibility axis value.
+ * sfr, duplex_fourplex, multifamily, mhc → "Residential"
+ * commercial, mixed_use, land, rv_park, campground → "Commercial"
+ */
+const RESIDENTIAL_CLASSES = new Set(["sfr", "duplex_fourplex", "multifamily", "mhc"]);
+
+export function mapAssetClassToVisibility(dbValue: string | null | undefined): AssetClassValue {
+  return RESIDENTIAL_CLASSES.has(dbValue ?? "") ? "Residential" : "Commercial";
+}
+
+/**
  * Create a summary label for a visibility condition.
  */
 export function conditionSummary(condition: VisibilityCondition | null | undefined): string {
