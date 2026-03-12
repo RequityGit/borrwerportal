@@ -16,6 +16,17 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Prevent browsers from serving stale HTML without revalidating.
+        // Static assets (_next/static) are fingerprinted and safe to cache.
+        source: "/((?!_next/static|_next/image|.*\\.(?:js|css|svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf)$).*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, must-revalidate",
+          },
+        ],
+      },
+      {
         source: "/(.*)",
         headers: [
           {

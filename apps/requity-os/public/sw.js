@@ -3,7 +3,7 @@
 // ============================================
 // Handles: caching, offline fallback, push notifications
 // Cache version — bump this when you deploy updates
-const CACHE_VERSION = 'requity-v1';
+const CACHE_VERSION = 'requity-v2';
 
 // Files to pre-cache on install (shell of the app)
 const PRECACHE_URLS = [
