@@ -17,18 +17,21 @@ const config = {
     },
     extend: {
       colors: {
-        // Requity Group brand tokens — customize these
         brand: {
-          primary: "#000000",
-          secondary: "#666666",
-          accent: "#C5975B",
+          primary: "#081525",
+          secondary: "#0E2240",
+          accent: "#BFA76A",
+          "accent-dark": "#A8914F",
+          "accent-light": "#D1C08A",
+          cream: "#FAFAF7",
         },
         border: "hsl(var(--border))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
       },
       fontFamily: {
-        sans: ["'Inter'", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        display: ["'Cormorant Garamond'", "Georgia", "serif"],
+        sans: ["'DM Sans'", "system-ui", "sans-serif"],
       },
     },
   },
