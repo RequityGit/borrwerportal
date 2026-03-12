@@ -468,12 +468,13 @@ export async function submitForApproval(input: {
     const taskTitle = `Approve: ${borrowerName} - ${amount} ${assetType}`.trim();
 
     // Create linked task in ops_tasks
+    const loanAmount = snapshot.loan_amount ? Number(snapshot.loan_amount) : null;
     const { data: task, error: taskError } = await admin
       .from("ops_tasks")
       .insert({
         title: taskTitle,
         description: input.submissionNotes || `Approval request for ${input.entityType}`,
-        status: "To Do",
+        status: "Pending Approval",
         priority: routing.auto_priority === "urgent" ? "Critical" : routing.auto_priority === "high" ? "High" : "Medium",
         assigned_to: routing.approver_id,
         created_by: auth.user.id,
@@ -482,6 +483,13 @@ export async function submitForApproval(input: {
         linked_entity_type: "approval",
         linked_entity_id: approvalId,
         linked_entity_label: taskTitle,
+        type: "approval",
+        requires_approval: true,
+        approver_id: routing.approver_id,
+        approval_status: "pending",
+        requestor_user_id: auth.user.id,
+        requestor_name: auth.profile?.full_name || null,
+        amount: loanAmount,
       })
       .select("id")
       .single();
