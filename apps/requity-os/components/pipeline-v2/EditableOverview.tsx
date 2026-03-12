@@ -124,8 +124,9 @@ export function EditableOverview({
   // Resolve field refs from field_configurations (falls back to inline fields)
   const cardType = useResolvedCardType(rawCardType, visibilityContext);
 
-  // Fetch layout-driven sections from page_layout_sections / page_layout_fields
-  const layout = useDealLayout();
+  // Fetch layout-driven sections from page_layout_sections / page_layout_fields,
+  // filtered to this deal's card type (+ shared system sections).
+  const layout = useDealLayout(rawCardType.id);
 
   // Build a combined field map including property and contact fields
   const uwFieldMap = useMemo(() => {
@@ -135,34 +136,40 @@ export function EditableOverview({
     return map;
   }, [cardType.uw_fields, cardType.property_fields, cardType.contact_fields]);
 
-  // Compute layout-driven field groups for the Overview tab.
-  // If layout sections exist for the overview tab with section_type="fields", use those.
-  // Otherwise, fall back to card type's detail_field_groups.
+  // Compute effective field groups for the Overview tab.
+  //
+  // Priority: layout-driven sections (Object Manager) > card type detail_field_groups > empty.
+  //
+  // The Object Manager is the single source of truth. Layout tables contain
+  // per-card-type sections (card_type_id filtering) that mirror the original
+  // card type field groups. Card type detail_field_groups are kept as a
+  // temporary fallback until the migration is fully validated.
   const effectiveFieldGroups = useMemo(() => {
-    if (layout.loading || layout.fieldSections.length === 0) {
-      // No layout data yet or no field sections → use card type groups
+    // Primary: layout-driven sections from Object Manager
+    if (!layout.loading && layout.fieldSections.length > 0) {
+      const overviewFieldSections = layout.fieldSections.filter(
+        (s) => (s.tab_key || "overview") === "overview"
+      );
+
+      if (overviewFieldSections.length > 0) {
+        return overviewFieldSections.map((section) => {
+          const layoutFields = layout.fieldsBySectionId[section.id] ?? [];
+          return {
+            label: section.section_label,
+            fields: layoutFields
+              .filter((f) => f.is_visible)
+              .map((f) => f.field_key),
+          };
+        });
+      }
+    }
+
+    // Fallback: card type detail_field_groups (temporary until fully migrated)
+    if (cardType.detail_field_groups.length > 0) {
       return cardType.detail_field_groups;
     }
 
-    // Get field-based sections for the overview tab only
-    const overviewFieldSections = layout.fieldSections.filter(
-      (s) => (s.tab_key || "overview") === "overview"
-    );
-
-    if (overviewFieldSections.length === 0) {
-      return cardType.detail_field_groups;
-    }
-
-    // Convert layout sections → field group format
-    return overviewFieldSections.map((section) => {
-      const layoutFields = layout.fieldsBySectionId[section.id] ?? [];
-      return {
-        label: section.section_label,
-        fields: layoutFields
-          .filter((f) => f.is_visible)
-          .map((f) => f.field_key),
-      };
-    });
+    return [];
   }, [layout.loading, layout.fieldSections, layout.fieldsBySectionId, cardType.detail_field_groups]);
 
   // Evaluate formula fields against current deal data
