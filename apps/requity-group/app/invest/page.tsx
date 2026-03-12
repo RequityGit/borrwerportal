@@ -20,7 +20,17 @@ import {
 export const metadata: Metadata = {
   title: "Invest",
   description:
-    "Invest in value-add real estate with Requity Group. Access institutional-quality investments through our vertically integrated platform.",
+    "Invest in value-add real estate with Requity Group. Direct equity (15-22% target IRR) and bridge lending (8-12% target yield). $50K minimum. Accredited investors only.",
+  openGraph: {
+    title: "Invest in Real Estate | Requity Group",
+    description:
+      "Access institutional-quality real estate investments. Direct equity and income-producing credit strategies. $50K minimum for accredited investors.",
+  },
+  twitter: {
+    title: "Invest in Real Estate | Requity Group",
+    description:
+      "Access institutional-quality real estate investments. Direct equity and credit strategies for accredited investors.",
+  },
 };
 
 export const revalidate = 300;

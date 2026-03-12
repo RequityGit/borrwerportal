@@ -18,9 +18,19 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Lending",
+  title: "Bridge Lending",
   description:
-    "Real estate lending by real operators. Bridge loans, fix & flip, DSCR, construction, and more. Close in as little as 10 days.",
+    "Bridge loans for commercial and residential real estate. Close in as little as 10 days. CRE bridge, manufactured housing, RV parks, multifamily. Up to 80% LTV.",
+  openGraph: {
+    title: "Real Estate Bridge Lending | Requity Group",
+    description:
+      "Bridge loans by real operators. Close in 10 days. CRE bridge, manufactured housing, RV parks, multifamily financing. Up to 80% LTV.",
+  },
+  twitter: {
+    title: "Real Estate Bridge Lending | Requity Group",
+    description:
+      "Bridge loans by real operators. Close in 10 days. CRE bridge, manufactured housing, RV parks, multifamily financing.",
+  },
 };
 
 export const revalidate = 300;
