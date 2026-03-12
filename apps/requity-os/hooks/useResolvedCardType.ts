@@ -25,6 +25,10 @@ const SELECT_COLS = [
   "formula_expression",
   "formula_output_format",
   "formula_decimal_places",
+  "conditional_rules",
+  "permissions",
+  "required_at_stage",
+  "blocks_stage_progression",
 ].join(", ");
 
 // Shared cache for UW field configs (all three modules together)
