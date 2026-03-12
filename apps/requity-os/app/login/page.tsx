@@ -23,10 +23,24 @@ function LoginContent() {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
+  const [envMissing, setEnvMissing] = useState(false);
   const searchParams = useSearchParams();
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
 
   const errorParam = searchParams.get("error");
+
+  // Detect missing env vars on mount (they are baked in at build time)
+  useEffect(() => {
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ) {
+      setEnvMissing(true);
+      setError(
+        "Authentication service is not configured. The portal may need to be redeployed. Please contact your administrator."
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (errorParam === "no_access") {
@@ -74,8 +88,13 @@ function LoginContent() {
         setError(error.message);
         setLoading(null);
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err) {
+      console.error("Google login error:", err);
+      const message =
+        err instanceof Error && err.message.includes("Missing Supabase")
+          ? "Authentication service is not configured. The portal may need to be redeployed."
+          : "An unexpected error occurred. Please try again.";
+      setError(message);
       setLoading(null);
     }
   }
@@ -104,8 +123,13 @@ function LoginContent() {
 
       setMagicLinkSent(true);
       setLoading(null);
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err) {
+      console.error("Magic link error:", err);
+      const message =
+        err instanceof Error && err.message.includes("Missing Supabase")
+          ? "Authentication service is not configured. The portal may need to be redeployed."
+          : "An unexpected error occurred. Please try again.";
+      setError(message);
       setLoading(null);
     }
   }
@@ -180,7 +204,7 @@ function LoginContent() {
               {/* Google OAuth Button */}
               <button
                 onClick={handleGoogleLogin}
-                disabled={loading !== null}
+                disabled={loading !== null || envMissing}
                 className="w-full h-11 px-4 py-2 border border-border bg-card rounded-md text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-3"
               >
                 {loading === "google" ? (
@@ -229,7 +253,7 @@ function LoginContent() {
 
                 <button
                   type="submit"
-                  disabled={loading !== null || !email}
+                  disabled={loading !== null || !email || envMissing}
                   className="w-full h-10 px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-[#243a5e] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {loading === "magic" ? (
