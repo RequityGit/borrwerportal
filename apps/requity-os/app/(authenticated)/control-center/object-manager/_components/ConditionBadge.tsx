@@ -33,7 +33,13 @@ export function ConditionBadge({ condition, onClick, compact }: Props) {
 
   if (onClick) {
     return (
-      <button onClick={onClick} className="inline-flex">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className="inline-flex"
+      >
         {content}
       </button>
     );

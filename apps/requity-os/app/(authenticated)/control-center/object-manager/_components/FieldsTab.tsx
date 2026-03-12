@@ -57,6 +57,8 @@ interface Props {
   loading: boolean;
   objectKey: string;
   onFieldsChange: () => void;
+  /** Optimistically update a single field's visibility_condition without refetching */
+  onFieldConditionUpdate?: (fieldId: string, condition: Record<string, unknown> | null) => void;
   /** Draft-aware callbacks (optional — when provided, uses draft instead of direct DB) */
   isFieldDirty?: (fieldId: string) => boolean;
   isFieldNew?: (fieldId: string) => boolean;
@@ -73,6 +75,7 @@ export function FieldsTab({
   loading,
   objectKey,
   onFieldsChange,
+  onFieldConditionUpdate,
   isFieldDirty,
   isFieldNew,
   isFieldArchived,
@@ -186,22 +189,27 @@ export function FieldsTab({
 
   const handleSaveCondition = async (condition: VisibilityCondition | null) => {
     if (!editCondFieldId) return;
+    const fieldId = editCondFieldId;
+    setEditCondFieldId(null);
 
     if (onDraftFieldUpdate && editCondField) {
       // Draft mode: store condition change as a draft update
       onDraftFieldUpdate(editCondField, { visibility_condition: condition });
-      setEditCondFieldId(null);
       return;
     }
 
+    // Optimistically update local state to avoid scroll-resetting refetch
+    if (onFieldConditionUpdate) {
+      onFieldConditionUpdate(fieldId, condition as Record<string, unknown> | null);
+    }
+
     // Legacy direct DB mode
-    const result = await updateFieldVisibilityCondition(editCondFieldId, condition);
+    const result = await updateFieldVisibilityCondition(fieldId, condition);
     if (result.error) {
       console.error("Failed to update visibility condition:", result.error);
-      return;
+      // Revert on failure by refetching
+      onFieldsChange();
     }
-    setEditCondFieldId(null);
-    onFieldsChange();
   };
 
   // Whether this object supports two-axis visibility (only Opportunity/unified_deal)
