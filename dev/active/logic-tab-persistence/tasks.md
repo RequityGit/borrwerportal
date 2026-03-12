@@ -1,16 +1,17 @@
 # Logic Tab Persistence - Tasks
 
 ## Phase 1: Database Schema
-- [ ] Create migration adding condition_rules JSONB column to field_configurations
+- [x] condition_rules column already exists (conditional_rules in FieldConfig type)
 
 ## Phase 2: Update Logic Tab UI
-- [ ] Add ConditionRule type and update FieldConfig type in actions.ts
-- [ ] Replace hardcoded Logic tab UI with dynamic rule editor
-- [ ] Wire save/load through updateFieldConfig
+- [x] Add ConditionRule type and constants (OPERATORS, ACTIONS, VALUE_FREE_OPERATORS)
+- [x] Replace hardcoded Logic tab UI with dynamic LogicTab component
+- [x] Wire save/load through updateFieldConfig (via handleUpdate -> conditional_rules)
+- [x] Pass siblingFields from ObjectManagerView to FieldConfigPanel
 
 ## Phase 3: Verification
-- [ ] pnpm build passes
-- [ ] Commit and push
+- [x] pnpm typecheck passes
+- [x] Commit and push
 
 ## Blockers
 - None
