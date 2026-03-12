@@ -220,6 +220,18 @@ export function ObjectManagerView({ objects, fieldCounts, relationshipCounts }: 
     loadData();
   }, [loadData]);
 
+  // Optimistically update a single field's visibility_condition without refetching
+  const handleFieldConditionUpdate = useCallback(
+    (fieldId: string, condition: Record<string, unknown> | null) => {
+      setFields((prev) =>
+        prev.map((f) =>
+          f.id === fieldId ? { ...f, visibility_condition: condition } : f
+        )
+      );
+    },
+    []
+  );
+
   // Batch publish all draft changes
   const handlePublish = useCallback(async () => {
     setPublishing(true);
@@ -495,6 +507,7 @@ export function ObjectManagerView({ objects, fieldCounts, relationshipCounts }: 
               loading={loading}
               objectKey={selectedObjectKey}
               onFieldsChange={handleDataChange}
+              onFieldConditionUpdate={handleFieldConditionUpdate}
               isFieldDirty={draft.isFieldDirty}
               isFieldNew={draft.isFieldNew}
               isFieldArchived={draft.isFieldArchived}
