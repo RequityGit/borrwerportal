@@ -1,5 +1,16 @@
 # Object Manager Runtime - Tasks
 
+## Phase 0: Wire Layout to Contact Detail Runtime (CRITICAL)
+- [x] Add source_object_key to FieldLayout type
+- [x] Pass source_object_key from server page (resolve from field_configurations.module)
+- [x] Replace hardcoded sectionDataMap with field-level dataSourceMap
+- [x] Update renderFieldSection to use per-field data merging
+- [x] Update buildGenericEditFields to use merged data
+- [x] Update editingSave to route per-field based on source_object_key
+- [x] Set source_object_key in addFieldToLayout and addLayoutField actions
+- [x] Create migration to backfill existing page_layout_fields.source_object_key
+- [ ] Build + verify
+
 ## Phase 1: Conditional Logic Engine
 - [ ] Add conditional_rules to FieldConfiguration interface and SELECT_COLS
 - [ ] Add conditional_rules to FieldConfigRecord interface and SELECT_COLS

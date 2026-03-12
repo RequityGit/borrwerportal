@@ -635,6 +635,19 @@ export async function reorderLayoutFields(
 // Add a field from the palette to a layout section
 // ---------------------------------------------------------------------------
 
+// Module -> source_object_key mapping for runtime data resolution
+const MODULE_TO_SOURCE: Record<string, string> = {
+  contact_profile: "contact",
+  borrower_profile: "borrower",
+  investor_profile: "investor",
+  borrower_entity: "borrower_entity",
+  company_info: "company",
+  uw_deal: "unified_deal",
+  uw_property: "property",
+  uw_borrower: "borrower",
+  loan_details: "loan",
+};
+
 export async function addFieldToLayout(input: {
   section_id: string;
   field_config_id: string;
@@ -647,6 +660,20 @@ export async function addFieldToLayout(input: {
     if ("error" in auth) return { error: auth.error };
 
     const admin = createAdminClient();
+
+    // Look up the field's module to determine source_object_key
+    let sourceObjectKey: string | null = null;
+    if (input.field_config_id) {
+      const { data: fcRow } = await admin
+        .from(FIELD_CFG)
+        .select("module" as never)
+        .eq("id" as never, input.field_config_id as never)
+        .single();
+      if (fcRow) {
+        sourceObjectKey = MODULE_TO_SOURCE[(fcRow as unknown as { module: string }).module] ?? null;
+      }
+    }
+
     const { data, error } = await admin
       .from(FIELDS)
       .insert({
@@ -658,6 +685,7 @@ export async function addFieldToLayout(input: {
         column_span: input.column_span || "half",
         is_visible: true,
         source: "native",
+        source_object_key: sourceObjectKey,
       } as never)
       .select("*" as never)
       .single();
@@ -947,6 +975,19 @@ export async function addLayoutField(input: {
     const nextOrder =
       ((maxRow as unknown as { display_order: number } | null)?.display_order ?? -1) + 1;
 
+    // Look up the field's module to determine source_object_key
+    let sourceObjectKey: string | null = null;
+    if (input.field_config_id) {
+      const { data: fcRow } = await admin
+        .from(FIELD_CFG)
+        .select("module" as never)
+        .eq("id" as never, input.field_config_id as never)
+        .single();
+      if (fcRow) {
+        sourceObjectKey = MODULE_TO_SOURCE[(fcRow as unknown as { module: string }).module] ?? null;
+      }
+    }
+
     const { error } = await admin
       .from(FIELDS)
       .insert({
@@ -958,6 +999,7 @@ export async function addLayoutField(input: {
         column_span: input.column_span || "half",
         is_visible: true,
         source: input.source || "native",
+        source_object_key: sourceObjectKey,
       } as never);
 
     if (error) return { error: error.message };

@@ -19,6 +19,7 @@ import { formatCurrency, formatPercent, formatDate } from "@/lib/format";
 import {
   renderDynamicFields,
   buildEditFields,
+  FIELD_KEY_TO_PROP,
 } from "@/components/crm/shared-field-renderer";
 import { getSectionIcon } from "@/lib/icon-map";
 import type {
@@ -220,27 +221,31 @@ export function DetailOverviewTab({
   const investorData = useMemo(() => (investor ?? {}) as Record<string, unknown>, [investor]);
   const entityData = useMemo(() => (primaryBorrowerEntity ?? {}) as Record<string, unknown>, [primaryBorrowerEntity]);
 
-  // Map section_key -> { data, save }
-  const sectionDataMap = useMemo(() => {
-    const map: Record<string, {
-      data: Record<string, unknown>;
-      save: (field: string, value: string | number | boolean | string[] | null) => Promise<void>;
-    }> = {};
-
-    map.contact_profile = { data: contactData, save: updateContactField };
-
+  // Data source registry keyed by source_object_key (field-level resolution)
+  type SaveFn = (field: string, value: string | number | boolean | string[] | null) => Promise<void>;
+  const dataSourceMap = useMemo<Record<string, { data: Record<string, unknown>; save: SaveFn }>>(() => {
+    const map: Record<string, { data: Record<string, unknown>; save: SaveFn }> = {
+      contact: { data: contactData, save: updateContactField },
+    };
     if (borrower) {
-      map.borrower_profile = { data: borrowerData, save: updateBorrowerField };
+      map.borrower = { data: borrowerData, save: updateBorrowerField };
     }
     if (investor) {
-      map.investor_profile = { data: investorData, save: updateInvestorField };
+      map.investor = { data: investorData, save: updateInvestorField };
     }
     if (primaryBorrowerEntity) {
       map.borrower_entity = { data: entityData, save: updateBorrowerEntityField };
     }
-
     return map;
   }, [contactData, borrowerData, investorData, entityData, borrower, investor, primaryBorrowerEntity, updateContactField, updateBorrowerField, updateInvestorField, updateBorrowerEntityField]);
+
+  // Legacy section_key -> source_object_key fallback (for sections without per-field source)
+  const SECTION_KEY_TO_SOURCE: Record<string, string> = {
+    contact_profile: "contact",
+    borrower_profile: "borrower",
+    investor_profile: "investor",
+    borrower_entity: "borrower_entity",
+  };
 
   // --- Resolve visible sections ---
 
@@ -265,36 +270,36 @@ export function DetailOverviewTab({
 
   const buildGenericEditFields = useCallback((sectionKey: string): CrmSectionField[] => {
     const fields = sectionFields[sectionKey];
-    const source = sectionDataMap[sectionKey];
-    if (!fields || !source) return [];
+    if (!fields?.length) return [];
 
-    let editFields = buildEditFields(fields, source.data, isSuperAdmin);
+    const mergedData = buildMergedDataForSection(sectionKey);
+    if (!mergedData) return [];
 
-    // Section-specific option injections
-    if (sectionKey === "contact_profile") {
-      editFields = editFields.map((f) => {
-        if (f.fieldName === "assigned_to") {
-          return {
-            ...f,
-            fieldType: "select" as const,
-            options: teamMembers.map((m) => ({ label: m.full_name, value: m.id })),
-          };
-        }
-        if (f.fieldName === "company_id") {
-          return {
-            ...f,
-            fieldType: "select" as const,
-            options: localCompanies.map((c) => ({ label: c.name, value: c.id })),
-            onCreateNew: () => setQuickAddCompanyOpen(true),
-            createNewLabel: "New Company",
-          };
-        }
-        return f;
-      });
-    }
+    let editFields = buildEditFields(fields, mergedData, isSuperAdmin);
+
+    // Inject special options for FK fields regardless of which section they're in
+    editFields = editFields.map((f) => {
+      if (f.fieldName === "assigned_to") {
+        return {
+          ...f,
+          fieldType: "select" as const,
+          options: teamMembers.map((m) => ({ label: m.full_name, value: m.id })),
+        };
+      }
+      if (f.fieldName === "company_id") {
+        return {
+          ...f,
+          fieldType: "select" as const,
+          options: localCompanies.map((c) => ({ label: c.name, value: c.id })),
+          onCreateNew: () => setQuickAddCompanyOpen(true),
+          createNewLabel: "New Company",
+        };
+      }
+      return f;
+    });
 
     return editFields;
-  }, [sectionFields, sectionDataMap, isSuperAdmin, teamMembers, localCompanies]);
+  }, [sectionFields, dataSourceMap, isSuperAdmin, teamMembers, localCompanies]);
 
   // --- Render helpers ---
 
@@ -347,11 +352,41 @@ export function DetailOverviewTab({
     );
   }
 
-  function renderFieldSection(section: SectionLayout): ReactNode {
-    const source = sectionDataMap[section.section_key];
-    const fields = sectionFields[section.section_key];
+  // Build a merged data object for a section's fields by pulling each field's value
+  // from the correct data source based on source_object_key
+  function buildMergedDataForSection(sectionKey: string): Record<string, unknown> | null {
+    const fields = sectionFields[sectionKey];
+    if (!fields?.length) return null;
 
-    if (!source || !fields?.length) return null;
+    const merged: Record<string, unknown> = {};
+    let hasAnySource = false;
+
+    for (const f of fields) {
+      const sourceKey = f.source_object_key ?? SECTION_KEY_TO_SOURCE[sectionKey] ?? "contact";
+      const source = dataSourceMap[sourceKey];
+      if (!source) continue;
+      hasAnySource = true;
+
+      // Copy the field value (using FIELD_KEY_TO_PROP mapping for mismatches)
+      const propKey = FIELD_KEY_TO_PROP[f.field_key] ?? f.field_key;
+      merged[propKey] = source.data[propKey];
+
+      // Also copy display-resolved keys (e.g., assigned_to_display, company_id_display)
+      const displayKey = `${propKey}_display`;
+      if (displayKey in source.data) {
+        merged[displayKey] = source.data[displayKey];
+      }
+    }
+
+    return hasAnySource ? merged : null;
+  }
+
+  function renderFieldSection(section: SectionLayout): ReactNode {
+    const fields = sectionFields[section.section_key];
+    if (!fields?.length) return null;
+
+    const mergedData = buildMergedDataForSection(section.section_key);
+    if (!mergedData) return null;
 
     const Icon = getSectionIcon(section.section_icon);
     return (
@@ -361,7 +396,7 @@ export function DetailOverviewTab({
         icon={Icon}
         action={<SectionEditButton onClick={() => setEditingSectionKey(section.section_key)} />}
       >
-        {renderDynamicFields(fields, source.data, isSuperAdmin)}
+        {renderDynamicFields(fields, mergedData, isSuperAdmin)}
       </SectionCard>
     );
   }
@@ -386,9 +421,22 @@ export function DetailOverviewTab({
     ? buildGenericEditFields(editingSectionKey)
     : [];
 
-  const editingSave = editingSectionKey && sectionDataMap[editingSectionKey]
-    ? sectionDataMap[editingSectionKey].save
-    : updateContactField;
+  // Route saves per-field to the correct table based on source_object_key
+  const editingSave = useCallback(async (
+    fieldName: string,
+    value: string | number | boolean | string[] | null,
+  ) => {
+    if (!editingSectionKey) return;
+    const fields = sectionFields[editingSectionKey];
+    // Find the field definition to determine its source
+    const fieldDef = fields?.find((f) => {
+      const propKey = FIELD_KEY_TO_PROP[f.field_key] ?? f.field_key;
+      return propKey === fieldName || f.field_key === fieldName;
+    });
+    const sourceKey = fieldDef?.source_object_key ?? SECTION_KEY_TO_SOURCE[editingSectionKey] ?? "contact";
+    const saveFn = dataSourceMap[sourceKey]?.save ?? updateContactField;
+    await saveFn(fieldName, value);
+  }, [editingSectionKey, sectionFields, dataSourceMap, updateContactField]);
 
   return (
     <div className="flex flex-col gap-5">
