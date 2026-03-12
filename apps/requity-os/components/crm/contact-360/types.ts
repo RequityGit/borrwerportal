@@ -177,6 +177,8 @@ export interface FieldLayout {
   display_order: number;
   is_visible: boolean;
   dropdown_options: { label: string; value: string }[] | null;
+  /** Which object this field's data lives on (contact, borrower, investor, borrower_entity) */
+  source_object_key: string | null;
 }
 
 export interface TaskData {

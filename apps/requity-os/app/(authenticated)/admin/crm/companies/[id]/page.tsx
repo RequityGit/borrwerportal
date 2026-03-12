@@ -286,7 +286,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   if (sectionIds.length > 0) {
     const { data: fieldRows } = await admin
       .from("page_layout_fields" as never)
-      .select("field_key, display_order, column_position, is_visible, section_id, field_config_id" as never)
+      .select("field_key, display_order, column_position, is_visible, section_id, field_config_id, source_object_key" as never)
       .in("section_id" as never, sectionIds as never)
       .order("display_order" as never, { ascending: true });
 
@@ -337,6 +337,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         display_order: row.display_order as number,
         is_visible: row.is_visible as boolean,
         dropdown_options: dropdownOptions,
+        source_object_key: (row.source_object_key as string | null) ?? "company",
       });
     }
   }

@@ -446,25 +446,33 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
     sectionIds.push(row.id as string);
   }
 
+  // Module -> source_object_key mapping (which DB table owns fields for each module)
+  const MODULE_TO_SOURCE: Record<string, string> = {
+    contact_profile: "contact",
+    borrower_profile: "borrower",
+    investor_profile: "investor",
+    borrower_entity: "borrower_entity",
+  };
+
   // Fetch page_layout_fields with field_configurations for profile sections
   const sectionFields: Record<string, FieldLayout[]> = {};
   if (sectionIds.length > 0) {
     const { data: fieldRows } = await admin
       .from("page_layout_fields" as never)
-      .select("field_key, display_order, column_position, is_visible, section_id, field_config_id" as never)
+      .select("field_key, display_order, column_position, is_visible, section_id, field_config_id, source_object_key" as never)
       .in("section_id" as never, sectionIds as never)
       .order("display_order" as never, { ascending: true });
 
-    // Collect field_config_ids to fetch labels/types
+    // Collect field_config_ids to fetch labels/types/module
     const fcIds = ((fieldRows ?? []) as Record<string, unknown>[])
       .map((r) => r.field_config_id as string)
       .filter(Boolean);
 
-    let fcLookup: Record<string, { field_label: string; field_type: string; dropdown_options: unknown }> = {};
+    let fcLookup: Record<string, { field_label: string; field_type: string; dropdown_options: unknown; module: string }> = {};
     if (fcIds.length > 0) {
       const { data: fcRows } = await admin
         .from("field_configurations" as never)
-        .select("id, field_label, field_type, dropdown_options" as never)
+        .select("id, field_label, field_type, dropdown_options, module" as never)
         .in("id" as never, fcIds as never);
 
       for (const fc of (fcRows ?? []) as Record<string, unknown>[]) {
@@ -472,6 +480,7 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
           field_label: fc.field_label as string,
           field_type: fc.field_type as string,
           dropdown_options: fc.dropdown_options,
+          module: fc.module as string,
         };
       }
     }
@@ -493,6 +502,9 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
         );
       }
 
+      // Resolve source_object_key: prefer stored value, fall back to module mapping
+      const sourceObjectKey = (row.source_object_key as string | null) ?? MODULE_TO_SOURCE[fc.module] ?? "contact";
+
       if (!sectionFields[sectionKey]) sectionFields[sectionKey] = [];
       sectionFields[sectionKey].push({
         field_key: row.field_key as string,
@@ -502,6 +514,7 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
         display_order: row.display_order as number,
         is_visible: row.is_visible as boolean,
         dropdown_options: dropdownOptions,
+        source_object_key: sourceObjectKey,
       });
     }
   }
