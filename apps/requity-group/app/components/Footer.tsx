@@ -71,8 +71,8 @@ export default function Footer({
         </div>
         <div className="footer-bottom">
           <p>
-            &copy; {new Date().getFullYear()} {company?.company_name}. All
-            rights reserved.
+            &copy; {new Date().getFullYear()}{" "}
+            {company?.company_name || "Requity Group"}. All rights reserved.
           </p>
           <div className="footer-contact">
             {company?.phone && <a href={`tel:${company.phone}`}>{company.phone}</a>}

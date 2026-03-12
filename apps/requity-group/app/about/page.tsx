@@ -16,7 +16,17 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Learn about Requity Group, a vertically integrated real estate investment company with deep operational expertise.",
+    "Meet the Requity Group team. Founded by Dylan Marma, we apply institutional rigor to small-cap real estate, managing $150M+ in assets across 32 properties and 3,000+ units.",
+  openGraph: {
+    title: "About Requity Group",
+    description:
+      "Meet the team behind $150M+ in real estate assets. We operate every property we own — no outsourced management, no third-party sponsors.",
+  },
+  twitter: {
+    title: "About Requity Group",
+    description:
+      "Meet the team behind $150M+ in real estate assets. We operate every property we own.",
+  },
 };
 
 export const revalidate = 300;
