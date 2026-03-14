@@ -42,6 +42,7 @@ export async function addBorrowerAction(input: AddBorrowerInput) {
     const { data: contact, error: contactError } = await admin
       .from("crm_contacts")
       .insert({
+        contact_number: "", // trigger generates CON-xxxx
         first_name: input.first_name,
         last_name: input.last_name,
         name: `${input.first_name} ${input.last_name}`.trim(),

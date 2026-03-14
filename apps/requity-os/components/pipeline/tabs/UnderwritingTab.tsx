@@ -125,7 +125,7 @@ export function UnderwritingTab({ data, dealId, sheetUrl }: UnderwritingTabProps
     setLinkSheetSaving(true);
     try {
       const result = await updateDealGoogleSheetAction(dealId, value);
-      if (result.error) {
+      if ("error" in result && result.error) {
         toast.error(result.error);
         return;
       }
@@ -142,7 +142,7 @@ export function UnderwritingTab({ data, dealId, sheetUrl }: UnderwritingTabProps
     setUnlinkSaving(true);
     try {
       const result = await clearDealGoogleSheetAction(dealId);
-      if (result.error) {
+      if ("error" in result && result.error) {
         toast.error(result.error);
         return;
       }

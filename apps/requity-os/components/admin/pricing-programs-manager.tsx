@@ -29,11 +29,13 @@ import {
   Loader2,
   CheckCircle2,
 } from "lucide-react";
-import type {
-  PricingProgram,
-  LeverageAdjuster,
-  PricingProgramVersion,
-} from "@/lib/supabase/types";
+// Tables pricing_programs / leverage_adjusters / pricing_program_versions may not be in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PricingProgram = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeverageAdjuster = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PricingProgramVersion = Record<string, any>;
 
 interface PricingProgramsManagerProps {
   programs: PricingProgram[];

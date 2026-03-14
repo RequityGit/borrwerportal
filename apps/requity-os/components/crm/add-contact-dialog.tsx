@@ -253,6 +253,7 @@ export function AddContactDialog({
       let companyId = form.company_id || null;
       if (showNewCompanyForm && newCompanyName.trim() && newCompanyType) {
         const companyInsert: Record<string, unknown> = {
+          company_number: "", // trigger generates COM-xxxx
           name: newCompanyName.trim(),
           company_type: newCompanyType as CompanyType,
         };
@@ -272,6 +273,7 @@ export function AddContactDialog({
       const { data: newContact, error: contactError } = await supabase
         .from("crm_contacts")
         .insert({
+          contact_number: "", // trigger generates CON-xxxx
           first_name: form.first_name.trim(),
           last_name: form.last_name.trim(),
           email: form.email.trim() || null,

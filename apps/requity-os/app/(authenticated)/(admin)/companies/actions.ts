@@ -35,6 +35,7 @@ export async function addCompanyAction(input: AddCompanyInput) {
     const { data, error } = await admin
       .from("companies")
       .insert({
+        company_number: "", // trigger generates COM-xxxx
         name: input.name.trim(),
         company_type: input.company_type as never,
         company_types: input.company_types?.length ? input.company_types : [input.company_type],
