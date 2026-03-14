@@ -10,7 +10,7 @@ const ROLE_ROUTES: Record<string, string> = {
 
 // Default dashboards for each role
 const ROLE_DASHBOARDS: Record<string, string> = {
-  admin: "/admin/dashboard",
+  admin: "/admin/pipeline",
   borrower: "/borrower/dashboard",
   investor: "/investor/dashboard",
 };
@@ -26,12 +26,15 @@ export async function middleware(request: NextRequest) {
   // -----------------------------------------------------------------------
   // Force HTTPS — redirect any plain-HTTP request to HTTPS.
   // Netlify edge redirects should catch this first, but this is defense-in-depth.
+  // Skipped in local dev where there is no HTTPS server.
   // -----------------------------------------------------------------------
-  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  if (proto === "http") {
-    const httpsUrl = request.nextUrl.clone();
-    httpsUrl.protocol = "https";
-    return NextResponse.redirect(httpsUrl, 301);
+  if (process.env.NODE_ENV === "production") {
+    const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    if (proto === "http") {
+      const httpsUrl = request.nextUrl.clone();
+      httpsUrl.protocol = "https";
+      return NextResponse.redirect(httpsUrl, 301);
+    }
   }
 
   const { pathname } = request.nextUrl;
@@ -125,7 +128,7 @@ export async function middleware(request: NextRequest) {
           }
           // Otherwise redirect to the impersonated role's dashboard
           const url = request.nextUrl.clone();
-          url.pathname = ROLE_DASHBOARDS[impersonateRole] || "/admin/dashboard";
+          url.pathname = ROLE_DASHBOARDS[impersonateRole] || "/admin/pipeline";
           return NextResponse.redirect(url);
         }
       }

@@ -56,6 +56,7 @@ import {
   addFieldToLayout,
   addSection,
   addTab,
+  updateLayoutFieldSpan,
 } from "../actions";
 import {
   Dialog,
@@ -256,14 +257,19 @@ function SortableSection({
 // Sortable Field
 // ---------------------------------------------------------------------------
 
+const SPAN_CYCLE: Record<string, string> = { half: "third", third: "full", full: "half" };
+const SPAN_LABEL: Record<string, string> = { full: "12", third: "4", half: "6" };
+
 function SortableField({
   layoutField,
   fieldConfig,
   spanClass,
+  onSpanChange,
 }: {
   layoutField: PageField;
   fieldConfig: FieldConfig | undefined;
   spanClass: string;
+  onSpanChange?: (fieldId: string, newSpan: string) => void;
 }) {
   const {
     attributes,
@@ -282,6 +288,7 @@ function SortableField({
   const isInh = layoutField.source === "inherited";
   const ft = getFieldType(fieldConfig?.field_type || "text");
   const FI = ft.icon;
+  const currentSpan = layoutField.column_span || "half";
 
   return (
     <div
@@ -313,9 +320,17 @@ function SortableField({
       {fieldConfig?.is_required && (
         <span className="w-1 h-1 rounded-full bg-destructive shrink-0" />
       )}
-      <span className="text-[8px] text-muted-foreground shrink-0">
-        {layoutField.column_span === "full" ? "12" : layoutField.column_span === "third" ? "4" : "6"}
-      </span>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const next = SPAN_CYCLE[currentSpan] || "half";
+          onSpanChange?.(layoutField.id, next);
+        }}
+        className="text-[8px] text-muted-foreground shrink-0 cursor-pointer hover:text-foreground hover:bg-background rounded px-1 py-0.5 border-0 bg-transparent transition-colors"
+        title={`Column span: ${currentSpan} (click to cycle)`}
+      >
+        {SPAN_LABEL[currentSpan] || "6"}
+      </button>
     </div>
   );
 }
@@ -362,6 +377,18 @@ export function LayoutTab({
   const [addingTabPending, setAddingTabPending] = useState(false);
 
   const pageType = OBJECT_PAGE_TYPE_MAP[objectKey];
+
+  const handleSpanChange = useCallback(async (fieldId: string, newSpan: string) => {
+    setLocalFields((prev) =>
+      prev.map((f) => (f.id === fieldId ? { ...f, column_span: newSpan } : f))
+    );
+    const result = await updateLayoutFieldSpan(fieldId, newSpan);
+    if (result.error) {
+      setLocalFields(propLayoutFields);
+    } else {
+      onDraftLayoutChange?.("layout_field_update", `Span: ${newSpan}`, `Changed field column span to "${newSpan}"`);
+    }
+  }, [propLayoutFields, onDraftLayoutChange]);
 
   // Active drag state
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -903,6 +930,7 @@ export function LayoutTab({
                                         layoutField={lf}
                                         fieldConfig={fieldConfig}
                                         spanClass={getSpanClass(lf.column_span)}
+                                        onSpanChange={handleSpanChange}
                                       />
                                     );
                                   })}

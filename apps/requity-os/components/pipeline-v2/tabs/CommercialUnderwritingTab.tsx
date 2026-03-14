@@ -20,11 +20,13 @@ import {
   computeSensitivity,
   computeWaterfallDistributions,
   computeAnnualDebtService,
+  computeMultiTrancheAnnualDS,
   type DealIncomeRow,
   type DealExpenseRow,
   type DealUWRecord,
   type DealSourceUseRow,
   type DealWaterfallTier,
+  type DebtTrancheInput,
   type ProFormaYearResult,
 } from "@/lib/commercial-uw/deal-computations";
 import { PillNav } from "./financials/shared";
@@ -124,16 +126,19 @@ export function CommercialUnderwritingTab({ data, dealId }: CommercialUnderwriti
     [waterfall]
   );
 
-  // Debt tranches
+  // Debt tranches (including typed tranches from S&U)
   const debtTranches = useMemo(
     () => debt.map((d) => ({
       tranche_name: String(d.tranche_name ?? ""),
+      tranche_type: String(d.tranche_type ?? "senior"),
       loan_type: String(d.loan_type ?? ""),
       loan_amount: n(d.loan_amount),
       interest_rate: n(d.interest_rate),
       term_years: n(d.term_years),
       amortization_years: n(d.amortization_years),
       io_period_months: n(d.io_period_months),
+      is_io: Boolean(d.is_io),
+      ltv_pct: n(d.ltv_pct),
       origination_fee_pct: n(d.origination_fee_pct),
       lender_name: String(d.lender_name ?? ""),
       sort_order: n(d.sort_order),
@@ -141,20 +146,43 @@ export function CommercialUnderwritingTab({ data, dealId }: CommercialUnderwriti
     [debt]
   );
 
-  const proForma = useMemo(() => computeProForma(incomeRows, expenseRows, uwRecord), [incomeRows, expenseRows, uwRecord]);
+  // If we have typed tranches, override the uwRecord loan values
+  const hasTypedTranches = debtTranches.some((t) => t.tranche_type && t.tranche_type !== "");
+  const effectiveUWRecord = useMemo(() => {
+    if (!hasTypedTranches || debtTranches.length === 0) return uwRecord;
+    const goingInTranches = debtTranches.filter((t) => t.tranche_type !== "takeout");
+    const totalLoanAmount = goingInTranches.reduce((sum, t) => {
+      const amt = t.loan_amount > 0 ? t.loan_amount : Math.round(uwRecord.purchase_price * (t.ltv_pct / 100));
+      return sum + amt;
+    }, 0);
+    const primaryTranche = goingInTranches.find((t) => t.tranche_type === "senior") || goingInTranches[0];
+    if (!primaryTranche) return uwRecord;
+    return {
+      ...uwRecord,
+      loan_amount: totalLoanAmount,
+      interest_rate: primaryTranche.interest_rate / 100,
+      amortization_years: primaryTranche.amortization_years || 30,
+      io_period_months: primaryTranche.is_io ? 600 : (primaryTranche.io_period_months || 0),
+      loan_term_years: primaryTranche.term_years || 5,
+    };
+  }, [uwRecord, debtTranches, hasTypedTranches]);
+
+  const proForma = useMemo(() => computeProForma(incomeRows, expenseRows, effectiveUWRecord), [incomeRows, expenseRows, effectiveUWRecord]);
 
   const totalEquity = useMemo(() => {
     const eq = suRows.filter((s) => s.type === "source" && s.line_item.toLowerCase().includes("equity")).reduce((sum, s) => sum + s.amount, 0);
-    return eq > 0 ? eq : uwRecord.purchase_price - uwRecord.loan_amount;
-  }, [suRows, uwRecord]);
+    return eq > 0 ? eq : effectiveUWRecord.purchase_price - effectiveUWRecord.loan_amount;
+  }, [suRows, effectiveUWRecord]);
 
-  const dealAnalysis = useMemo(() => computeDealAnalysis(uwRecord, proForma, suRows), [uwRecord, proForma, suRows]);
-  const exitResult = useMemo(() => computeExitAnalysis(uwRecord, proForma, totalEquity), [uwRecord, proForma, totalEquity]);
-  const returnSummary = useMemo(() => computeReturnSummary(uwRecord, proForma, totalEquity, exitResult), [uwRecord, proForma, totalEquity, exitResult]);
-  const sensitivity = useMemo(() => computeSensitivity(uwRecord, proForma, totalEquity), [uwRecord, proForma, totalEquity]);
+  const dealAnalysis = useMemo(() => computeDealAnalysis(effectiveUWRecord, proForma, suRows), [effectiveUWRecord, proForma, suRows]);
+  const exitResult = useMemo(() => computeExitAnalysis(effectiveUWRecord, proForma, totalEquity), [effectiveUWRecord, proForma, totalEquity]);
+  const returnSummary = useMemo(() => computeReturnSummary(effectiveUWRecord, proForma, totalEquity, exitResult), [effectiveUWRecord, proForma, totalEquity, exitResult]);
+  const sensitivity = useMemo(() => computeSensitivity(effectiveUWRecord, proForma, totalEquity), [effectiveUWRecord, proForma, totalEquity]);
 
-  const holdYears = uwRecord.hold_period_years || 5;
-  const ads = computeAnnualDebtService(uwRecord);
+  const holdYears = effectiveUWRecord.hold_period_years || 5;
+  const ads = hasTypedTranches
+    ? computeMultiTrancheAnnualDS(debtTranches as DebtTrancheInput[], effectiveUWRecord.purchase_price)
+    : computeAnnualDebtService(effectiveUWRecord);
 
   const cashFlowsForWaterfall = useMemo(() => {
     const flows = [-totalEquity];
@@ -188,7 +216,7 @@ export function CommercialUnderwritingTab({ data, dealId }: CommercialUnderwriti
         <ProFormaContent
           proForma={proForma}
           dealAnalysis={dealAnalysis}
-          uwRecord={uwRecord}
+          uwRecord={effectiveUWRecord}
           holdYears={holdYears}
           ads={ads}
           debtTranches={debtTranches}
@@ -197,7 +225,7 @@ export function CommercialUnderwritingTab({ data, dealId }: CommercialUnderwriti
 
       {activeTab === "sensitivity" && (
         <SensitivityContent
-          uwRecord={uwRecord}
+          uwRecord={effectiveUWRecord}
           proForma={proForma}
           ads={ads}
           incomeRows={incomeRows}
@@ -208,7 +236,7 @@ export function CommercialUnderwritingTab({ data, dealId }: CommercialUnderwriti
         <ReturnsContent
           exitResult={exitResult}
           returnSummary={returnSummary}
-          uwRecord={uwRecord}
+          uwRecord={effectiveUWRecord}
           proForma={proForma}
           totalEquity={totalEquity}
           holdYears={holdYears}

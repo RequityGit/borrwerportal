@@ -98,7 +98,7 @@ export function useFieldConfigurations(
 
   // Stable key for visibility context to include in effect deps
   const ctxKey = visibilityContext
-    ? `${visibilityContext.asset_class}:${visibilityContext.loan_type}`
+    ? `${visibilityContext.asset_class}:${JSON.stringify(visibilityContext.dealValues ?? {})}`
     : "";
 
   useEffect(() => {

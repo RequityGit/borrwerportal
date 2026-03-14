@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const VALID_ROLES = ["admin", "borrower", "investor"] as const;
 
 const ROLE_DASHBOARDS: Record<string, string> = {
-  admin: "/admin/dashboard",
+  admin: "/admin/pipeline",
   borrower: "/borrower/dashboard",
   investor: "/investor/dashboard",
 };

@@ -76,7 +76,13 @@ const borrowerNav: NavItem[] = [
 ];
 
 const adminNav: NavEntry[] = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, moduleName: "dashboard" },
+  {
+    label: "Pipeline",
+    href: "/admin/pipeline",
+    icon: Layers,
+    moduleName: "pipeline",
+    activePaths: ["/admin/pipeline"],
+  },
   {
     label: "Contacts",
     href: "/admin/crm/contacts",
@@ -90,13 +96,6 @@ const adminNav: NavEntry[] = [
     icon: Building2,
     moduleName: "crm",
     activePaths: ["/admin/crm/companies"],
-  },
-  {
-    label: "Pipeline",
-    href: "/admin/pipeline",
-    icon: Layers,
-    moduleName: "pipeline",
-    activePaths: ["/admin/pipeline"],
   },
   {
     label: "Operations",
@@ -162,7 +161,7 @@ export function Sidebar({
   // Eagerly prefetch the most-used routes on mount for faster navigation
   useEffect(() => {
     if (navRole === "admin") {
-      router.prefetch("/admin/dashboard");
+      router.prefetch("/admin/pipeline");
       router.prefetch("/admin/crm/contacts");
       router.prefetch("/admin/pipeline");
       router.prefetch("/admin/crm/companies");

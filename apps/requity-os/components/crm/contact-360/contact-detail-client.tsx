@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -12,18 +11,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { ContactDetailHeader } from "./contact-detail-header";
 import { ContactDetailSidebar } from "./contact-detail-sidebar";
 import { EmailComposeSheet } from "@/components/crm/email-compose-sheet";
 import { DetailOverviewTab } from "./tabs/detail-overview-tab";
-import { DetailActivityTab } from "./tabs/detail-activity-tab";
-import { DetailDealsTab } from "./tabs/detail-deals-tab";
-import { DetailEntitiesTab } from "./tabs/detail-entities-tab";
-import { DetailTasksTab } from "./tabs/detail-tasks-tab";
-import { UnifiedNotes } from "@/components/shared/UnifiedNotes";
-import { createClient } from "@/lib/supabase/client";
+import { CollapsibleBorrowerSection } from "./sections/collapsible-borrower-section";
+import { CollapsibleInvestorSection } from "./sections/collapsible-investor-section";
+import { CollapsibleTasksSection } from "./sections/collapsible-tasks-section";
+import { TimelineSection } from "./sections/timeline-section";
 import type {
   ContactData,
   RelationshipData,
@@ -92,112 +87,44 @@ export function ContactDetailClient({
   sectionFields,
   primaryBorrowerEntity,
 }: ContactDetailClientProps) {
-  const searchParams = useSearchParams();
-
   const fullName =
     [contact.first_name, contact.last_name].filter(Boolean).join(" ") ||
     "Unnamed Contact";
 
-  const openTasks = useMemo(
-    () => tasks.filter((t) => t.status !== "Complete"),
-    [tasks]
-  );
+  const [emailComposeOpen, setEmailComposeOpen] = useState(false);
+  const [logCallTrigger, setLogCallTrigger] = useState(0);
 
-  const noteActivities = useMemo(
-    () => activities.filter((a) => a.activity_type === "note"),
-    [activities]
-  );
+  const tasksRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
 
-  // Fetch actual notes count from the notes table (UnifiedNotes source of truth)
-  const [notesCount, setNotesCount] = useState<number | null>(null);
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("notes" as never)
-      .select("id" as never, { count: "exact", head: true })
-      .eq("contact_id" as never, contact.id as never)
-      .is("deleted_at" as never, null)
-      .then(({ count }) => {
-        setNotesCount(count ?? 0);
-      });
-  }, [contact.id]);
-
-  // Derive contact type tags from relationships + contact_types
-  const contactTypes = useMemo(() => {
+  const contactTypes = (() => {
     const fromRelationships = relationships
       .filter((r) => r.is_active)
       .map((r) => r.relationship_type);
     const fromContactTypes = contact.contact_types ?? [];
     const all = new Set([...fromRelationships, ...fromContactTypes]);
     return Array.from(all);
-  }, [relationships, contact.contact_types]);
+  })();
 
-  const tabs = useMemo(
-    () => [
-      { id: "overview", label: "Overview" },
-      { id: "notes", label: "Notes", count: notesCount ?? noteActivities.length },
-      { id: "tasks", label: "Tasks", count: openTasks.length },
-      {
-        id: "deals",
-        label: "Deals & Loans",
-        count: loans.length + investorCommitments.length,
-      },
-      { id: "entities", label: "Entities", count: entities.length },
-      { id: "activity", label: "Activity", count: activities.length + emails.length },
-    ],
-    [
-      activities.length,
-      emails.length,
-      loans.length,
-      investorCommitments.length,
-      entities.length,
-      openTasks.length,
-      noteActivities.length,
-      notesCount,
-    ]
-  );
-
-  const tabParam = searchParams.get("tab");
-  const isValidTab = tabs.some((t) => t.id === tabParam);
-  const initialTab = isValidTab ? tabParam! : "overview";
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [emailComposeOpen, setEmailComposeOpen] = useState(false);
-  const [logCallTrigger, setLogCallTrigger] = useState(
-    () => (searchParams.get("action") === "log-call" && initialTab === "activity") ? 1 : 0
-  );
-
-  // Track which tabs have been visited so we can keep them mounted
-  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(
-    () => new Set([initialTab])
-  );
+  const scrollToSection = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const handleTabChange = useCallback(
-    (value: string) => {
-      setActiveTab(value);
-      setLoadedTabs((prev) => {
-        if (prev.has(value)) return prev;
-        return new Set(prev).add(value);
-      });
-      // Use history.replaceState to update URL without triggering Next.js navigation
-      const params = new URLSearchParams(window.location.search);
-      if (value === "overview") {
-        params.delete("tab");
-      } else {
-        params.set("tab", value);
+    (tab: string) => {
+      if (tab === "tasks") {
+        scrollToSection(tasksRef);
+      } else if (tab === "activity" || tab === "notes") {
+        scrollToSection(timelineRef);
       }
-      const newUrl = params.toString()
-        ? `${window.location.pathname}?${params.toString()}`
-        : window.location.pathname;
-      window.history.replaceState(null, "", newUrl);
     },
-    []
+    [scrollToSection]
   );
 
   const handleLogCall = useCallback(() => {
-    handleTabChange("activity");
-    // Increment trigger to signal the activity tab to open the log-call form
+    scrollToSection(timelineRef);
     setLogCallTrigger((prev) => prev + 1);
-  }, [handleTabChange]);
+  }, [scrollToSection]);
 
   return (
     <div className="min-h-screen">
@@ -236,100 +163,68 @@ export function ContactDetailClient({
             contactTypes={contactTypes}
           />
 
-          {/* Tabs — shadcn underline pattern */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-3">
-            <TabsList className="bg-transparent h-auto p-0 gap-0 rounded-none flex justify-start min-w-max border-b border-border w-full">
-              {tabs.map((t) => (
-                <TabsTrigger
-                  key={t.id}
-                  value={t.id}
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground px-4 py-3 text-sm font-medium gap-1.5 whitespace-nowrap"
-                >
-                  {t.label}
-                  {t.count != null && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] px-1.5 py-0 h-4 font-bold"
-                    >
-                      {t.count}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          {/* All sections stacked vertically */}
+          <div className="mt-4 flex flex-col gap-5">
+            {/* Contact Profile + Address */}
+            <DetailOverviewTab
+              contact={contact}
+              isSuperAdmin={isSuperAdmin}
+              userRole={userRole}
+              sectionOrder={sectionOrder}
+              sectionFields={sectionFields}
+              teamMembers={teamMembers}
+              allCompanies={allCompanies}
+            />
 
-          </Tabs>
-
-          {/* Tab content rendered outside Tabs to avoid unmount/remount.
-              Visited tabs stay mounted (hidden) to preserve state & subscriptions. */}
-          <div className="mt-4">
-            {loadedTabs.has("overview") && (
-              <div className={activeTab !== "overview" ? "hidden" : undefined}>
-                <DetailOverviewTab
-                  contact={contact}
-                  borrower={borrower}
-                  investor={investor}
-                  loans={loans}
-                  commitments={investorCommitments}
-                  isSuperAdmin={isSuperAdmin}
-                  userRole={userRole}
-                  sectionOrder={sectionOrder}
-                  sectionFields={sectionFields}
-                  teamMembers={teamMembers}
-                  allCompanies={allCompanies}
-                  primaryBorrowerEntity={primaryBorrowerEntity}
-                />
-              </div>
+            {/* Borrower (collapsible, only if exists) */}
+            {borrower && (
+              <CollapsibleBorrowerSection
+                contact={contact}
+                borrower={borrower}
+                loans={loans}
+                entities={entities}
+                isSuperAdmin={isSuperAdmin}
+                userRole={userRole}
+                sectionOrder={sectionOrder}
+                sectionFields={sectionFields}
+                primaryBorrowerEntity={primaryBorrowerEntity}
+              />
             )}
 
-            {loadedTabs.has("notes") && (
-              <div className={activeTab !== "notes" ? "hidden" : undefined}>
-                <UnifiedNotes
-                  entityType="contact"
-                  entityId={contact.id}
-                />
-              </div>
+            {/* Investor (collapsible, only if exists) */}
+            {investor && (
+              <CollapsibleInvestorSection
+                contact={contact}
+                investor={investor}
+                commitments={investorCommitments}
+                entities={entities}
+                isSuperAdmin={isSuperAdmin}
+                userRole={userRole}
+                sectionOrder={sectionOrder}
+                sectionFields={sectionFields}
+              />
             )}
 
-            {loadedTabs.has("tasks") && (
-              <div className={activeTab !== "tasks" ? "hidden" : undefined}>
-                <DetailTasksTab
-                  tasks={tasks}
-                  contactId={contact.id}
-                  contactName={fullName}
-                  profiles={profiles}
-                  currentUserId={currentUserId}
-                />
-              </div>
-            )}
+            {/* Tasks (collapsible) */}
+            <CollapsibleTasksSection
+              ref={tasksRef}
+              tasks={tasks}
+              contactId={contact.id}
+              contactName={fullName}
+              profiles={profiles}
+              currentUserId={currentUserId}
+            />
 
-            {loadedTabs.has("deals") && (
-              <div className={activeTab !== "deals" ? "hidden" : undefined}>
-                <DetailDealsTab
-                  loans={loans}
-                  commitments={investorCommitments}
-                />
-              </div>
-            )}
-
-            {loadedTabs.has("entities") && (
-              <div className={activeTab !== "entities" ? "hidden" : undefined}>
-                <DetailEntitiesTab entities={entities} />
-              </div>
-            )}
-
-            {loadedTabs.has("activity") && (
-              <div className={activeTab !== "activity" ? "hidden" : undefined}>
-                <DetailActivityTab
-                  contactId={contact.id}
-                  activities={activities}
-                  emails={emails}
-                  currentUserId={currentUserId}
-                  onComposeEmail={() => setEmailComposeOpen(true)}
-                  logCallTrigger={logCallTrigger}
-                />
-              </div>
-            )}
+            {/* Timeline (Notes + Activity) */}
+            <TimelineSection
+              ref={timelineRef}
+              contactId={contact.id}
+              activities={activities}
+              emails={emails}
+              currentUserId={currentUserId}
+              onComposeEmail={() => setEmailComposeOpen(true)}
+              logCallTrigger={logCallTrigger}
+            />
           </div>
         </div>
 

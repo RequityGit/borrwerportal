@@ -33,6 +33,7 @@ export interface LayoutField {
   column_position: string;
   is_visible: boolean;
   source: string;
+  source_object_key: string | null;
   column_span: string;
 }
 
@@ -62,11 +63,14 @@ const PAGE_TYPE = "deal_detail";
  * Fetches the deal_detail page layout from page_layout_sections + page_layout_fields.
  * Returns tabs, sections, fields grouped for rendering.
  *
- * This enables the hybrid rendering model:
+ * Universal layout: all deal_detail sections are shared (no card_type_id scoping).
+ * The Condition Matrix on field_configurations controls per-deal-type field visibility.
+ *
+ * Rendering model:
  * - section_type = "fields" → render from layout data (Object Manager controls)
  * - section_type = "system" → render with hardcoded components (DealDetailPage controls)
  */
-export function useDealLayout(cardTypeId?: string | null): DealLayoutResult {
+export function useDealLayout(): DealLayoutResult {
   const [sections, setSections] = useState<LayoutSection[]>([]);
   const [fields, setFields] = useState<LayoutField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,23 +85,10 @@ export function useDealLayout(cardTypeId?: string | null): DealLayoutResult {
 
       const supabase = createClient();
 
-      // Fetch sections for deal_detail.
-      // When a cardTypeId is provided, return sections that either:
-      //   1. Match this specific card type (card_type_id = cardTypeId), OR
-      //   2. Are shared / system sections (card_type_id IS NULL)
-      // When no cardTypeId is provided, return only shared sections.
-      let query = supabase
+      const { data: sectionData, error: secErr } = await supabase
         .from("page_layout_sections")
         .select("*")
-        .eq("page_type", PAGE_TYPE);
-
-      if (cardTypeId) {
-        query = query.or(`card_type_id.eq.${cardTypeId},card_type_id.is.null`);
-      } else {
-        query = query.is("card_type_id", null);
-      }
-
-      const { data: sectionData, error: secErr } = await query
+        .eq("page_type", PAGE_TYPE)
         .order("tab_order", { ascending: true })
         .order("display_order", { ascending: true });
 
@@ -142,7 +133,7 @@ export function useDealLayout(cardTypeId?: string | null): DealLayoutResult {
     return () => {
       cancelled = true;
     };
-  }, [cardTypeId]);
+  }, []);
 
   // Group fields by section_id
   const fieldsBySectionId = useMemo(() => {

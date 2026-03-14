@@ -26,10 +26,11 @@ export type UwFieldObject = "deal" | "property" | "borrower";
 export interface UwFieldDef {
   key: string;
   label: string;
-  type: "currency" | "percent" | "number" | "text" | "boolean" | "select" | "date";
+  type: "currency" | "percent" | "number" | "text" | "boolean" | "select" | "date" | "flood_risk";
   required?: boolean;
   options?: string[];
   object?: UwFieldObject;
+  sectionGroup?: string;
   /** If set, this field is a computed formula. Render as read-only. */
   formulaExpression?: string;
   formulaOutputFormat?: "currency" | "percent" | "number" | "text";

@@ -6,7 +6,6 @@ import { DealFilters, type FilterState } from "./DealFilters";
 import { PipelineKanban } from "./PipelineKanban";
 import { PipelineTable } from "./PipelineTable";
 import { NewDealDialog } from "./NewDealDialog";
-import { IntakeBanner } from "./IntakeBanner";
 import { IntakeReviewModal } from "./IntakeReviewModal";
 import type {
   UnifiedDeal,
@@ -24,6 +23,7 @@ interface PipelineViewProps {
   relationshipDealIds: Set<string>;
   teamMembers: { id: string; full_name: string }[];
   intakeItems?: IntakeItem[];
+  currentUserId?: string;
 }
 
 export function PipelineView({
@@ -34,6 +34,7 @@ export function PipelineView({
   relationshipDealIds,
   teamMembers,
   intakeItems = [],
+  currentUserId,
 }: PipelineViewProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<FilterState>({
@@ -84,7 +85,7 @@ export function PipelineView({
 
   const handleDealClick = useCallback(
     (deal: UnifiedDeal) => {
-      router.push(`/admin/pipeline/${deal.id}`);
+      router.push(`/admin/pipeline/${deal.deal_number || deal.id}`);
     },
     [router]
   );
@@ -95,9 +96,6 @@ export function PipelineView({
 
   return (
     <div className="space-y-4">
-      {/* Intake banner + email callout */}
-      <IntakeBanner items={intakeItems} />
-
       <DealFilters
         filters={filters}
         onChange={setFilters}
@@ -129,6 +127,7 @@ export function PipelineView({
         onOpenChange={setNewDealOpen}
         cardTypes={cardTypes}
         teamMembers={teamMembers}
+        currentUserId={currentUserId}
       />
 
       <IntakeReviewModal

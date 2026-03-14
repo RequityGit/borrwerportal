@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -267,10 +268,19 @@ export function NewEquityDealForm({
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Address</Label>
-                <Input
+                <AddressAutocomplete
                   value={property.address_line1}
-                  onChange={(e) =>
-                    setProperty({ ...property, address_line1: e.target.value })
+                  onChange={(v) =>
+                    setProperty({ ...property, address_line1: v })
+                  }
+                  onAddressSelect={(addr) =>
+                    setProperty((prev) => ({
+                      ...prev,
+                      address_line1: addr.address_line1,
+                      city: addr.city,
+                      state: addr.state,
+                      zip: addr.zip,
+                    }))
                   }
                   placeholder="123 Main St"
                 />

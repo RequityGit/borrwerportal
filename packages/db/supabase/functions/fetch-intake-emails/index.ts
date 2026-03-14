@@ -7,7 +7,7 @@
 // Required Supabase secrets (set via dashboard or `supabase secrets set`):
 //   GMAIL_CLIENT_ID
 //   GMAIL_CLIENT_SECRET
-//   GMAIL_INTAKE_REFRESH_TOKEN   <- refresh token for intake@requitygroup.com
+//   GMAIL_REFRESH_TOKEN           <- refresh token for intake@requitygroup.com
 //   ANTHROPIC_API_KEY
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -25,11 +25,11 @@ const corsHeaders = {
 async function getAccessToken(): Promise<string> {
   const clientId = Deno.env.get("GMAIL_CLIENT_ID");
   const clientSecret = Deno.env.get("GMAIL_CLIENT_SECRET");
-  const refreshToken = Deno.env.get("GMAIL_INTAKE_REFRESH_TOKEN");
+  const refreshToken = Deno.env.get("GMAIL_REFRESH_TOKEN");
 
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error(
-      "Missing Gmail credentials: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_INTAKE_REFRESH_TOKEN must be set."
+      "Missing Gmail credentials: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN must be set."
     );
   }
 
@@ -86,8 +86,7 @@ async function listMessages(
   accessToken: string,
   afterEpochSecs: number
 ): Promise<GmailMessageStub[]> {
-  // after: is a Gmail search operator accepting epoch seconds
-  const q = `in:inbox after:${afterEpochSecs}`;
+  const q = `in:inbox to:intake@requitygroup.com after:${afterEpochSecs}`;
   const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=50`;
 
   const res = await fetch(url, {

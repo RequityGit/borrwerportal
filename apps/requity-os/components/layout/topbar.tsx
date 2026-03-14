@@ -15,11 +15,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, ShieldCheck, User, Eye, BookOpen, Sun, Moon, Menu } from "lucide-react";
 import { RoleSwitcher } from "./role-switcher";
+import { QuickCreateButton } from "./quick-create-button";
 import { ViewAsBanner } from "./view-as-banner";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useImpersonation } from "./impersonation-context";
 import { UserSearchModal } from "./user-search-modal";
-import { Badge } from "@/components/ui/badge";
 import { CommandSearch } from "@/components/search/CommandSearch";
 import { useTheme } from "@/components/theme-provider";
 import { useMobileNav } from "./mobile-layout-wrapper";
@@ -78,48 +78,33 @@ export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdm
           />
         </div>
 
-        {/* Desktop: left side — impersonation indicator or spacer */}
-        <div className="hidden md:block shrink-0 w-48">
+        {/* Desktop: left side — impersonation indicator then search */}
+        <div className="hidden md:flex flex-1 items-center gap-4 min-w-0">
           {isImpersonating && (
-            <div className="flex items-center gap-2 text-sm text-amber-700">
+            <div className="flex shrink-0 items-center gap-2 text-sm text-amber-700">
               <Eye className="h-4 w-4" />
               <span className="font-medium">Viewing as {targetUserName}</span>
             </div>
           )}
-        </div>
-
-        {/* Desktop: center — search bar */}
-        <div className="hidden md:flex flex-1 justify-center px-4">
-          <CommandSearch role={role} />
+          <div className="ml-2 w-full max-w-xl">
+            <CommandSearch role={role} />
+          </div>
         </div>
 
         {/* Right side — actions */}
         <div className="flex shrink-0 items-center gap-2 md:gap-4">
-          <button
-            onClick={toggleTheme}
-            className="flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
+          <QuickCreateButton currentUserId={userId} isSuperAdmin={isSuperAdmin} />
           <NotificationBell userId={userId} activeRole={displayRole} />
 
           {/* Role switcher - hidden on mobile */}
           <div className="hidden md:block">
             {isImpersonating ? (
-              <Badge
-                variant="outline"
-                className="bg-amber-100 text-amber-800 border-amber-300"
+              <button
+                className="flex items-center justify-center h-9 w-9 rounded-md border border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 cursor-default"
+                aria-label={`Impersonating as ${displayRole}`}
               >
-                <Eye className="h-3 w-3 mr-1" />
-                {displayRole === "admin"
-                  ? "Admin"
-                  : displayRole === "investor"
-                    ? "Investor"
-                    : displayRole === "borrower"
-                      ? "Borrower"
-                      : displayRole}
-              </Badge>
+                <Eye className="h-4 w-4" />
+              </button>
             ) : (
               <RoleSwitcher
                 activeRole={role}
@@ -195,6 +180,14 @@ export function Topbar({ userName, role, email, allowedRoles, userId, isSuperAdm
                   <DropdownMenuSeparator />
                 </>
               )}
+              <DropdownMenuItem
+                onClick={toggleTheme}
+                className="cursor-pointer"
+              >
+                {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="cursor-pointer text-red-600"

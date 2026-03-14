@@ -158,7 +158,7 @@ export function getEntityUrl(
     case "loan":
       return role === "borrower"
         ? `/borrower/loans/${id}`
-        : `/admin/pipeline/${id}`;
+        : `/admin/pipeline/${(metadata.loan_number as string) || (metadata.deal_number as string) || id}`;
     case "borrower":
       return `/admin/borrowers/${id}`;
     case "borrower_entity":
@@ -174,12 +174,12 @@ export function getEntityUrl(
     case "crm_contact":
       return `/admin/crm/${id}`;
     case "document":
-      if (metadata.loan_id) return `/admin/pipeline/${metadata.loan_id}`;
+      if (metadata.loan_id) return `/admin/pipeline/${(metadata.loan_number as string) || metadata.loan_id}`;
       if (metadata.fund_id) return `/admin/funds/${metadata.fund_id}`;
       return "#";
     case "loan_document":
       return metadata.loan_id
-        ? `/admin/pipeline/${metadata.loan_id}`
+        ? `/admin/pipeline/${(metadata.loan_number as string) || metadata.loan_id}`
         : "#";
     case "project":
       return `/admin/operations`;

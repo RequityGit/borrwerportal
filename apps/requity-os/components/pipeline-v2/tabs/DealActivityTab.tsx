@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,7 +38,8 @@ import { relTime } from "@/components/crm/contact-360/contact-detail-shared";
 import type { ActivityData, EmailData } from "@/components/crm/contact-360/types";
 import { ACTIVITY_TYPE_CONFIG } from "@/components/crm/contact-360/types";
 import type { DealActivity } from "@/components/pipeline-v2/pipeline-types";
-import { logDealActivityRich } from "@/app/(authenticated)/admin/pipeline-v2/[id]/actions";
+import { logDealActivityRich, fetchActivityTabData } from "@/app/(authenticated)/admin/pipeline-v2/[id]/actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ── Icon map for activity types ──
 
@@ -126,9 +126,6 @@ function parseAttachments(
 
 interface DealActivityTabProps {
   dealId: string;
-  dealActivities: DealActivity[];
-  crmActivities: ActivityData[];
-  crmEmails: EmailData[];
   currentUserId: string;
   primaryContactId: string | null;
 }
@@ -137,9 +134,6 @@ interface DealActivityTabProps {
 
 export function DealActivityTab({
   dealId,
-  dealActivities,
-  crmActivities,
-  crmEmails,
   currentUserId,
   primaryContactId,
 }: DealActivityTabProps) {
@@ -149,6 +143,26 @@ export function DealActivityTab({
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+
+  const [dealActivities, setDealActivities] = useState<DealActivity[]>([]);
+  const [crmActivities, setCrmActivities] = useState<ActivityData[]>([]);
+  const [crmEmails, setCrmEmails] = useState<EmailData[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDataLoading(true);
+    fetchActivityTabData(dealId, primaryContactId).then((result) => {
+      if (cancelled) return;
+      if (!("error" in result) || !result.error) {
+        setDealActivities(result.dealActivities as unknown as DealActivity[]);
+        setCrmActivities(result.crmActivities as unknown as ActivityData[]);
+        setCrmEmails(result.crmEmails as unknown as EmailData[]);
+      }
+      setDataLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [dealId, primaryContactId]);
 
   const [form, setForm] = useState({
     activity_type: "note",
@@ -231,6 +245,13 @@ export function DealActivityTab({
       setShowForm(false);
       setForm({ activity_type: "note", subject: "", description: "" });
       router.refresh();
+      fetchActivityTabData(dealId, primaryContactId).then((r) => {
+        if (!("error" in r) || !r.error) {
+          setDealActivities(r.dealActivities as unknown as DealActivity[]);
+          setCrmActivities(r.crmActivities as unknown as ActivityData[]);
+          setCrmEmails(r.crmEmails as unknown as EmailData[]);
+        }
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       toast({
@@ -241,6 +262,22 @@ export function DealActivityTab({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (dataLoading) {
+    return (
+      <div className="space-y-4 py-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex gap-3.5">
+            <Skeleton className="h-[30px] w-[30px] rounded-lg shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (

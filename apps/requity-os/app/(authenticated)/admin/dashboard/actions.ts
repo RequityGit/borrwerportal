@@ -73,6 +73,15 @@ export interface WeeklySummary {
   period: string;
 }
 
+export interface LoanKPIs {
+  totalOriginated: number;
+  totalOutstanding: number;
+  closedThisMonthCount: number;
+  closedThisMonthVolume: number;
+  closedThisYearCount: number;
+  closedThisYearVolume: number;
+}
+
 export interface ActionDashboardData {
   tasks: DashboardTask[];
   borrowerRequests: BorrowerRequest[];
@@ -80,6 +89,7 @@ export interface ActionDashboardData {
   pendingApprovals: PendingApproval[];
   dealLog: DealLogEntry[];
   weeklySummary: WeeklySummary | null;
+  loanKPIs: LoanKPIs;
   userName: string;
 }
 
@@ -178,6 +188,42 @@ export async function fetchActionDashboardData(): Promise<
       .eq("user_id", user.id)
       .single();
 
+    // Fetch loan KPIs
+    const originatedStatuses = ["funded", "servicing", "payoff", "paid_off", "note_sold", "closed"];
+    const outstandingStatuses = ["funded", "servicing"];
+
+    const { data: allLoans } = await supabase
+      .from("loans")
+      .select("status, total_loan_amount, closing_date, funding_date")
+      .is("deleted_at", null);
+
+    const loans = allLoans || [];
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const yearStart = `${now.getFullYear()}-01-01`;
+
+    const loanKPIs: LoanKPIs = {
+      totalOriginated: loans.filter((l) => originatedStatuses.includes(l.status)).length,
+      totalOutstanding: loans.filter((l) => outstandingStatuses.includes(l.status)).length,
+      closedThisMonthCount: 0,
+      closedThisMonthVolume: 0,
+      closedThisYearCount: 0,
+      closedThisYearVolume: 0,
+    };
+
+    for (const l of loans) {
+      const closeDate = l.closing_date || l.funding_date;
+      if (!closeDate || !originatedStatuses.includes(l.status)) continue;
+      const amt = Number(l.total_loan_amount) || 0;
+      if (closeDate >= yearStart) {
+        loanKPIs.closedThisYearCount++;
+        loanKPIs.closedThisYearVolume += amt;
+      }
+      if (closeDate >= monthStart) {
+        loanKPIs.closedThisMonthCount++;
+        loanKPIs.closedThisMonthVolume += amt;
+      }
+    }
+
     return {
       data: {
         tasks: (tasks as DashboardTask[]) || [],
@@ -196,6 +242,7 @@ export async function fetchActionDashboardData(): Promise<
               period: String(weeklyData.period || ""),
             }
           : null,
+        loanKPIs,
         userName: (profile?.full_name as string) || "there",
       },
     };

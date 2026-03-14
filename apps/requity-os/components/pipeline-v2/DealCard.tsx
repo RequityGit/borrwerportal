@@ -41,13 +41,11 @@ export function DealCard({
   const days = daysInStage(deal.stage_entered_at);
   const alertLevel = getAlertLevel(days, stageConfig);
 
-  const metricsString = cardType.card_metrics
+  const displayMetrics = cardType.card_metrics
     .map((m) => {
       const val = getCardMetricValue(m, deal, cardType);
-      if (val === "--") return null;
       return m.label ? `${m.label} ${val}` : val;
     })
-    .filter(Boolean)
     .join(" · ");
 
   return (
@@ -58,7 +56,7 @@ export function DealCard({
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       className={cn(
-        "w-full text-left rounded-lg border bg-card p-3 space-y-2",
+        "w-full h-[130px] text-left rounded-lg border bg-card p-3 flex flex-col",
         "hover:border-foreground/20 hover:shadow-sm transition-all cursor-grab",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isDragging && "opacity-50"
@@ -66,7 +64,7 @@ export function DealCard({
     >
       {/* Row 1: Name + card type badge */}
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium leading-tight line-clamp-2">
+        <span className="text-sm font-medium leading-tight line-clamp-1">
           {deal.name}
         </span>
         <Badge
@@ -81,29 +79,27 @@ export function DealCard({
       </div>
 
       {/* Row 2: Asset class */}
-      {deal.asset_class && (
-        <div className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-          <span className="text-xs text-muted-foreground">
-            {ASSET_CLASS_LABELS[deal.asset_class as AssetClass] ?? deal.asset_class}
-          </span>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 mt-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+        <span className="text-xs text-muted-foreground">
+          {deal.asset_class
+            ? (ASSET_CLASS_LABELS[deal.asset_class as AssetClass] ?? deal.asset_class)
+            : "--"}
+        </span>
+      </div>
 
       {/* Row 3: Amount */}
-      {deal.amount != null && (
-        <p className="text-sm font-semibold num">
-          {formatCurrency(deal.amount)}
-        </p>
-      )}
+      <p className={cn("text-sm font-semibold num mt-1", deal.amount == null && "text-muted-foreground/50")}>
+        {formatCurrency(deal.amount)}
+      </p>
 
-      {/* Row 4: Card metrics subtitle */}
-      {metricsString && (
-        <p className="text-xs text-muted-foreground num">{metricsString}</p>
-      )}
+      {/* Row 4: Card metrics */}
+      <p className="text-xs text-muted-foreground num mt-0.5 truncate">
+        {displayMetrics || "\u00A0"}
+      </p>
 
-      {/* Row 5: Footer */}
-      <div className="flex items-center justify-between pt-1 border-t border-border/50">
+      {/* Row 5: Footer -- pushed to bottom */}
+      <div className="flex items-center justify-between pt-1.5 mt-auto border-t border-border/50">
         <div className="flex items-center gap-2">
           {hasRelationships && (
             <Link2 className="h-3 w-3 text-muted-foreground" />
@@ -134,24 +130,22 @@ export function DealCardOverlay({
   const days = daysInStage(deal.stage_entered_at);
   const alertLevel = getAlertLevel(days, stageConfig);
 
-  const metricsString = cardType.card_metrics
+  const displayMetrics = cardType.card_metrics
     .map((m) => {
       const val = getCardMetricValue(m, deal, cardType);
-      if (val === "--") return null;
       return m.label ? `${m.label} ${val}` : val;
     })
-    .filter(Boolean)
     .join(" · ");
 
   return (
     <div
       className={cn(
-        "w-72 text-left rounded-lg border bg-card p-3 space-y-2 shadow-lg",
+        "w-72 h-[130px] text-left rounded-lg border bg-card p-3 flex flex-col shadow-lg",
         "ring-2 ring-primary/50 cursor-grabbing"
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium leading-tight line-clamp-2">
+        <span className="text-sm font-medium leading-tight line-clamp-1">
           {deal.name}
         </span>
         <Badge
@@ -164,21 +158,21 @@ export function DealCardOverlay({
           {CARD_TYPE_SHORT_LABELS[cardType.slug] ?? cardType.label}
         </Badge>
       </div>
-      {deal.asset_class && (
-        <div className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-          <span className="text-xs text-muted-foreground">
-            {ASSET_CLASS_LABELS[deal.asset_class as AssetClass] ?? deal.asset_class}
-          </span>
-        </div>
-      )}
-      {deal.amount != null && (
-        <p className="text-sm font-semibold num">{formatCurrency(deal.amount)}</p>
-      )}
-      {metricsString && (
-        <p className="text-xs text-muted-foreground num">{metricsString}</p>
-      )}
-      <div className="flex items-center justify-between pt-1 border-t border-border/50">
+      <div className="flex items-center gap-1.5 mt-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+        <span className="text-xs text-muted-foreground">
+          {deal.asset_class
+            ? (ASSET_CLASS_LABELS[deal.asset_class as AssetClass] ?? deal.asset_class)
+            : "--"}
+        </span>
+      </div>
+      <p className={cn("text-sm font-semibold num mt-1", deal.amount == null && "text-muted-foreground/50")}>
+        {formatCurrency(deal.amount)}
+      </p>
+      <p className="text-xs text-muted-foreground num mt-0.5 truncate">
+        {displayMetrics || "\u00A0"}
+      </p>
+      <div className="flex items-center justify-between pt-1.5 mt-auto border-t border-border/50">
         <div className="flex items-center gap-2">
           {hasRelationships && (
             <Link2 className="h-3 w-3 text-muted-foreground" />

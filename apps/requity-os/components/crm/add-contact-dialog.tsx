@@ -35,10 +35,11 @@ import {
   US_STATES,
 } from "@/lib/constants";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, X, Plus } from "lucide-react";
+import { UserPlus, X, Plus, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPhoneInput } from "@/lib/format";
 import { buildContactSchema } from "@/lib/schemas/contact";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import type { Database } from "@/lib/supabase/types";
 
 type CompanyType = Database["public"]["Enums"]["company_type_enum"];
@@ -67,6 +68,8 @@ interface AddContactDialogProps {
   preselectedCompanyName?: string;
   trigger?: React.ReactNode;
   onSuccess?: (contactId: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function AddContactDialog({
@@ -76,8 +79,15 @@ export function AddContactDialog({
   preselectedCompanyName,
   trigger,
   onSuccess,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: AddContactDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled
+    ? (v: boolean) => controlledOnOpenChange?.(v)
+    : setInternalOpen;
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -89,6 +99,8 @@ export function AddContactDialog({
   const [showNewCompanyForm, setShowNewCompanyForm] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyType, setNewCompanyType] = useState("");
+  const [newCompanyWebsite, setNewCompanyWebsite] = useState("");
+  const [newCompanyDescription, setNewCompanyDescription] = useState("");
 
   const [form, setForm] = useState({
     first_name: "",
@@ -98,8 +110,8 @@ export function AddContactDialog({
     company_id: (preselectedCompanyId ?? "") as string,
     company_name: preselectedCompanyName ?? "",
     source: "",
-    lifecycle_stage: "uncontacted",
-    assigned_to: "",
+    lifecycle_stage: "active",
+    assigned_to: currentUserId,
     address_line1: "",
     city: "",
     state: "",
@@ -188,8 +200,8 @@ export function AddContactDialog({
       company_id: preselectedCompanyId ?? "",
       company_name: preselectedCompanyName ?? "",
       source: "",
-      lifecycle_stage: "uncontacted",
-      assigned_to: "",
+      lifecycle_stage: "active",
+      assigned_to: currentUserId,
       address_line1: "",
       city: "",
       state: "",
@@ -204,6 +216,8 @@ export function AddContactDialog({
     setShowNewCompanyForm(false);
     setNewCompanyName("");
     setNewCompanyType("");
+    setNewCompanyWebsite("");
+    setNewCompanyDescription("");
     setCompanySearch("");
   }
 
@@ -238,12 +252,16 @@ export function AddContactDialog({
       // If creating a new company, do that first
       let companyId = form.company_id || null;
       if (showNewCompanyForm && newCompanyName.trim() && newCompanyType) {
+        const companyInsert: Record<string, unknown> = {
+          name: newCompanyName.trim(),
+          company_type: newCompanyType as CompanyType,
+        };
+        if (newCompanyWebsite.trim()) companyInsert.website = newCompanyWebsite.trim();
+        if (newCompanyDescription.trim()) companyInsert.notes = newCompanyDescription.trim();
+
         const { data: newCompany, error: companyError } = await supabase
           .from("companies")
-          .insert({
-            name: newCompanyName.trim(),
-            company_type: newCompanyType as CompanyType,
-          })
+          .insert(companyInsert as never)
           .select("id")
           .single();
         if (companyError) throw companyError;
@@ -323,14 +341,16 @@ export function AddContactDialog({
         if (!v) resetForm();
       }}
     >
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Add Contact
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Add Contact
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Contact</DialogTitle>
@@ -460,39 +480,38 @@ export function AddContactDialog({
             <p className="text-xs text-red-500">{errors.contact_method}</p>
           )}
 
-          {/* Company (searchable dropdown) */}
+          {/* Company (Salesforce-style lookup) */}
           <div className="space-y-2">
             <Label>Company</Label>
             {form.company_id ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-sm py-1 px-3">
+              <div className="flex h-9 items-center rounded-md border bg-muted/50 pl-2.5 pr-1">
+                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="ml-2 flex-1 truncate text-sm font-medium">
                   {companies.find((c) => c.id === form.company_id)?.name ||
                     form.company_name}
-                </Badge>
-                <Button
+                </span>
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
                   onClick={() => {
                     updateField("company_id", "");
                     updateField("company_name", "");
                   }}
+                  className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
                 >
-                  <X className="h-3 w-3" />
-                </Button>
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
             ) : showNewCompanyForm ? (
               <div className="space-y-3 rounded-md border p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Create New Company</p>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={() => setShowNewCompanyForm(false)}
+                    className="flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
                   >
-                    <X className="h-3 w-3" />
-                  </Button>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">
@@ -521,6 +540,23 @@ export function AddContactDialog({
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Website</Label>
+                  <Input
+                    value={newCompanyWebsite}
+                    onChange={(e) => setNewCompanyWebsite(e.target.value)}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea
+                    value={newCompanyDescription}
+                    onChange={(e) => setNewCompanyDescription(e.target.value)}
+                    placeholder="Brief description of the company"
+                    rows={2}
+                  />
+                </div>
               </div>
             ) : (
               <div className="relative">
@@ -531,15 +567,19 @@ export function AddContactDialog({
                     setShowCompanyDropdown(true);
                   }}
                   onFocus={() => setShowCompanyDropdown(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowCompanyDropdown(false), 200);
+                  }}
                   placeholder="Search companies..."
                 />
                 {showCompanyDropdown && (
-                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-card shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-y-auto">
                     {companies.map((c) => (
                       <button
                         key={c.id}
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           updateField("company_id", c.id);
                           updateField("company_name", c.name);
@@ -547,12 +587,16 @@ export function AddContactDialog({
                           setShowCompanyDropdown(false);
                         }}
                       >
-                        {c.name}
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span>{c.name}</span>
+                        </div>
                       </button>
                     ))}
                     <button
                       type="button"
-                      className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-accent flex items-center gap-1 border-t"
+                      className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-accent flex items-center gap-2 border-t transition-colors"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         setShowNewCompanyForm(true);
                         setNewCompanyName(companySearch);
@@ -560,7 +604,7 @@ export function AddContactDialog({
                         setCompanySearch("");
                       }}
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3.5 w-3.5" />
                       Create New Company
                     </button>
                   </div>
@@ -648,9 +692,15 @@ export function AddContactDialog({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Street Address</Label>
-                <Input
+                <AddressAutocomplete
                   value={form.address_line1}
-                  onChange={(e) => updateField("address_line1", e.target.value)}
+                  onChange={(v) => updateField("address_line1", v)}
+                  onAddressSelect={(addr) => {
+                    updateField("address_line1", addr.address_line1);
+                    updateField("city", addr.city);
+                    updateField("state", addr.state);
+                    updateField("zip", addr.zip);
+                  }}
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">

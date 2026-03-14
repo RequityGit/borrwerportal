@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
@@ -280,10 +281,16 @@ export function AddBorrowerForm({ borrower }: AddBorrowerFormProps) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="address1">Address Line 1</Label>
-                <Input
+                <AddressAutocomplete
                   id="address1"
                   value={addressLine1}
-                  onChange={(e) => setAddressLine1(e.target.value)}
+                  onChange={setAddressLine1}
+                  onAddressSelect={(addr) => {
+                    setAddressLine1(addr.address_line1);
+                    setCity(addr.city);
+                    setState(addr.state);
+                    setZip(addr.zip);
+                  }}
                   placeholder="123 Main St"
                 />
               </div>

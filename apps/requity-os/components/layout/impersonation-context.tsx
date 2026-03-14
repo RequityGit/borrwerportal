@@ -65,7 +65,7 @@ export function ImpersonationProvider({
               ? "/investor/dashboard"
               : data.role === "borrower"
                 ? "/borrower/dashboard"
-                : "/admin/dashboard";
+                : "/admin/pipeline";
           router.push(roleDashboard);
           router.refresh();
         }
@@ -83,7 +83,7 @@ export function ImpersonationProvider({
       });
 
       if (res.ok) {
-        router.push("/admin/dashboard");
+        router.push("/admin/pipeline");
         router.refresh();
       }
     } catch (err) {

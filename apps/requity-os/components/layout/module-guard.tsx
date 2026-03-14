@@ -9,11 +9,10 @@ import { useEffect } from "react";
  * Used to determine which module a page belongs to for access control.
  */
 const ROUTE_TO_MODULE: Record<string, string> = {
-  "/admin/dashboard": "dashboard",
+  "/admin/pipeline": "pipeline",
   "/admin/crm": "crm",
   "/admin/investors": "crm",
   "/admin/borrowers": "crm",
-  "/admin/pipeline": "pipeline",
   "/admin/originations": "pipeline",
   "/admin/loans": "pipeline",
   "/admin/conditions": "pipeline",
@@ -51,7 +50,7 @@ export function ModuleGuard({ children }: { children: React.ReactNode }) {
     const moduleName = getModuleForPath(pathname);
     if (moduleName && !hasModuleAccess(moduleName)) {
       // Redirect to dashboard if user doesn't have access to this module
-      router.replace("/admin/dashboard");
+      router.replace("/admin/pipeline");
     }
   }, [pathname, hasModuleAccess, isSuperAdmin, router]);
 

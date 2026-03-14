@@ -37,7 +37,8 @@ export type CrmFieldType =
   | "multi_select"
   | "boolean"
   | "textarea"
-  | "readonly";
+  | "readonly"
+  | "flood_risk";
 
 export interface CrmSectionField {
   label: string;

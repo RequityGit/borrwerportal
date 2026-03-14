@@ -1,7 +1,19 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   FieldRow,
   MonoValue,
@@ -32,6 +44,7 @@ export const DROPDOWN_FALLBACKS: Record<string, { label: string; value: string }
     { label: "Prospect", value: "prospect" },
     { label: "Active", value: "active" },
     { label: "Past", value: "past" },
+    { label: "Do Not Contact", value: "do_not_contact" },
   ],
   status: [
     { label: "Active", value: "active" },
@@ -133,6 +146,9 @@ function renderExperienceCount(val: unknown): ReactNode {
   if (val == null || val === 0) return undefined;
   return `${val} transaction${val === 1 ? "" : "s"}`;
 }
+
+// Fields with custom renderers that should remain read-only in inline editing mode
+const READONLY_CUSTOM_FIELDS = new Set(["accreditation_status"]);
 
 // Map of field_key → custom render function
 // Returns undefined for "show dash", null for "skip entirely"
@@ -332,4 +348,351 @@ export function buildEditFields(
         showYearNavigation: f.field_key === "date_of_birth",
       };
     });
+}
+
+// ─── Inline Editing Components ───
+
+function formatCurrencyDisplay(val: unknown): string {
+  if (val == null || val === "") return "";
+  const n = Number(val);
+  if (isNaN(n)) return String(val);
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function parseCurrencyInput(raw: string): number | null {
+  const stripped = raw.replace(/[^0-9.\-]/g, "");
+  if (stripped === "" || stripped === "-") return null;
+  const n = Number(stripped);
+  return isNaN(n) ? null : n;
+}
+
+function CurrencyInput({
+  label,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+}: {
+  label: string;
+  value: unknown;
+  onChange: (val: unknown) => void;
+  onBlur: () => void;
+  disabled?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [rawText, setRawText] = useState("");
+
+  const handleFocus = useCallback(() => {
+    setEditing(true);
+    setRawText(value != null && value !== "" ? String(value) : "");
+  }, [value]);
+
+  const handleBlur = useCallback(() => {
+    setEditing(false);
+    onBlur();
+  }, [onBlur]);
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+        <Input
+          type="text"
+          inputMode="decimal"
+          value={editing ? rawText : formatCurrencyDisplay(value)}
+          onChange={(e) => {
+            setRawText(e.target.value);
+            onChange(parseCurrencyInput(e.target.value));
+          }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          disabled={disabled}
+          className="pl-7 text-right num"
+          placeholder="0"
+        />
+      </div>
+    </div>
+  );
+}
+
+function PhoneInput({
+  label,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+}: {
+  label: string;
+  value: unknown;
+  onChange: (val: unknown) => void;
+  onBlur: () => void;
+  disabled?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [rawText, setRawText] = useState("");
+
+  const handleFocus = useCallback(() => {
+    setEditing(true);
+    const str = value != null ? String(value) : "";
+    setRawText(formatPhoneInput(str) || str);
+  }, [value]);
+
+  const handleBlur = useCallback(() => {
+    setEditing(false);
+    onBlur();
+  }, [onBlur]);
+
+  const displayValue = value != null && String(value) !== ""
+    ? formatPhoneNumber(String(value))
+    : "";
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        type="tel"
+        value={editing ? rawText : (displayValue === "\u2014" ? "" : displayValue)}
+        onChange={(e) => {
+          const formatted = formatPhoneInput(e.target.value);
+          setRawText(formatted);
+          const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+          onChange(digits || null);
+        }}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        disabled={disabled}
+        placeholder="(555) 555-5555"
+      />
+    </div>
+  );
+}
+
+export interface CrmInlineFieldProps {
+  field: FieldLayout;
+  value: unknown;
+  onChange: (val: unknown) => void;
+  onBlur: () => void;
+  disabled?: boolean;
+  options?: { label: string; value: string }[];
+  showYearNavigation?: boolean;
+}
+
+export function CrmInlineField({
+  field,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+  options: optionsProp,
+  showYearNavigation,
+}: CrmInlineFieldProps) {
+  const options = optionsProp ?? field.dropdown_options ?? DROPDOWN_FALLBACKS[field.field_key] ?? [];
+
+  switch (field.field_type) {
+    case "currency":
+      return (
+        <CurrencyInput
+          label={field.field_label}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          disabled={disabled}
+        />
+      );
+
+    case "percentage":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{field.field_label}</Label>
+          <div className="relative">
+            <Input
+              type="number"
+              step="0.01"
+              value={value != null ? String(value) : ""}
+              onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+              onBlur={onBlur}
+              disabled={disabled}
+              className="pr-7 text-right num"
+              placeholder="0.00"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+          </div>
+        </div>
+      );
+
+    case "number":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{field.field_label}</Label>
+          <Input
+            type="number"
+            value={value != null ? String(value) : ""}
+            onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+            onBlur={onBlur}
+            disabled={disabled}
+            className="num"
+            placeholder="0"
+          />
+        </div>
+      );
+
+    case "boolean":
+      return (
+        <div className="flex items-center justify-between py-2">
+          <Label className="text-xs">{field.field_label}</Label>
+          <Switch
+            checked={!!value}
+            onCheckedChange={(checked) => {
+              onChange(checked);
+              setTimeout(onBlur, 0);
+            }}
+            disabled={disabled}
+          />
+        </div>
+      );
+
+    case "dropdown":
+    case "team_member":
+    case "company":
+    case "relationship":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{field.field_label}</Label>
+          <Select
+            value={value != null ? String(value) : ""}
+            onValueChange={(val) => {
+              onChange(val || null);
+              setTimeout(onBlur, 0);
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+
+    case "date":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{field.field_label}</Label>
+          <DatePicker
+            value={value != null ? String(value) : ""}
+            onChange={(val) => {
+              onChange(val || null);
+              setTimeout(onBlur, 0);
+            }}
+            disabled={disabled}
+            showYearNavigation={showYearNavigation}
+          />
+        </div>
+      );
+
+    case "phone":
+      return (
+        <PhoneInput
+          label={field.field_label}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          disabled={disabled}
+        />
+      );
+
+    default:
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{field.field_label}</Label>
+          {field.field_type === "textarea" ? (
+            <Textarea
+              value={value != null ? String(value) : ""}
+              onChange={(e) => onChange(e.target.value || null)}
+              onBlur={onBlur}
+              disabled={disabled}
+              rows={4}
+              placeholder={field.field_label}
+              className="text-sm"
+            />
+          ) : (
+            <Input
+              type={field.field_type === "email" ? "email" : "text"}
+              value={value != null ? String(value) : ""}
+              onChange={(e) => onChange(e.target.value || null)}
+              onBlur={onBlur}
+              disabled={disabled}
+              placeholder={field.field_label}
+            />
+          )}
+        </div>
+      );
+  }
+}
+
+// ─── Inline Dynamic Fields Renderer ───
+
+export function renderDynamicFieldsInline(
+  fields: FieldLayout[],
+  dataObj: Record<string, unknown>,
+  isSuperAdmin: boolean,
+  callbacks: {
+    onChange: (fieldKey: string, value: unknown) => void;
+    onBlur: (fieldKey: string) => void;
+    disabled?: boolean;
+    optionsOverrides?: Record<string, { label: string; value: string }[]>;
+  },
+  hiddenFieldKeys?: Set<string>,
+  readOnlyFieldKeys?: Set<string>,
+): ReactNode {
+  const visible = fields
+    .filter((f) => f.is_visible)
+    .filter((f) => !hiddenFieldKeys || !hiddenFieldKeys.has(f.field_key))
+    .filter((f) => {
+      if (f.field_key === "ssn_last4" && !isSuperAdmin) return false;
+      return true;
+    })
+    .sort((a, b) => a.display_order - b.display_order);
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5">
+      {visible.map((f) => {
+        const propKey = FIELD_KEY_TO_PROP[f.field_key] ?? f.field_key;
+        const rawValue = dataObj[propKey];
+
+        const isFormula = f.field_type === "formula" && f.formula_expression;
+        const isReadOnlyCustom = READONLY_CUSTOM_FIELDS.has(f.field_key);
+        const isReadOnly = readOnlyFieldKeys?.has(f.field_key);
+
+        if (isFormula || isReadOnlyCustom || isReadOnly) {
+          return renderField(f, dataObj, isSuperAdmin);
+        }
+
+        const options = callbacks.optionsOverrides?.[f.field_key]
+          ?? f.dropdown_options
+          ?? DROPDOWN_FALLBACKS[f.field_key]
+          ?? undefined;
+
+        return (
+          <CrmInlineField
+            key={f.field_key}
+            field={f}
+            value={rawValue}
+            onChange={(val) => callbacks.onChange(propKey, val)}
+            onBlur={() => callbacks.onBlur(propKey)}
+            disabled={callbacks.disabled}
+            options={options ?? undefined}
+            showYearNavigation={f.field_key === "date_of_birth"}
+          />
+        );
+      })}
+    </div>
+  );
 }

@@ -56,20 +56,19 @@ const borrowerNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, moduleName: "dashboard" },
-  {
-    label: "CRM",
-    href: "/admin/crm",
-    icon: Contact,
-    activePaths: ["/admin/investors", "/admin/borrowers"],
-    moduleName: "crm",
-  },
   {
     label: "Pipeline",
     href: "/admin/pipeline",
     icon: Columns3,
     activePaths: ["/admin/originations", "/admin/loans", "/admin/conditions", "/admin/pricing"],
     moduleName: "pipeline",
+  },
+  {
+    label: "CRM",
+    href: "/admin/crm",
+    icon: Contact,
+    activePaths: ["/admin/investors", "/admin/borrowers"],
+    moduleName: "crm",
   },
   { label: "Models", href: "/admin/models", icon: FlaskConical, activePaths: ["/admin/models"], moduleName: "models" },
   { label: "Servicing", href: "/admin/servicing", icon: Banknote, moduleName: "servicing" },

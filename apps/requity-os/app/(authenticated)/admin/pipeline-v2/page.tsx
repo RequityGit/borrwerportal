@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/shared/page-header";
 import { PipelineView } from "@/components/pipeline-v2/PipelineView";
+import { PipelineHeader } from "./PipelineHeader";
 import {
   daysInStage,
   getAlertLevel,
@@ -154,10 +154,7 @@ export default async function PipelineV2Page() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Pipeline"
-        description="Unified deal pipeline across debt and equity."
-      />
+      <PipelineHeader intakeCount={intakeItems.length} />
       <PipelineView
         deals={deals}
         cardTypes={cardTypes}
@@ -166,6 +163,7 @@ export default async function PipelineV2Page() {
         relationshipDealIds={relationshipDealIds}
         teamMembers={teamMembers}
         intakeItems={intakeItems}
+        currentUserId={session.user.id}
       />
     </div>
   );
