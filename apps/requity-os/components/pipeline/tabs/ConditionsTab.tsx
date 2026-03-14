@@ -517,9 +517,9 @@ function ConditionNoteThread({
       {loading ? (
         <div className="h-24 rounded-lg bg-muted animate-pulse" />
       ) : notes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
-          <MessageSquare className="mb-2 h-8 w-8 text-muted-foreground/50" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">No notes on this condition yet</p>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-4 text-center">
+          <MessageSquare className="mb-1.5 h-5 w-5 text-muted-foreground/50" strokeWidth={1.5} />
+          <p className="text-xs text-muted-foreground">No notes on this condition yet</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -665,7 +665,6 @@ function ConditionRow({
     });
   }, []);
 
-  const statusCfg = STATUS_CONFIG[optimisticStatus] ?? STATUS_CONFIG.pending;
   const cleared =
     optimisticStatus === "approved" ||
     optimisticStatus === "waived" ||
@@ -783,10 +782,6 @@ function ConditionRow({
             <span className="num">{noteCount}</span>
           </button>
         )}
-
-        <Badge className={cn("shrink-0 text-[10px] border-0", statusCfg.pillClass)}>
-          {statusCfg.label}
-        </Badge>
 
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <Select

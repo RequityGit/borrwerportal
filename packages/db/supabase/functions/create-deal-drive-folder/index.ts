@@ -281,10 +281,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      serviceRoleKey!
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
+    if (!supabaseUrl || !token) {
+      return new Response(
+        JSON.stringify({ error: "Missing Supabase URL or authorization token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const admin = createClient(supabaseUrl, token);
 
     // Fetch deal with contact and company data for folder naming
     const { data: dealRows, error: dealErr } = await admin.rpc("get_deal_folder_data", {
