@@ -27,6 +27,7 @@ import { updateBorrowerAction } from "@/app/(authenticated)/admin/borrowers/new/
 import { Loader2, Pencil } from "lucide-react";
 import { US_STATES } from "@/lib/constants";
 import { formatPhoneInput } from "@/lib/format";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 // Borrower contact fields now live on crm_contacts; use `any` until refactored.
 
 interface BorrowerEditDialogProps {
@@ -225,10 +226,16 @@ export function BorrowerEditDialog({ borrower }: BorrowerEditDialogProps) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="editAddr1">Address Line 1</Label>
-                <Input
+                <AddressAutocomplete
                   id="editAddr1"
                   value={addressLine1}
-                  onChange={(e) => setAddressLine1(e.target.value)}
+                  onChange={setAddressLine1}
+                  onAddressSelect={(addr) => {
+                    setAddressLine1(addr.address_line1);
+                    setCity(addr.city);
+                    setState(addr.state);
+                    setZip(addr.zip);
+                  }}
                 />
               </div>
               <div className="space-y-2">

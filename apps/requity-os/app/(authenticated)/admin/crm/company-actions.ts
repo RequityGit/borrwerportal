@@ -22,6 +22,7 @@ export interface AddCompanyInput {
   company_capabilities?: string[];
   lender_programs?: string[];
   geographies?: string[];
+  initial_note?: string | null;
 }
 
 export async function addCompanyAction(input: AddCompanyInput) {
@@ -63,6 +64,17 @@ export async function addCompanyAction(input: AddCompanyInput) {
     if (error) {
       console.error("addCompanyAction error:", error);
       return { error: error.message };
+    }
+
+    if (input.initial_note?.trim()) {
+      const { error: noteError } = await admin.from("notes").insert({
+        company_id: data.id,
+        body: input.initial_note.trim(),
+        author_id: auth.user.id,
+      });
+      if (noteError) {
+        console.error("addCompanyAction note insert error:", noteError);
+      }
     }
 
     return { success: true, id: data.id };

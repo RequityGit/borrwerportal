@@ -646,11 +646,10 @@ const MODULE_TO_SOURCE: Record<string, string> = {
   contact_profile: "contact",
   borrower_profile: "borrower",
   investor_profile: "investor",
-  borrower_entity: "borrower_entity",
+  borrower_entity: "borrower",
   company_info: "company",
   uw_deal: "unified_deal",
-  uw_property: "property",
-  uw_borrower: "borrower",
+  property: "property",
   loan_details: "loan",
 };
 
@@ -1032,6 +1031,32 @@ export async function removeLayoutField(fieldId: string): Promise<{
     const { error } = await admin
       .from(FIELDS)
       .delete()
+      .eq("id" as never, fieldId as never);
+
+    if (error) return { error: error.message };
+    revalidate();
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Update column_span on a layout field
+// ---------------------------------------------------------------------------
+
+export async function updateLayoutFieldSpan(
+  fieldId: string,
+  columnSpan: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const auth = await requireSuperAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from(FIELDS)
+      .update({ column_span: columnSpan } as never)
       .eq("id" as never, fieldId as never);
 
     if (error) return { error: error.message };

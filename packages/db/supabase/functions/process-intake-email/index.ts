@@ -354,26 +354,24 @@ async function matchProperty(
   return null;
 }
 
-async function matchOpportunity(
+async function matchDeal(
   admin: ReturnType<typeof createClient>,
   parsed: ParsedData,
   contactId: string | null,
-  propertyId: string | null
+  propertyId: string | null,
+  subject: string | null,
+  body: string | null
 ): Promise<MatchResult | null> {
-  if (!contactId && !propertyId) return null;
-
-  // Look for existing deals matching contact + property
-  let query = admin
+  const { data: deals } = await admin
     .from("unified_deals")
-    .select("id, name, amount, primary_contact_id, property_id")
+    .select("id, name, deal_number, amount, primary_contact_id, property_id, company_id, stage, loan_type")
     .in("status", ["active", "on_hold"]);
 
-  if (contactId) {
-    query = query.eq("primary_contact_id", contactId);
-  }
-
-  const { data: deals } = await query;
   if (!deals || deals.length === 0) return null;
+
+  const searchText = normalizeStr(`${subject || ""} ${(body || "").slice(0, 3000)}`);
+  let bestMatch: MatchResult | null = null;
+  let bestConfidence = 0;
 
   for (const d of deals) {
     const deal = d as Record<string, unknown>;
@@ -390,7 +388,6 @@ async function matchOpportunity(
       confidence += 0.35;
     }
 
-    // Amount within 5%
     if (parsed.loanAmount && deal.amount) {
       const diff =
         Math.abs((deal.amount as number) - parsed.loanAmount) /
@@ -401,17 +398,29 @@ async function matchOpportunity(
       }
     }
 
-    if (confidence >= 0.5) {
-      return {
+    const dealName = normalizeStr(deal.name as string);
+    if (dealName && dealName.length > 3 && searchText.includes(dealName)) {
+      matchedOn.push("deal_name");
+      confidence += 0.4;
+    }
+
+    if (deal.deal_number && searchText.includes(normalizeStr(deal.deal_number as string))) {
+      matchedOn.push("deal_number");
+      confidence += 0.5;
+    }
+
+    if (confidence > bestConfidence && confidence >= 0.4) {
+      bestConfidence = confidence;
+      bestMatch = {
         match_id: deal.id as string,
-        confidence: Math.min(confidence, 0.95),
+        confidence: Math.min(confidence, 0.98),
         matched_on: matchedOn,
         snapshot: deal,
       };
     }
   }
 
-  return null;
+  return bestMatch;
 }
 
 // ─── Main Handler ───
@@ -506,19 +515,23 @@ Deno.serve(async (req: Request) => {
 
     const propertyMatch = await matchProperty(admin, parsed);
 
-    const opportunityMatch = await matchOpportunity(
+    const dealMatch = await matchDeal(
       admin,
       parsed,
       contactMatch?.match_id || null,
-      propertyMatch?.match_id || null
+      propertyMatch?.match_id || null,
+      queueItem.subject,
+      queueItem.body_preview
     );
 
     const autoMatches: Record<string, MatchResult | null> = {
       contact: contactMatch,
       company: companyMatch,
       property: propertyMatch,
-      opportunity: opportunityMatch,
+      deal: dealMatch,
     };
+
+    const isAutoMatched = dealMatch && dealMatch.confidence >= 0.8;
 
     // Create intake_items record
     const { data: intakeItem, error: insertErr } = await admin
@@ -532,7 +545,12 @@ Deno.serve(async (req: Request) => {
         raw_body: queueItem.body_preview,
         parsed_data: parsed,
         auto_matches: autoMatches,
-        status: "pending",
+        status: isAutoMatched ? "auto_matched" : "pending",
+        auto_matched_deal_id: dealMatch?.match_id || null,
+        match_confidence: dealMatch?.confidence || 0,
+        match_details: dealMatch
+          ? { matched_on: dealMatch.matched_on, snapshot: dealMatch.snapshot }
+          : {},
       })
       .select("id")
       .single();
@@ -566,14 +584,15 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         intake_item_id: intakeItem.id,
+        auto_matched: isAutoMatched,
         matches: {
           contact: contactMatch ? { confidence: contactMatch.confidence } : null,
           company: companyMatch ? { confidence: companyMatch.confidence } : null,
           property: propertyMatch
             ? { confidence: propertyMatch.confidence }
             : null,
-          opportunity: opportunityMatch
-            ? { confidence: opportunityMatch.confidence }
+          deal: dealMatch
+            ? { confidence: dealMatch.confidence, deal_id: dealMatch.match_id, matched_on: dealMatch.matched_on }
             : null,
         },
       }),

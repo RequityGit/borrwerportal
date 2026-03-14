@@ -32,8 +32,16 @@ import {
   Link2,
 } from "lucide-react";
 import type { IntakeQueueItem, CardType } from "@/app/(authenticated)/admin/pipeline/intake/page";
-import { resolveIntakeItemAction } from "@/app/(authenticated)/admin/pipeline-v2/actions";
+import {
+  resolveIntakeItemAction,
+  previewMergeToDeal,
+  mergeToDealAction,
+  type MergePreview,
+} from "@/app/(authenticated)/admin/pipeline-v2/actions";
 import { formatDistanceToNow } from "date-fns";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { Check, AlertTriangle, ArrowRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface IntakeReviewSheetProps {
   item: IntakeQueueItem | null;
@@ -105,6 +113,16 @@ export function IntakeReviewSheet({ item, cardTypes, open, onOpenChange }: Intak
   const [pending, startTransition] = useTransition();
   const [dismissNote, setDismissNote] = useState("");
   const [showDismiss, setShowDismiss] = useState(false);
+
+  // Attach to deal state
+  const [showAttach, setShowAttach] = useState(false);
+  const [dealSearch, setDealSearch] = useState("");
+  const [dealResults, setDealResults] = useState<Array<{ id: string; name: string; deal_number: string | null; amount: number | null; stage: string | null }>>([]);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [mergePreview, setMergePreview] = useState<MergePreview | null>(null);
+  const [acceptedFields, setAcceptedFields] = useState<Set<string>>(new Set());
+  const [mergeNote, setMergeNote] = useState("");
+  const [searching, setSearching] = useState(false);
 
   // Editable deal fields
   const [editedDealFields, setEditedDealFields] = useState<Record<string, string>>({});
@@ -189,10 +207,77 @@ export function IntakeReviewSheet({ item, cardTypes, open, onOpenChange }: Intak
     });
   };
 
+  const handleDealSearch = async (query: string) => {
+    setDealSearch(query);
+    if (query.length < 2) { setDealResults([]); return; }
+
+    setSearching(true);
+    try {
+      const supabase = createBrowserClient();
+      const { data } = await supabase
+        .from("unified_deals")
+        .select("id, name, deal_number, amount, stage")
+        .or(`name.ilike.%${query}%,deal_number.ilike.%${query}%`)
+        .in("status", ["active", "on_hold"])
+        .order("updated_at", { ascending: false })
+        .limit(8);
+      setDealResults(data || []);
+    } catch {
+      setDealResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectDeal = async (dealId: string) => {
+    if (!item) return;
+    setSelectedDealId(dealId);
+    const result = await previewMergeToDeal(item.id, dealId);
+    if (result.preview) {
+      setMergePreview(result.preview);
+      const autoAccept = new Set(
+        result.preview.fields
+          .filter((f) => f.state === "auto_fill")
+          .map((f) => f.key)
+      );
+      setAcceptedFields(autoAccept);
+    }
+  };
+
+  const handleMerge = () => {
+    if (!item || !selectedDealId) return;
+    startTransition(async () => {
+      const result = await mergeToDealAction({
+        intakeQueueId: item.id,
+        dealId: selectedDealId,
+        acceptedFields: Array.from(acceptedFields),
+        notes: mergeNote || undefined,
+      });
+      if (result?.error) {
+        console.error("Merge failed:", result.error);
+      } else {
+        setShowAttach(false);
+        setMergePreview(null);
+        setSelectedDealId(null);
+        onOpenChange(false);
+        window.location.reload();
+      }
+    });
+  };
+
+  const toggleField = (key: string) => {
+    setAcceptedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   if (!item) return null;
 
-  const isResolved = ["deal_created", "attached", "dismissed"].includes(item.status);
-  const isReady = item.status === "ready";
+  const isResolved = ["deal_created", "attached", "dismissed", "merged"].includes(item.status);
+  const isReady = ["ready", "pending", "auto_matched"].includes(item.status);
   const allDealFields = getCurrentDealFields();
 
   return (
@@ -384,6 +469,158 @@ export function IntakeReviewSheet({ item, cardTypes, open, onOpenChange }: Intak
               </div>
             )}
 
+            {/* Attach to Deal flow */}
+            {showAttach && (
+              <div className="space-y-3">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Attach to Existing Deal
+                </Label>
+
+                {!mergePreview && (
+                  <div className="space-y-2">
+                    <Input
+                      className="h-8 text-xs"
+                      placeholder="Search by deal name or number..."
+                      value={dealSearch}
+                      onChange={(e) => handleDealSearch(e.target.value)}
+                    />
+                    {searching && (
+                      <p className="text-[11px] text-muted-foreground">Searching...</p>
+                    )}
+                    {dealResults.length > 0 && (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {dealResults.map((d) => (
+                          <button
+                            key={d.id}
+                            className="w-full flex items-center justify-between rounded-md border p-2 hover:bg-accent text-left"
+                            onClick={() => handleSelectDeal(d.id)}
+                          >
+                            <div>
+                              <p className="text-xs font-medium">{d.name}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {d.deal_number && `${d.deal_number} · `}{d.stage || "No stage"}
+                              </p>
+                            </div>
+                            {d.amount && (
+                              <span className="text-xs num text-muted-foreground">
+                                ${d.amount.toLocaleString()}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {dealSearch.length >= 2 && dealResults.length === 0 && !searching && (
+                      <p className="text-[11px] text-muted-foreground">No deals found</p>
+                    )}
+                  </div>
+                )}
+
+                {mergePreview && (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border p-3 bg-muted/30">
+                      <p className="text-xs font-medium">Merging into: {mergePreview.dealName}</p>
+                      {mergePreview.hasConflicts && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-amber-600">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          <span className="text-[11px]">Some fields conflict with existing values. Review below.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      {mergePreview.fields.map((f) => (
+                        <div
+                          key={f.key}
+                          className={`flex items-center gap-2 rounded-md border p-2 ${
+                            f.state === "conflict"
+                              ? "border-amber-500/50 bg-amber-500/5"
+                              : f.state === "auto_fill"
+                              ? "border-emerald-500/50 bg-emerald-500/5"
+                              : ""
+                          }`}
+                        >
+                          {(f.state === "auto_fill" || f.state === "conflict") && (
+                            <Checkbox
+                              checked={acceptedFields.has(f.key)}
+                              onCheckedChange={() => toggleField(f.key)}
+                              className="h-3.5 w-3.5"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium">{f.label}</p>
+                            <div className="flex items-center gap-1.5 text-[10px]">
+                              <span className="text-muted-foreground truncate">
+                                {f.existing ?? "(empty)"}
+                              </span>
+                              {f.state !== "skip" && f.state !== "match" && (
+                                <>
+                                  <ArrowRight className="h-2.5 w-2.5 flex-shrink-0" />
+                                  <span className="font-medium truncate">{f.incoming}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {f.state === "match" && (
+                            <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          {f.state === "auto_fill" && (
+                            <Badge variant="outline" className="text-[9px] border-emerald-500/50 text-emerald-600">Fill</Badge>
+                          )}
+                          {f.state === "conflict" && (
+                            <Badge variant="outline" className="text-[9px] border-amber-500/50 text-amber-600">Conflict</Badge>
+                          )}
+                          {f.state === "skip" && (
+                            <Badge variant="outline" className="text-[9px]">Skip</Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <Textarea
+                      className="text-xs min-h-[40px]"
+                      placeholder="Merge notes (optional)"
+                      value={mergeNote}
+                      onChange={(e) => setMergeNote(e.target.value)}
+                    />
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="text-xs"
+                        onClick={handleMerge}
+                        disabled={pending}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1" />
+                        Confirm Merge
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          setMergePreview(null);
+                          setSelectedDealId(null);
+                          setDealSearch("");
+                          setDealResults([]);
+                        }}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground"
+                        onClick={() => setShowAttach(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Dismiss form */}
             {showDismiss && (
               <div className="space-y-2 rounded-lg border p-3">
@@ -453,8 +690,8 @@ export function IntakeReviewSheet({ item, cardTypes, open, onOpenChange }: Intak
                 variant="outline"
                 size="sm"
                 className="text-xs"
-                disabled={pending}
-                title="Coming soon"
+                disabled={pending || showAttach}
+                onClick={() => { setShowAttach(true); setShowDismiss(false); }}
               >
                 <Link2 className="h-3.5 w-3.5 mr-1" />
                 Attach to Deal

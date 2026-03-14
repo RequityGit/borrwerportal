@@ -64,7 +64,7 @@ const adminBottomNav: BottomNavItem[] = [
     href: "/admin/operations",
     icon: ListTodo,
   },
-  { label: "More", href: "/admin/dashboard", icon: MoreHorizontal },
+  { label: "More", href: "/admin/pipeline", icon: MoreHorizontal },
 ];
 
 function getBottomNavItems(role: string): BottomNavItem[] {

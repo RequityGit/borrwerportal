@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useCallback, useMemo, useTransition, type ReactNode } from "react";
 import {
   TrendingUp,
   Building2,
@@ -12,26 +11,31 @@ import {
   Target,
   Eye,
   EyeOff,
-  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   SectionCard,
   MetricCard,
   FieldRow,
 } from "@/components/crm/contact-360/contact-detail-shared";
 import {
-  CrmEditSectionDialog,
-  type CrmSectionField,
-} from "@/components/crm/crm-edit-section-dialog";
-import {
-  renderDynamicFields,
-  buildEditFields,
+  renderDynamicFieldsInline,
 } from "@/components/crm/shared-field-renderer";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDate, formatPhoneInput } from "@/lib/format";
-import { ClickToCallNumber } from "@/components/ui/ClickToCallNumber";
+import { formatDate } from "@/lib/format";
 import { updateCompanyAction } from "@/app/(authenticated)/admin/crm/company-actions";
+import { AddressAutocomplete, type ParsedAddress } from "@/components/ui/address-autocomplete";
 import type {
   CompanyDetailData,
   CompanyWireData,
@@ -111,94 +115,45 @@ export function CompanyOverviewTab({
   sectionOrder,
   sectionFields,
 }: OverviewTabProps) {
-  const router = useRouter();
   const { toast } = useToast();
+  const [localData, setLocalData] = useState<Record<string, unknown>>(
+    () => company as unknown as Record<string, unknown>
+  );
+  const [pending, startTransition] = useTransition();
   const [showWire, setShowWire] = useState(false);
-  const [editCompanyOpen, setEditCompanyOpen] = useState(false);
-  const [editAddressOpen, setEditAddressOpen] = useState(false);
-  const [editNotesOpen, setEditNotesOpen] = useState(false);
-  const types = company.company_types?.length
-    ? company.company_types
-    : [company.company_type];
-  const isLender = types.includes("lender");
-  const typeCfg =
-    COMPANY_TYPE_CONFIG[types[0]] || COMPANY_TYPE_CONFIG.other;
 
-  const saveField = useCallback(
-    async (field: string, value: string | number | boolean | string[] | null) => {
-      const updates: Record<string, unknown> = { id: company.id, [field]: value };
-      // When saving company_types, also update the primary company_type for backward compatibility
-      if (field === "company_types" && Array.isArray(value) && value.length > 0) {
-        updates.company_type = value[0];
+  const types = (localData.company_types as string[] | undefined)?.length
+    ? (localData.company_types as string[])
+    : [localData.company_type as string];
+  const isLender = types.includes("lender");
+
+  function handleChange(field: string, value: unknown) {
+    setLocalData((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleBlur(field: string) {
+    const currentVal = localData[field];
+    const prevVal = (company as unknown as Record<string, unknown>)[field];
+    if (currentVal === prevVal) return;
+
+    startTransition(async () => {
+      const updates: Record<string, unknown> = { id: company.id, [field]: currentVal };
+      if (field === "company_types" && Array.isArray(currentVal) && (currentVal as string[]).length > 0) {
+        updates.company_type = (currentVal as string[])[0];
       }
       const result = await updateCompanyAction(updates as any);
       if ("error" in result && result.error) {
         toast({ title: "Error saving", description: result.error, variant: "destructive" });
-      } else {
-        toast({ title: "Saved" });
+        setLocalData((prev) => ({ ...prev, [field]: prevVal }));
       }
-      router.refresh();
-    },
-    [company.id, router, toast]
-  );
+    });
+  }
 
-  // Data object for dynamic field rendering
-  const companyData = company as unknown as Record<string, unknown>;
-
-  // --- Hardcoded fallback field definitions for edit dialogs ---
-
-  const companyInfoFieldsFallback: CrmSectionField[] = [
-    { label: "Legal Name", fieldName: "name", fieldType: "text", value: company.name },
-    { label: "DBA / Other Names", fieldName: "other_names", fieldType: "text", value: company.other_names },
-    {
-      label: "Company Types", fieldName: "company_types", fieldType: "multi_select", value: types,
-      options: COMPANY_TYPE_OPTIONS,
-    },
-    { label: "Phone", fieldName: "phone", fieldType: "text", value: formatPhoneInput(company.phone ?? "") || company.phone },
-    { label: "Email", fieldName: "email", fieldType: "text", value: company.email },
-    { label: "Website", fieldName: "website", fieldType: "text", value: company.website },
-    { label: "Source", fieldName: "source", fieldType: "text", value: company.source },
-    { label: "Status", fieldName: "is_active", fieldType: "boolean", value: company.is_active },
-    { label: "Title Co. Verified", fieldName: "title_company_verified", fieldType: "boolean", value: company.title_company_verified },
-  ];
-
-  const addressFieldsFallback: CrmSectionField[] = [
-    { label: "Address Line 1", fieldName: "address_line1", fieldType: "text", value: company.address_line1 },
-    { label: "Address Line 2", fieldName: "address_line2", fieldType: "text", value: company.address_line2 },
-    { label: "City", fieldName: "city", fieldType: "text", value: company.city },
-    { label: "State", fieldName: "state", fieldType: "text", value: company.state },
-    { label: "Zip", fieldName: "zip", fieldType: "text", value: company.zip },
-    { label: "Country", fieldName: "country", fieldType: "text", value: company.country || "US" },
-  ];
-
-  const notesFields: CrmSectionField[] = [
-    { label: "Description", fieldName: "notes", fieldType: "textarea", value: company.notes },
-  ];
-
-  // Use dynamic edit fields when layout data exists, otherwise fall back to hardcoded
-  const companyInfoEditFields = useMemo(
-    () => sectionFields.company_information?.length
-      ? buildEditFields(sectionFields.company_information, companyData, false)
-      : companyInfoFieldsFallback,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sectionFields, company]
-  );
-
-  const addressEditFields = useMemo(
-    () => sectionFields.address?.length
-      ? buildEditFields(sectionFields.address, companyData, false)
-      : addressFieldsFallback,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sectionFields, company]
-  );
-
-  // Has non-lender capabilities/coverage data
   const hasCapabilitiesCoverage = !isLender &&
     ((company.company_capabilities ?? []).length > 0 ||
       (company.asset_types ?? []).length > 0 ||
       (company.geographies ?? []).length > 0);
 
-  // Resolve section ordering
   const resolvedSections = useMemo(() => {
     const layout = sectionOrder.length > 0 ? sectionOrder : DEFAULT_SECTION_ORDER;
 
@@ -218,176 +173,236 @@ export function CompanyOverviewTab({
       .map((s) => s.section_key);
   }, [sectionOrder, isLender, wireInstructions]);
 
-  function SectionEditButton({ onClick }: { onClick: () => void }) {
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-1 text-xs h-7 text-muted-foreground"
-        onClick={onClick}
-      >
-        <Pencil size={12} strokeWidth={1.5} /> Edit
-      </Button>
-    );
-  }
+  const inlineCallbacks = useMemo(() => ({
+    onChange: handleChange,
+    onBlur: handleBlur,
+    disabled: pending,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [pending, localData, company]);
 
-  // Hardcoded fallback rendering for Company Information
   function renderCompanyInfoFallback() {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-        <FieldRow label="Legal Name" value={company.name} />
-        <FieldRow label="DBA / Other Names" value={company.other_names} />
-        <FieldRow
-          label="Company Type"
-          value={
-            <div className="flex flex-wrap gap-1">
-              {types.map((t) => {
-                const cfg = COMPANY_TYPE_CONFIG[t] || COMPANY_TYPE_CONFIG.other;
-                return (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    style={{ backgroundColor: `${cfg.color}14`, color: cfg.color }}
-                  >
-                    {cfg.label}
-                  </span>
-                );
-              })}
-            </div>
-          }
-        />
-        {company.company_subtype && (
-          <FieldRow
-            label="Subtype"
-            value={
-              SUBTYPE_LABELS[company.company_subtype] ||
-              company.company_subtype
-            }
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Legal Name</Label>
+          <Input
+            value={(localData.name as string) ?? ""}
+            onChange={(e) => handleChange("name", e.target.value || null)}
+            onBlur={() => handleBlur("name")}
+            disabled={pending}
+            placeholder="Legal Name"
           />
-        )}
-        <FieldRow
-          label="Phone"
-          value={company.phone ? <ClickToCallNumber number={company.phone} showIcon={false} /> : undefined}
-        />
-        <FieldRow label="Email" value={company.email} />
-        <FieldRow
-          label="Website"
-          value={
-            company.website
-              ? company.website.replace(/^https?:\/\//, "")
-              : undefined
-          }
-        />
-        <FieldRow label="Source" value={company.source} />
-        <FieldRow label="Status" value={company.is_active ? "Active" : "Inactive"} />
-        <FieldRow label="Title Co. Verified" value={company.title_company_verified ? "Yes" : "No"} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">DBA / Other Names</Label>
+          <Input
+            value={(localData.other_names as string) ?? ""}
+            onChange={(e) => handleChange("other_names", e.target.value || null)}
+            onBlur={() => handleBlur("other_names")}
+            disabled={pending}
+            placeholder="DBA / Other Names"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Company Type</Label>
+          <Select
+            value={types[0] ?? ""}
+            onValueChange={(val) => {
+              handleChange("company_types", [val]);
+              handleChange("company_type", val);
+              setTimeout(() => handleBlur("company_types"), 0);
+            }}
+            disabled={pending}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {COMPANY_TYPE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Phone</Label>
+          <Input
+            type="tel"
+            value={(localData.phone as string) ?? ""}
+            onChange={(e) => handleChange("phone", e.target.value || null)}
+            onBlur={() => handleBlur("phone")}
+            disabled={pending}
+            placeholder="Phone"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Email</Label>
+          <Input
+            type="email"
+            value={(localData.email as string) ?? ""}
+            onChange={(e) => handleChange("email", e.target.value || null)}
+            onBlur={() => handleBlur("email")}
+            disabled={pending}
+            placeholder="Email"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Website</Label>
+          <Input
+            value={(localData.website as string) ?? ""}
+            onChange={(e) => handleChange("website", e.target.value || null)}
+            onBlur={() => handleBlur("website")}
+            disabled={pending}
+            placeholder="Website"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Source</Label>
+          <Input
+            value={(localData.source as string) ?? ""}
+            onChange={(e) => handleChange("source", e.target.value || null)}
+            onBlur={() => handleBlur("source")}
+            disabled={pending}
+            placeholder="Source"
+          />
+        </div>
+        <div className="flex items-center justify-between py-2">
+          <Label className="text-xs">Active</Label>
+          <Switch
+            checked={!!localData.is_active}
+            onCheckedChange={(checked) => {
+              handleChange("is_active", checked);
+              setTimeout(() => handleBlur("is_active"), 0);
+            }}
+            disabled={pending}
+          />
+        </div>
+        <div className="flex items-center justify-between py-2">
+          <Label className="text-xs">Title Co. Verified</Label>
+          <Switch
+            checked={!!localData.title_company_verified}
+            onCheckedChange={(checked) => {
+              handleChange("title_company_verified", checked);
+              setTimeout(() => handleBlur("title_company_verified"), 0);
+            }}
+            disabled={pending}
+          />
+        </div>
       </div>
     );
   }
 
-  // Hardcoded fallback rendering for Address
+  function handleAddressSelect(parsed: ParsedAddress) {
+    const updates: Record<string, unknown> = {
+      address_line1: parsed.address_line1,
+      city: parsed.city,
+      state: parsed.state,
+      zip: parsed.zip,
+    };
+    setLocalData((prev) => ({ ...prev, ...updates }));
+
+    startTransition(async () => {
+      const result = await updateCompanyAction({ id: company.id, ...updates } as any);
+      if ("error" in result && result.error) {
+        toast({ title: "Error saving address", description: result.error, variant: "destructive" });
+      }
+    });
+  }
+
   function renderAddressFallback() {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
-        <FieldRow label="Address Line 1" value={company.address_line1} />
-        <FieldRow label="Address Line 2" value={company.address_line2} />
-        <FieldRow label="City" value={company.city} />
-        <FieldRow label="State" value={company.state} />
-        <FieldRow label="Zip" value={company.zip} mono />
-        <FieldRow label="Country" value={company.country || "US"} />
+      <div className="flex flex-col gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Address</Label>
+            <AddressAutocomplete
+              value={(localData.address_line1 as string) ?? ""}
+              onChange={(val) => handleChange("address_line1", val)}
+              onAddressSelect={handleAddressSelect}
+              placeholder="Start typing an address..."
+              disabled={pending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Address Line 2</Label>
+            <Input
+              value={(localData.address_line2 as string) ?? ""}
+              onChange={(e) => handleChange("address_line2", e.target.value || null)}
+              onBlur={() => handleBlur("address_line2")}
+              disabled={pending}
+              placeholder="Suite, unit, etc."
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2.5">
+          {[
+            { key: "city", label: "City" },
+            { key: "state", label: "State" },
+            { key: "zip", label: "Zip" },
+            { key: "country", label: "Country" },
+          ].map((f) => (
+            <div key={f.key} className="space-y-1.5">
+              <Label className="text-xs">{f.label}</Label>
+              <Input
+                value={((localData[f.key] as string) ?? (f.key === "country" ? "US" : "")) || ""}
+                onChange={(e) => handleChange(f.key, e.target.value || null)}
+                onBlur={() => handleBlur(f.key)}
+                disabled={pending}
+                placeholder={f.label}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
-  // Build section content map: section_key -> JSX
   const sectionContent: Record<string, ReactNode> = {
     lender_performance: isLender ? (
       <SectionCard title="Lender Performance" icon={TrendingUp} key="lender_performance">
         <div className="flex gap-5 flex-wrap">
-          <MetricCard label="Deals Submitted" value="—" />
-          <MetricCard label="Deals Funded" value="—" />
-          <MetricCard label="Hit Rate" value="—" mono />
-          <MetricCard label="Funded Volume" value="—" mono />
-          <MetricCard label="Avg Rate" value="—" mono />
-          <MetricCard label="Avg Close Time" value="—" mono />
+          <MetricCard label="Deals Submitted" value="\u2014" />
+          <MetricCard label="Deals Funded" value="\u2014" />
+          <MetricCard label="Hit Rate" value="\u2014" mono />
+          <MetricCard label="Funded Volume" value="\u2014" mono />
+          <MetricCard label="Avg Rate" value="\u2014" mono />
+          <MetricCard label="Avg Close Time" value="\u2014" mono />
         </div>
       </SectionCard>
     ) : null,
 
     company_information: (
-      <SectionCard title="Company Information" icon={Building2} action={<SectionEditButton onClick={() => setEditCompanyOpen(true)} />} key="company_information">
+      <SectionCard title="Company Information" icon={Building2} key="company_information">
         {sectionFields.company_information?.length
-          ? renderDynamicFields(sectionFields.company_information, companyData, false)
+          ? renderDynamicFieldsInline(sectionFields.company_information, localData, false, inlineCallbacks)
           : renderCompanyInfoFallback()}
       </SectionCard>
     ),
 
     address: (
-      <SectionCard title="Address" icon={MapPin} action={<SectionEditButton onClick={() => setEditAddressOpen(true)} />} key="address">
-        {sectionFields.address?.length
-          ? renderDynamicFields(sectionFields.address, companyData, false)
-          : renderAddressFallback()}
+      <SectionCard title="Address" icon={MapPin} key="address">
+        {renderAddressFallback()}
       </SectionCard>
     ),
 
     lender_details: isLender ? (
-      <SectionCard
-        title="Lender Details"
-        icon={Landmark}
-        key="lender_details"
-        action={
-          onEditLenderDetails ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-xs h-7 text-muted-foreground"
-              onClick={onEditLenderDetails}
-            >
-              <Pencil size={12} strokeWidth={1.5} /> Edit
-            </Button>
-          ) : undefined
-        }
-      >
+      <SectionCard title="Lender Details" icon={Landmark} key="lender_details">
         <div className="flex flex-col gap-5">
           <div>
-            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Programs
-            </div>
-            <ChipGroup
-              items={company.lender_programs ?? []}
-              labelMap={PROGRAM_LABELS}
-              color="#3B82F6"
-            />
+            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Programs</div>
+            <ChipGroup items={company.lender_programs ?? []} labelMap={PROGRAM_LABELS} color="#3B82F6" />
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Asset Types
-            </div>
-            <ChipGroup
-              items={company.asset_types ?? []}
-              labelMap={ASSET_LABELS}
-              color="#E5930E"
-            />
+            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Asset Types</div>
+            <ChipGroup items={company.asset_types ?? []} labelMap={ASSET_LABELS} color="#E5930E" />
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Geographies
-            </div>
-            <ChipGroup
-              items={company.geographies ?? []}
-              labelMap={{}}
-              color="#22A861"
-            />
+            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Geographies</div>
+            <ChipGroup items={company.geographies ?? []} labelMap={{}} color="#22A861" />
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Capabilities
-            </div>
-            <ChipGroup
-              items={company.company_capabilities ?? []}
-              labelMap={CAPABILITY_LABELS}
-              color="#8B5CF6"
-            />
+            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Capabilities</div>
+            <ChipGroup items={company.company_capabilities ?? []} labelMap={CAPABILITY_LABELS} color="#8B5CF6" />
           </div>
         </div>
       </SectionCard>
@@ -398,38 +413,20 @@ export function CompanyOverviewTab({
         <div className="flex flex-col gap-4">
           {(company.company_capabilities ?? []).length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Capabilities
-              </div>
-              <ChipGroup
-                items={company.company_capabilities!}
-                labelMap={CAPABILITY_LABELS}
-                color="#8B5CF6"
-              />
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Capabilities</div>
+              <ChipGroup items={company.company_capabilities!} labelMap={CAPABILITY_LABELS} color="#8B5CF6" />
             </div>
           )}
           {(company.asset_types ?? []).length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Asset Types
-              </div>
-              <ChipGroup
-                items={company.asset_types!}
-                labelMap={ASSET_LABELS}
-                color="#E5930E"
-              />
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Asset Types</div>
+              <ChipGroup items={company.asset_types!} labelMap={ASSET_LABELS} color="#E5930E" />
             </div>
           )}
           {(company.geographies ?? []).length > 0 && (
             <div>
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Geographies
-              </div>
-              <ChipGroup
-                items={company.geographies!}
-                labelMap={{}}
-                color="#22A861"
-              />
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Geographies</div>
+              <ChipGroup items={company.geographies!} labelMap={{}} color="#22A861" />
             </div>
           )}
         </div>
@@ -449,11 +446,7 @@ export function CompanyOverviewTab({
               className="gap-1 text-xs h-7 text-muted-foreground"
               onClick={() => setShowWire(!showWire)}
             >
-              {showWire ? (
-                <EyeOff size={13} strokeWidth={1.5} />
-              ) : (
-                <Eye size={13} strokeWidth={1.5} />
-              )}
+              {showWire ? <EyeOff size={13} strokeWidth={1.5} /> : <Eye size={13} strokeWidth={1.5} />}
               {showWire ? "Hide" : "Reveal"}
             </Button>
           ) : undefined
@@ -462,65 +455,37 @@ export function CompanyOverviewTab({
         {wireInstructions ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
             <FieldRow label="Bank Name" value={wireInstructions.bank_name} />
-            <FieldRow
-              label="Account Name"
-              value={wireInstructions.account_name}
-            />
+            <FieldRow label="Account Name" value={wireInstructions.account_name} />
             <FieldRow
               label="Account Number"
-              value={
-                showWire
-                  ? wireInstructions.account_number
-                  : wireInstructions.account_number.replace(
-                      /./g,
-                      (c, i) =>
-                        i < wireInstructions.account_number.length - 4
-                          ? "●"
-                          : c
-                    )
-              }
+              value={showWire ? wireInstructions.account_number : wireInstructions.account_number.replace(/./g, (c, i) => i < wireInstructions.account_number.length - 4 ? "\u25CF" : c)}
               mono
             />
             <FieldRow
               label="Routing Number"
-              value={
-                showWire
-                  ? wireInstructions.routing_number
-                  : wireInstructions.routing_number.replace(
-                      /./g,
-                      (c, i) =>
-                        i < wireInstructions.routing_number.length - 4
-                          ? "●"
-                          : c
-                    )
-              }
+              value={showWire ? wireInstructions.routing_number : wireInstructions.routing_number.replace(/./g, (c, i) => i < wireInstructions.routing_number.length - 4 ? "\u25CF" : c)}
               mono
             />
-            <FieldRow
-              label="Wire Type"
-              value={
-                wireInstructions.wire_type.charAt(0).toUpperCase() +
-                wireInstructions.wire_type.slice(1)
-              }
-            />
-            <FieldRow
-              label="Last Updated"
-              value={`${formatDate(wireInstructions.updated_at)}${wireInstructions.updated_by ? ` by ${wireInstructions.updated_by}` : ""}`}
-            />
+            <FieldRow label="Wire Type" value={wireInstructions.wire_type.charAt(0).toUpperCase() + wireInstructions.wire_type.slice(1)} />
+            <FieldRow label="Last Updated" value={`${formatDate(wireInstructions.updated_at)}${wireInstructions.updated_by ? ` by ${wireInstructions.updated_by}` : ""}`} />
           </div>
         ) : (
-          <span className="text-[13px] text-muted-foreground">
-            No wire instructions on file.
-          </span>
+          <span className="text-[13px] text-muted-foreground">No wire instructions on file.</span>
         )}
       </SectionCard>
     ),
 
     description: (
-      <SectionCard title="Description" icon={FileText} action={<SectionEditButton onClick={() => setEditNotesOpen(true)} />} key="description">
-        <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-          {company.notes || "No notes."}
-        </p>
+      <SectionCard title="Description" icon={FileText} key="description">
+        <Textarea
+          value={(localData.notes as string) ?? ""}
+          onChange={(e) => handleChange("notes", e.target.value || null)}
+          onBlur={() => handleBlur("notes")}
+          disabled={pending}
+          rows={4}
+          placeholder="Add a description..."
+          className="text-sm"
+        />
       </SectionCard>
     ),
   };
@@ -528,29 +493,6 @@ export function CompanyOverviewTab({
   return (
     <div className="flex flex-col gap-5">
       {resolvedSections.map((key) => sectionContent[key])}
-
-      {/* Section Edit Dialogs */}
-      <CrmEditSectionDialog
-        open={editCompanyOpen}
-        onOpenChange={setEditCompanyOpen}
-        title="Company Information"
-        fields={companyInfoEditFields}
-        onSave={saveField}
-      />
-      <CrmEditSectionDialog
-        open={editAddressOpen}
-        onOpenChange={setEditAddressOpen}
-        title="Address"
-        fields={addressEditFields}
-        onSave={saveField}
-      />
-      <CrmEditSectionDialog
-        open={editNotesOpen}
-        onOpenChange={setEditNotesOpen}
-        title="Description"
-        fields={notesFields}
-        onSave={saveField}
-      />
     </div>
   );
 }

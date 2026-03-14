@@ -7,7 +7,7 @@ import type { FieldConfig, PageSection, PageField } from "../actions";
 // Types
 // ---------------------------------------------------------------------------
 
-export type DraftChangeType = "field_update" | "field_create" | "field_archive" | "section_update" | "section_create" | "section_delete" | "layout_field_add" | "layout_field_remove" | "layout_field_reorder" | "section_reorder";
+export type DraftChangeType = "field_update" | "field_create" | "field_archive" | "section_update" | "section_create" | "section_delete" | "layout_field_add" | "layout_field_remove" | "layout_field_reorder" | "layout_field_update" | "section_reorder";
 
 export interface DraftChange {
   id: string; // unique change id

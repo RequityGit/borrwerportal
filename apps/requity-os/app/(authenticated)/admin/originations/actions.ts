@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { validateStageAdvancement } from "@/lib/pipeline/validate-stage-advancement";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -186,7 +185,6 @@ export async function moveOpportunityStageAction(
       return { error: "Loss reason is required when closing a deal as lost" };
     }
 
-    // Get current opportunity (fetch all columns for config-driven validation)
     const { data: opp, error: fetchErr } = await admin
       .from("opportunities")
       .select("*")
@@ -194,14 +192,6 @@ export async function moveOpportunityStageAction(
       .single();
 
     if (fetchErr || !opp) return { error: "Opportunity not found" };
-
-    // Config-driven stage advancement validation
-    if (newStage !== "closed_lost") {
-      const validation = await validateStageAdvancement(opp as Record<string, unknown>, newStage);
-      if (!validation.valid) {
-        return { error: validation.message };
-      }
-    }
 
     const updateData: any = {
       stage: newStage,

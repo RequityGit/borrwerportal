@@ -36,6 +36,7 @@ import {
   ASSET_CLASS_LABELS,
   type AssetClass,
 } from "./pipeline-types";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 
@@ -46,6 +47,7 @@ interface NewDealDialogProps {
   onOpenChange: (open: boolean) => void;
   cardTypes: UnifiedCardType[];
   teamMembers: { id: string; full_name: string }[];
+  currentUserId?: string;
 }
 
 export function NewDealDialog({
@@ -53,14 +55,19 @@ export function NewDealDialog({
   onOpenChange,
   cardTypes,
   teamMembers,
+  currentUserId,
 }: NewDealDialogProps) {
   const [step, setStep] = useState<Step>(1);
   const [cardTypeId, setCardTypeId] = useState<string | null>(null);
   const [assetClass, setAssetClass] = useState<string>("");
   const [name, setName] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
   const [amount, setAmount] = useState("");
   const [expectedClose, setExpectedClose] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [assignedTo, setAssignedTo] = useState(currentUserId ?? "");
   const [pending, startTransition] = useTransition();
 
   // Document extraction state
@@ -83,9 +90,13 @@ export function NewDealDialog({
     setCardTypeId(null);
     setAssetClass("");
     setName("");
+    setAddressLine1("");
+    setCity("");
+    setState("");
+    setZip("");
     setAmount("");
     setExpectedClose("");
-    setAssignedTo("");
+    setAssignedTo(currentUserId ?? "");
     setExtracting(false);
     setExtractedDealFields({});
     setExtractedUwFields({});
@@ -97,18 +108,43 @@ export function NewDealDialog({
     onOpenChange(open);
   }
 
+  function buildPropertyData(): Record<string, unknown> | undefined {
+    if (!addressLine1.trim()) return undefined;
+    const pd: Record<string, unknown> = {};
+    if (addressLine1.trim()) {
+      pd.address_line1 = addressLine1.trim();
+      pd.property_address = addressLine1.trim();
+    }
+    if (city.trim()) {
+      pd.city = city.trim();
+      pd.property_city = city.trim();
+    }
+    if (state.trim()) {
+      pd.state = state.trim();
+      pd.property_state = state.trim();
+    }
+    if (zip.trim()) {
+      pd.zip = zip.trim();
+      pd.property_zip = zip.trim();
+    }
+    return pd;
+  }
+
+  const dealDisplayName = name.trim() || addressLine1.trim();
+
   function handleSubmit(uwData?: Record<string, unknown>) {
-    if (!cardTypeId || !name.trim()) return;
+    if (!cardTypeId || !addressLine1.trim()) return;
 
     startTransition(async () => {
       const result = await createUnifiedDealAction({
-        name: name.trim(),
+        name: dealDisplayName,
         card_type_id: cardTypeId,
         asset_class: assetClass || undefined,
         amount: amount ? Number(amount) : undefined,
         expected_close_date: expectedClose || undefined,
         assigned_to: assignedTo || undefined,
         uw_data: uwData,
+        property_data: buildPropertyData(),
       });
 
       if (result.error) {
@@ -229,9 +265,9 @@ export function NewDealDialog({
     // Submit with UW data
     const finalName = accepted.dealFields.name
       ? String(accepted.dealFields.name)
-      : name;
-    if (!cardTypeId || !finalName.trim()) {
-      toast.error("Deal name is required");
+      : dealDisplayName;
+    if (!cardTypeId || !addressLine1.trim()) {
+      toast.error("Deal address is required");
       return;
     }
 
@@ -255,6 +291,7 @@ export function NewDealDialog({
           Object.keys(accepted.uwFields).length > 0
             ? accepted.uwFields
             : undefined,
+        property_data: buildPropertyData(),
       });
 
       if (result.error) {
@@ -263,7 +300,6 @@ export function NewDealDialog({
         const deal = result.deal as
           | { id: string; deal_number: string }
           | undefined;
-        // Save summary as deal note if requested
         if (accepted.summaryNote && deal?.id) {
           await addDealNoteAction(deal.id, accepted.summaryNote).catch(
             (err) => console.error("Failed to save deal note:", err)
@@ -361,11 +397,43 @@ export function NewDealDialog({
             <>
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label>Deal Name *</Label>
+                  <Label>Deal Address <span className="text-red-500">*</span></Label>
+                  <AddressAutocomplete
+                    value={addressLine1}
+                    onChange={setAddressLine1}
+                    onAddressSelect={(addr) => {
+                      setAddressLine1(addr.address_line1);
+                      setCity(addr.city);
+                      setState(addr.state);
+                      setZip(addr.zip);
+                    }}
+                    placeholder="Start typing a property address..."
+                  />
+                  <div className="grid grid-cols-3 gap-3 mt-2">
+                    <Input
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="City"
+                    />
+                    <Input
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      placeholder="State"
+                    />
+                    <Input
+                      value={zip}
+                      onChange={(e) => setZip(e.target.value)}
+                      placeholder="ZIP"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Deal Name</Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., 123 Main St SFR Rental"
+                    placeholder="Optional -- defaults to address if left blank"
                   />
                 </div>
 
@@ -454,7 +522,7 @@ export function NewDealDialog({
                 </Button>
                 <Button
                   onClick={() => handleSubmit()}
-                  disabled={!name.trim() || pending}
+                  disabled={!addressLine1.trim() || pending}
                 >
                   {pending ? "Creating deal..." : "Create Deal"}
                 </Button>

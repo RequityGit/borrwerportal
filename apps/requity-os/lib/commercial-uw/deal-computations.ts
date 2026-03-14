@@ -168,6 +168,36 @@ export function computeAnnualDebtService(uw: DealUWRecord): number {
   return annual;
 }
 
+export interface DebtTrancheInput {
+  tranche_type: string;
+  loan_amount: number;
+  interest_rate: number;
+  amortization_years: number;
+  is_io: boolean;
+  ltv_pct: number;
+  takeout_year?: number;
+}
+
+export function computeMultiTrancheAnnualDS(
+  tranches: DebtTrancheInput[],
+  purchasePrice: number,
+): number {
+  let total = 0;
+  for (const t of tranches) {
+    if (t.tranche_type === "takeout") continue;
+    const loanAmt = t.loan_amount > 0 ? t.loan_amount : Math.round(purchasePrice * (t.ltv_pct / 100));
+    const rate = t.interest_rate;
+    if (loanAmt <= 0 || rate <= 0) continue;
+    if (t.is_io) {
+      total += loanAmt * (rate / 100);
+    } else {
+      const amortMonths = (t.amortization_years || 30) * 12;
+      total += calcMonthlyPayment(loanAmt, rate, amortMonths) * 12;
+    }
+  }
+  return total;
+}
+
 // ── 5-Year Pro Forma ──
 
 export function computeProForma(

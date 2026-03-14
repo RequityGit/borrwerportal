@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -474,9 +475,15 @@ export function CreateLoanDialog({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Property Address</Label>
-                <Input
+                <AddressAutocomplete
                   value={form.property_address}
-                  onChange={(e) => updateField("property_address", e.target.value)}
+                  onChange={(v) => updateField("property_address", v)}
+                  onAddressSelect={(addr) => {
+                    updateField("property_address", addr.address_line1);
+                    updateField("property_city", addr.city);
+                    updateField("property_state", addr.state);
+                    updateField("property_zip", addr.zip);
+                  }}
                   placeholder="123 Main Street"
                 />
               </div>

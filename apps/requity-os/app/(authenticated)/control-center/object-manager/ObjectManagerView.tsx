@@ -368,9 +368,9 @@ export function ObjectManagerView({ objects, fieldCounts, relationshipCounts }: 
     (activeTab === "layout" && (selectedSection || selectedLayoutTab));
 
   return (
-    <div className="flex h-[calc(100vh-48px)] overflow-hidden">
+    <div className="flex min-h-[calc(100vh-48px)]">
       {/* LEFT SIDEBAR */}
-      <div className="w-[220px] shrink-0 border-r border-border bg-card flex flex-col">
+      <div className="w-[220px] shrink-0 border-r border-border bg-card flex flex-col sticky top-0 h-screen overflow-y-auto">
         <div className="p-3 border-b border-border">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
@@ -495,7 +495,7 @@ export function ObjectManagerView({ objects, fieldCounts, relationshipCounts }: 
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1">
           {activeTab === "fields" && (
             <FieldsTab
               fields={displayFields}
@@ -573,7 +573,7 @@ export function ObjectManagerView({ objects, fieldCounts, relationshipCounts }: 
       {/* RIGHT PANEL */}
       <div
         className={cn(
-          "shrink-0 border-l border-border bg-card flex flex-col overflow-hidden transition-all duration-150",
+          "shrink-0 border-l border-border bg-card flex flex-col overflow-hidden transition-all duration-150 sticky top-0 h-screen",
           showRightPanel ? "w-[310px]" : "w-0 border-l-0"
         )}
       >

@@ -543,6 +543,7 @@ export function FieldsTab({
           }}
           condition={editCondField.visibility_condition as VisibilityCondition | null}
           onSave={handleSaveCondition}
+          allFields={fields}
         />
       )}
     </div>

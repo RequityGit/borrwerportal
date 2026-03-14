@@ -5,8 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import type { Database, Json } from "@/lib/supabase/types";
 import { FIELD_MAPPING_MAP } from "@/lib/pipeline/uw-field-mappings";
-import { validateStageGating } from "@/lib/pipeline/stage-gating";
-import { validateStageAdvancement } from "@/lib/pipeline/validate-stage-advancement";
+import { revalidateDealPaths } from "@/lib/pipeline/revalidate-deal";
 import type {
   IntakeDecisions,
   IntakeEntityKey,
@@ -22,12 +21,11 @@ import {
 type UnifiedDealInsert = Database["public"]["Tables"]["unified_deals"]["Insert"];
 type UnifiedDealUpdate = Database["public"]["Tables"]["unified_deals"]["Update"];
 
-function revalidatePipeline(dealId?: string) {
+async function revalidatePipeline(dealId?: string) {
   revalidatePath("/admin/pipeline-v2");
   revalidatePath("/admin/pipeline");
   if (dealId) {
-    revalidatePath(`/admin/pipeline-v2/${dealId}`);
-    revalidatePath(`/admin/pipeline/${dealId}`);
+    await revalidateDealPaths(dealId);
   }
 }
 
@@ -44,12 +42,55 @@ export async function createUnifiedDealAction(data: {
   expected_close_date?: string;
   assigned_to?: string;
   uw_data?: Record<string, unknown>;
+  property_data?: Record<string, unknown>;
 }) {
   try {
     const auth = await requireAdmin();
     if ("error" in auth) return { error: auth.error };
 
     const admin = createAdminClient();
+
+    // If property_data has enrichment fields, create a properties row
+    let propertyId: string | null = null;
+    if (data.property_data && Object.keys(data.property_data).length > 0) {
+      const pd = data.property_data;
+      const propertyInsert: Record<string, unknown> = {};
+
+      const PROPERTY_TABLE_FIELDS: Record<string, string> = {
+        address_line1: "address_line1",
+        city: "city",
+        state: "state",
+        zip: "zip",
+        county: "county",
+        parcel_id: "parcel_id",
+        zoning: "zoning",
+        year_built: "year_built",
+        gross_building_area_sqft: "gross_building_area_sqft",
+        lot_size_acres: "lot_size_acres",
+        number_of_stories: "number_of_stories",
+        number_of_buildings: "number_of_buildings",
+      };
+
+      for (const [pdKey, col] of Object.entries(PROPERTY_TABLE_FIELDS)) {
+        if (pd[pdKey] !== undefined && pd[pdKey] !== null && pd[pdKey] !== "") {
+          propertyInsert[col] = pd[pdKey];
+        }
+      }
+
+      if (Object.keys(propertyInsert).length > 0) {
+        const { data: newProp, error: propErr } = await admin
+          .from("properties")
+          .insert(propertyInsert)
+          .select("id")
+          .single();
+
+        if (propErr) {
+          console.error("Failed to create property record:", propErr);
+        } else if (newProp) {
+          propertyId = newProp.id;
+        }
+      }
+    }
 
     const insertData: UnifiedDealInsert = {
       name: data.name,
@@ -62,8 +103,12 @@ export async function createUnifiedDealAction(data: {
       expected_close_date: data.expected_close_date || null,
       assigned_to: data.assigned_to || null,
       created_by: auth.user.id,
+      ...(propertyId ? { property_id: propertyId } : {}),
       ...(data.uw_data && Object.keys(data.uw_data).length > 0
         ? { uw_data: data.uw_data as Json }
+        : {}),
+      ...(data.property_data && Object.keys(data.property_data).length > 0
+        ? { property_data: data.property_data as Json }
         : {}),
     };
 
@@ -87,7 +132,7 @@ export async function createUnifiedDealAction(data: {
       console.error("Failed to generate deal conditions:", condError);
     }
 
-    revalidatePipeline(deal.id);
+    await revalidatePipeline(deal.id);
     return { success: true, deal };
   } catch (err: unknown) {
     console.error("createUnifiedDealAction error:", err);
@@ -198,12 +243,47 @@ export async function updateUnifiedDealAction(
       return { error: error.message };
     }
 
-    revalidatePipeline(dealId);
+    // Trigger Drive folder rename when name-relevant fields change
+    const nameRelevantKeys = ["primary_contact_id", "uw_data", "name"];
+    const shouldRename = nameRelevantKeys.some((k) => k in updates);
+    if (shouldRename) {
+      triggerDriveFolderRename(dealId, admin).catch((err) =>
+        console.error("Drive folder rename failed (non-blocking):", err)
+      );
+    }
+
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("updateUnifiedDealAction error:", err);
     return { error: err instanceof Error ? err.message : "Failed to update deal" };
   }
+}
+
+async function triggerDriveFolderRename(
+  dealId: string,
+  admin: ReturnType<typeof createAdminClient>
+) {
+  const { data: deal } = await admin
+    .from("unified_deals")
+    .select("google_drive_folder_id")
+    .eq("id", dealId)
+    .single();
+
+  if (!deal?.google_drive_folder_id) return;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) return;
+
+  await fetch(`${supabaseUrl}/functions/v1/create-deal-drive-folder`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ deal_id: dealId, rename: true }),
+  });
 }
 
 // ─── Advance Stage ───
@@ -219,33 +299,6 @@ export async function advanceStageAction(
 
     const admin = createAdminClient();
 
-    // Fetch deal data for validation
-    const { data: deal, error: fetchErr } = await admin
-      .from("unified_deals")
-      .select("*")
-      .eq("id", dealId)
-      .single();
-
-    if (fetchErr || !deal) {
-      return { error: "Deal not found" };
-    }
-
-    const dealRecord = deal as Record<string, unknown>;
-    const uwData = (dealRecord.uw_data ?? {}) as Record<string, unknown>;
-
-    // 1. Config-driven stage rule validation
-    const ruleValidation = await validateStageAdvancement(dealRecord, newStage);
-    if (!ruleValidation.valid) {
-      return { error: ruleValidation.message };
-    }
-
-    // 2. Field-level stage gating (blocks_stage_progression fields)
-    const gating = await validateStageGating(newStage, dealRecord, uwData);
-    if (!gating.canProgress) {
-      const fieldList = gating.missingFields.map((f) => f.label).join(", ");
-      return { error: `Missing required fields: ${fieldList}` };
-    }
-
     const { error } = await admin.rpc("unified_advance_stage", {
       p_deal_id: dealId,
       p_new_stage: newStage,
@@ -257,7 +310,7 @@ export async function advanceStageAction(
       return { error: error.message };
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("advanceStageAction error:", err);
@@ -288,7 +341,7 @@ export async function regressStageAction(
       return { error: error.message };
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("regressStageAction error:", err);
@@ -366,7 +419,7 @@ export async function updateUwDataAction(
         return { error: updateErr.message };
       }
     } else if (mapping?.source === "borrower") {
-      // Route write to the borrowers table via primary_contact_id
+      // Route write to the borrowers table via primary_contact_id or deal_contacts
       const { data: deal, error: fetchErr } = await admin
         .from("unified_deals")
         .select("primary_contact_id")
@@ -375,8 +428,22 @@ export async function updateUwDataAction(
 
       if (fetchErr || !deal) return { error: "Deal not found" };
 
-      if (!deal.primary_contact_id) {
-        // No linked contact — fall back to uw_data JSONB
+      let primaryContactId = deal.primary_contact_id;
+
+      // Fallback: resolve primary from deal_contacts if primary_contact_id is null
+      if (!primaryContactId) {
+        const { data: dc } = await admin
+          .from("deal_contacts")
+          .select("contact_id")
+          .eq("deal_id", dealId)
+          .eq("role", "primary")
+          .limit(1)
+          .maybeSingle();
+
+        primaryContactId = dc?.contact_id ?? null;
+      }
+
+      if (!primaryContactId) {
         return await updateUwDataJsonb(admin, dealId, key, value, auth.user.id);
       }
 
@@ -384,7 +451,7 @@ export async function updateUwDataAction(
       const { data: borrower } = await admin
         .from("borrowers")
         .select("id")
-        .eq("crm_contact_id", deal.primary_contact_id)
+        .eq("crm_contact_id", primaryContactId)
         .limit(1)
         .single();
 
@@ -424,7 +491,7 @@ export async function updateUwDataAction(
       console.error("Failed to log activity:", activityErr);
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("updateUwDataAction error:", err);
@@ -474,7 +541,7 @@ async function updateUwDataJsonb(
     console.error("Failed to log activity:", activityErr);
   }
 
-  revalidatePipeline(dealId);
+  await revalidatePipeline(dealId);
   return { success: true };
 }
 
@@ -526,7 +593,7 @@ export async function updatePropertyDataAction(
       console.error("Failed to log activity:", activityErr);
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("updatePropertyDataAction error:", err);
@@ -556,7 +623,7 @@ export async function addDealNoteAction(dealId: string, content: string) {
       return { error: error.message };
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("addDealNoteAction error:", err);
@@ -608,7 +675,7 @@ export async function updateDealStatusAction(
       console.error("Failed to log status change activity:", activityErr);
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("updateDealStatusAction error:", err);
@@ -683,7 +750,7 @@ export async function updateConditionStatusAction(
           return { error: approvalResult.error };
         }
 
-        revalidatePipeline(cond.deal_id);
+        await revalidatePipeline(cond.deal_id);
         return { success: true, message: "Condition sent for approval" };
       }
     }
@@ -706,7 +773,7 @@ export async function updateConditionStatusAction(
       return { error: error.message };
     }
 
-    revalidatePipeline(dealId);
+    await revalidatePipeline(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("updateConditionStatusAction error:", err);
@@ -874,15 +941,300 @@ export async function resolveIntakeItemAction(data: {
         })
         .eq("id", data.intakeQueueId);
 
-      revalidatePipeline(deal.id);
+      await revalidatePipeline(deal.id);
       revalidatePath("/admin/pipeline/intake");
       return { success: true, deal };
+    }
+
+    if (data.action === "attach" && data.existingDealId) {
+      // Mark intake queue as attached
+      await admin
+        .from("email_intake_queue")
+        .update({
+          status: "attached",
+          resolved_deal_id: data.existingDealId,
+          resolved_by: auth.user.id,
+          resolved_at: new Date().toISOString(),
+          resolution_notes: data.notes || null,
+        })
+        .eq("id", data.intakeQueueId);
+
+      // Mark the intake_items record too
+      await admin
+        .from("intake_items" as never)
+        .update({ status: "merged" } as never)
+        .eq("email_intake_queue_id" as never, data.intakeQueueId as never);
+
+      await revalidatePipeline(data.existingDealId);
+      revalidatePath("/admin/pipeline/intake");
+      return { success: true, dealId: data.existingDealId };
     }
 
     return { error: "Invalid action" };
   } catch (err: unknown) {
     console.error("resolveIntakeItemAction error:", err);
     return { error: err instanceof Error ? err.message : "Failed to resolve intake item" };
+  }
+}
+
+// ─── Attach Intake to Existing Deal (with merge safeguards) ───
+
+interface MergeField {
+  key: string;
+  label: string;
+  incoming: string | number | null;
+  existing: string | number | null;
+  state: "auto_fill" | "skip" | "conflict" | "match";
+}
+
+export interface MergePreview {
+  dealId: string;
+  dealName: string;
+  fields: MergeField[];
+  hasConflicts: boolean;
+}
+
+export async function previewMergeToDeal(
+  intakeQueueId: string,
+  dealId: string
+): Promise<{ preview?: MergePreview; error?: string }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    const [{ data: queueItem }, { data: deal }] = await Promise.all([
+      admin.from("email_intake_queue")
+        .select("extracted_deal_fields, extraction_summary, from_email, from_name, subject, body_preview")
+        .eq("id", intakeQueueId)
+        .single(),
+      admin.from("unified_deals")
+        .select("id, name, amount, asset_class, expected_close_date, uw_data, primary_contact_id, property_id")
+        .eq("id", dealId)
+        .single(),
+    ]);
+
+    if (!queueItem || !deal) return { error: "Queue item or deal not found" };
+
+    const extracted = queueItem.extracted_deal_fields as Record<string, { value: unknown }> | null;
+    const uwData = (deal.uw_data || {}) as Record<string, unknown>;
+
+    const fields: MergeField[] = [];
+    const fieldMap: Array<{ key: string; label: string; incomingKey: string; existingValue: unknown }> = [
+      { key: "amount", label: "Loan Amount", incomingKey: "loan_amount", existingValue: deal.amount },
+      { key: "asset_class", label: "Asset Class", incomingKey: "property_type", existingValue: deal.asset_class },
+      { key: "loan_type", label: "Loan Type", incomingKey: "loan_type", existingValue: uwData.loan_type },
+      { key: "ltv", label: "LTV", incomingKey: "ltv", existingValue: uwData.ltv },
+      { key: "dscr", label: "DSCR", incomingKey: "dscr", existingValue: uwData.dscr },
+      { key: "arv", label: "ARV", incomingKey: "arv", existingValue: uwData.arv },
+      { key: "rehab_budget", label: "Rehab Budget", incomingKey: "rehab_budget", existingValue: uwData.rehab_budget },
+    ];
+
+    for (const fm of fieldMap) {
+      const incomingVal = extracted?.[fm.incomingKey]?.value;
+      const incomingStr = incomingVal != null ? String(incomingVal) : null;
+      const existingStr = fm.existingValue != null ? String(fm.existingValue) : null;
+
+      if (!incomingStr && !existingStr) continue;
+
+      let state: MergeField["state"];
+      if (!incomingStr) {
+        state = "skip";
+      } else if (!existingStr) {
+        state = "auto_fill";
+      } else if (incomingStr === existingStr) {
+        state = "match";
+      } else {
+        state = "conflict";
+      }
+
+      fields.push({
+        key: fm.key,
+        label: fm.label,
+        incoming: incomingStr,
+        existing: existingStr,
+        state,
+      });
+    }
+
+    return {
+      preview: {
+        dealId: deal.id,
+        dealName: deal.name || "Untitled Deal",
+        fields,
+        hasConflicts: fields.some((f) => f.state === "conflict"),
+      },
+    };
+  } catch (err) {
+    console.error("previewMergeToDeal error:", err);
+    return { error: err instanceof Error ? err.message : "Failed to preview merge" };
+  }
+}
+
+export async function mergeToDealAction(data: {
+  intakeQueueId: string;
+  dealId: string;
+  acceptedFields: string[];
+  notes?: string;
+}): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    const { data: queueItem } = await admin
+      .from("email_intake_queue")
+      .select("extracted_deal_fields, extraction_summary, from_email, subject, body_preview, attachments")
+      .eq("id", data.intakeQueueId)
+      .single();
+
+    if (!queueItem) return { error: "Queue item not found" };
+
+    const { data: deal } = await admin
+      .from("unified_deals")
+      .select("id, name, amount, asset_class, uw_data")
+      .eq("id", data.dealId)
+      .single();
+
+    if (!deal) return { error: "Deal not found" };
+
+    const extracted = queueItem.extracted_deal_fields as Record<string, { value: unknown }> | null;
+    const uwData = (deal.uw_data || {}) as Record<string, unknown>;
+    const changes: Array<{ field: string; before: unknown; after: unknown }> = [];
+
+    const topLevelUpdates: Record<string, unknown> = {};
+    const uwUpdates: Record<string, unknown> = { ...uwData };
+
+    const topLevelKeys = ["amount", "asset_class", "loan_type"];
+    const uwKeys = ["ltv", "dscr", "arv", "rehab_budget"];
+    const incomingKeyMap: Record<string, string> = {
+      amount: "loan_amount",
+      asset_class: "property_type",
+      loan_type: "loan_type",
+      ltv: "ltv",
+      dscr: "dscr",
+      arv: "arv",
+      rehab_budget: "rehab_budget",
+    };
+
+    for (const fieldKey of data.acceptedFields) {
+      const incomingKey = incomingKeyMap[fieldKey];
+      if (!incomingKey || !extracted?.[incomingKey]?.value) continue;
+
+      const incomingVal = extracted[incomingKey].value;
+
+      if (topLevelKeys.includes(fieldKey)) {
+        const before = (deal as Record<string, unknown>)[fieldKey];
+        topLevelUpdates[fieldKey] = fieldKey === "amount" ? Number(incomingVal) : incomingVal;
+        changes.push({ field: fieldKey, before, after: incomingVal });
+      } else if (uwKeys.includes(fieldKey)) {
+        const before = uwData[fieldKey];
+        uwUpdates[fieldKey] = incomingVal;
+        changes.push({ field: `uw_data.${fieldKey}`, before, after: incomingVal });
+      }
+    }
+
+    if (Object.keys(topLevelUpdates).length > 0 || changes.some((c) => c.field.startsWith("uw_data."))) {
+      const updatePayload: Record<string, unknown> = {
+        ...topLevelUpdates,
+        updated_at: new Date().toISOString(),
+      };
+      if (changes.some((c) => c.field.startsWith("uw_data."))) {
+        updatePayload.uw_data = uwUpdates as Json;
+      }
+      await admin.from("unified_deals").update(updatePayload).eq("id", data.dealId);
+    }
+
+    // Log audit trail
+    await admin.from("unified_deal_activity").insert({
+      deal_id: data.dealId,
+      activity_type: "email_merge",
+      title: "Email intake merged into deal",
+      description: `Email from ${queueItem.from_email}: "${queueItem.subject}"`,
+      metadata: {
+        intake_queue_id: data.intakeQueueId,
+        changes,
+        accepted_fields: data.acceptedFields,
+        merge_notes: data.notes,
+      } as unknown as Json,
+      created_by: auth.user.id,
+    });
+
+    // Create AI summary note
+    const changeSummary = changes.length > 0
+      ? changes.map((c) => `${c.field}: ${c.before ?? "(empty)"} -> ${c.after}`).join("; ")
+      : "No fields updated";
+
+    await admin.from("notes").insert({
+      deal_id: data.dealId,
+      author_id: auth.user.id,
+      author_name: "AI Assistant",
+      is_internal: true,
+      body: `**Email Intake Merged**\n\nEmail from ${queueItem.from_email} ("${queueItem.subject}") was merged into this deal.\n\n${queueItem.extraction_summary ? `**AI Summary:** ${queueItem.extraction_summary}\n\n` : ""}**Changes applied:** ${changeSummary}${data.notes ? `\n\n**Reviewer notes:** ${data.notes}` : ""}`,
+    });
+
+    // Move attachments to deal folder
+    if (queueItem.attachments) {
+      const attachments = queueItem.attachments as Array<{
+        filename: string;
+        storage_path?: string;
+        mime_type: string;
+        size_bytes: number;
+      }>;
+
+      for (const att of attachments) {
+        if (!att.storage_path) continue;
+        try {
+          const { data: fileData } = await admin.storage
+            .from("loan-documents")
+            .download(att.storage_path);
+          if (!fileData) continue;
+
+          const newPath = `deals/${data.dealId}/${att.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          await admin.storage
+            .from("loan-documents")
+            .upload(newPath, fileData, { contentType: att.mime_type, upsert: true });
+
+          await admin.from("documents").insert({
+            deal_id: data.dealId,
+            file_name: att.filename,
+            file_path: newPath,
+            file_url: newPath,
+            file_size: att.size_bytes,
+            mime_type: att.mime_type,
+            document_type: "email_attachment",
+            source: "email_intake",
+            status: "active",
+          });
+
+          await admin.storage.from("loan-documents").remove([att.storage_path]);
+        } catch (err) {
+          console.error(`Failed to move attachment ${att.filename}:`, err);
+        }
+      }
+    }
+
+    // Mark intake as merged
+    await admin.from("email_intake_queue").update({
+      status: "attached",
+      resolved_deal_id: data.dealId,
+      resolved_by: auth.user.id,
+      resolved_at: new Date().toISOString(),
+      resolution_notes: data.notes || null,
+    }).eq("id", data.intakeQueueId);
+
+    await admin.from("intake_items" as never)
+      .update({ status: "merged" } as never)
+      .eq("email_intake_queue_id" as never, data.intakeQueueId as never);
+
+    await revalidatePipeline(data.dealId);
+    revalidatePath("/admin/pipeline/intake");
+    return { success: true };
+  } catch (err) {
+    console.error("mergeToDealAction error:", err);
+    return { error: err instanceof Error ? err.message : "Failed to merge" };
   }
 }
 
@@ -910,7 +1262,7 @@ export async function processIntakeItemAction(
         .eq("id" as never, intakeItemId as never);
 
       if (error) return { error: error.message };
-      revalidatePipeline();
+      await revalidatePipeline();
       return { success: true };
     }
 
@@ -1208,7 +1560,7 @@ export async function processIntakeItemAction(
       } as never)
       .eq("id" as never, intakeItemId as never);
 
-    revalidatePipeline(deal.id);
+    await revalidatePipeline(deal.id);
     return { success: true, deal };
   } catch (err: unknown) {
     console.error("processIntakeItemAction error:", err);

@@ -37,8 +37,8 @@ export default async function IntakePage() {
       .select("id, label, slug, capital_side, card_icon, uw_fields"),
   ]);
 
-  const activeItems = (activeResult.data || []) as IntakeQueueItem[];
-  const recentItems = (recentResult.data || []) as IntakeQueueItem[];
+  const activeItems = (activeResult.data || []) as unknown as IntakeQueueItem[];
+  const recentItems = (recentResult.data || []) as unknown as IntakeQueueItem[];
   const cardTypes = (cardTypesResult.data || []) as CardType[];
 
   return (

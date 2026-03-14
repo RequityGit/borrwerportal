@@ -114,8 +114,8 @@ export const categoryDisplayNames: Record<NotificationCategory, string> = {
 
 // Role-specific dashboard fallbacks
 const ROLE_DASHBOARDS: Record<string, string> = {
-  super_admin: "/admin/dashboard",
-  admin: "/admin/dashboard",
+  super_admin: "/admin/pipeline",
+  admin: "/admin/pipeline",
   borrower: "/borrower/dashboard",
   investor: "/investor/dashboard",
 };
@@ -158,7 +158,7 @@ export function getNotificationRoute(
           return `/admin/pipeline-v2/${loanId}?condition=${entity_id}`;
         }
         if (isAdmin) return "/admin/conditions";
-        return ROLE_DASHBOARDS[activeRole] ?? "/admin/dashboard";
+        return ROLE_DASHBOARDS[activeRole] ?? "/admin/pipeline";
       }
 
       case "draw_request":
@@ -171,16 +171,16 @@ export function getNotificationRoute(
 
       case "contact":
         if (isAdmin) return `/admin/crm/${entity_id}?tab=notes`;
-        return ROLE_DASHBOARDS[activeRole] ?? "/admin/dashboard";
+        return ROLE_DASHBOARDS[activeRole] ?? "/admin/pipeline";
 
       case "company":
         if (isAdmin) return `/admin/crm/companies/${entity_id}?tab=notes`;
-        return ROLE_DASHBOARDS[activeRole] ?? "/admin/dashboard";
+        return ROLE_DASHBOARDS[activeRole] ?? "/admin/pipeline";
 
       case "task":
       case "project":
         if (isAdmin) return "/admin/operations";
-        return ROLE_DASHBOARDS[activeRole] ?? "/admin/dashboard";
+        return ROLE_DASHBOARDS[activeRole] ?? "/admin/pipeline";
     }
   }
 
@@ -204,7 +204,7 @@ export function getNotificationRoute(
     return action_url;
   }
 
-  return ROLE_DASHBOARDS[activeRole] ?? "/admin/dashboard";
+  return ROLE_DASHBOARDS[activeRole] ?? "/admin/pipeline";
 }
 
 // Relative time formatting

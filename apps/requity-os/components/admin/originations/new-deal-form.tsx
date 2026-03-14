@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatPhoneInput } from "@/lib/format";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -326,10 +327,19 @@ export function NewDealForm({
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Address Line 1 *</Label>
-                <Input
+                <AddressAutocomplete
                   value={property.address_line1}
-                  onChange={(e) =>
-                    setProperty({ ...property, address_line1: e.target.value })
+                  onChange={(v) =>
+                    setProperty({ ...property, address_line1: v })
+                  }
+                  onAddressSelect={(addr) =>
+                    setProperty((prev) => ({
+                      ...prev,
+                      address_line1: addr.address_line1,
+                      city: addr.city,
+                      state: addr.state,
+                      zip: addr.zip,
+                    }))
                   }
                   placeholder="123 Main St"
                 />

@@ -11,7 +11,7 @@ import {
   formatRatio,
 } from "./pipeline-types";
 import { UwField } from "./UwField";
-import { useResolvedCardType } from "@/hooks/useResolvedCardType";
+import { useUwFieldConfigs } from "@/hooks/useUwFieldConfigs";
 import type { VisibilityContext } from "@/lib/visibility-engine";
 import { evaluateFormula } from "@/lib/formula-engine";
 import { Badge } from "@/components/ui/badge";
@@ -32,28 +32,22 @@ interface UnderwritingPanelProps {
 }
 
 export function UnderwritingPanel({
-  cardType: rawCardType,
+  cardType,
   dealId,
   uwData,
   readOnly,
   visibilityContext,
 }: UnderwritingPanelProps) {
-  // Resolve field refs from field_configurations (falls back to inline fields)
-  const cardType = useResolvedCardType(rawCardType, visibilityContext);
+  // Fetch ALL UW field configs filtered by Condition Matrix visibility
+  const { byObject, allFields } = useUwFieldConfigs(visibilityContext);
 
   const [localData, setLocalData] = useState<Record<string, unknown>>(uwData);
   const [pending, startTransition] = useTransition();
 
-  // Group fields by object binding
+  // Group fields by object binding (deal, property, borrower)
   const fieldGroups = useMemo(() => {
-    const groups: Record<string, UwFieldDef[]> = { deal: [], property: [], borrower: [] };
-    for (const field of cardType.uw_fields) {
-      const obj = field.object ?? "deal";
-      if (!groups[obj]) groups[obj] = [];
-      groups[obj].push(field);
-    }
-    return Object.entries(groups).filter(([, fields]) => fields.length > 0);
-  }, [cardType.uw_fields]);
+    return Object.entries(byObject).filter(([, fields]) => fields.length > 0);
+  }, [byObject]);
 
   function handleFieldChange(key: string, value: unknown) {
     setLocalData((prev) => ({ ...prev, [key]: value }));
@@ -84,7 +78,7 @@ export function UnderwritingPanel({
   // Evaluate formula fields against current deal data
   const formulaValues = useMemo(() => {
     const values: Record<string, number | null> = {};
-    for (const field of cardType.uw_fields) {
+    for (const field of allFields) {
       if (field.formulaExpression) {
         try {
           const vars: Record<string, number> = {};
@@ -100,7 +94,7 @@ export function UnderwritingPanel({
       }
     }
     return values;
-  }, [cardType.uw_fields, localData]);
+  }, [allFields, localData]);
 
   return (
     <div className="space-y-6">
@@ -141,7 +135,7 @@ export function UnderwritingPanel({
                     : "Deal UW Data"}
               </Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {fields.map((field) => {
                 // Formula fields render as read-only computed values
                 if (field.formulaExpression) {

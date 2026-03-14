@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
+import { revalidateDealPaths } from "@/lib/pipeline/revalidate-deal";
 
 // Helper to bypass type checking for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,7 +74,7 @@ export async function initCommercialUW(
   const waterfallRows = DEFAULT_WATERFALL_TIERS.map((t) => ({ uw_id: uw.id, ...t }));
   await supabase.from("deal_commercial_waterfall").insert(waterfallRows);
 
-  revalidatePath(`/admin/pipeline/${dealId}`);
+  await revalidateDealPaths(dealId);
   return { data: { id: uw.id }, error: null };
 }
 
@@ -120,7 +120,7 @@ export async function ensureCommercialUW(
   const waterfallRows = DEFAULT_WATERFALL_TIERS.map((t) => ({ uw_id: uw.id, ...t }));
   await supabase.from("deal_commercial_waterfall").insert(waterfallRows);
 
-  revalidatePath(`/admin/pipeline/debt/${opportunityId}`);
+  await revalidateDealPaths(opportunityId);
   return { data: { id: uw.id }, error: null };
 }
 
@@ -231,6 +231,11 @@ export async function upsertScopeOfWork(
     item_name: string;
     description?: string | null;
     estimated_cost: number;
+    category?: string | null;
+    qty?: number | null;
+    unit_cost?: number | null;
+    timeline?: string | null;
+    budget_type?: string | null;
     sort_order: number;
   }[]
 ): Promise<{ error: string | null }> {
@@ -332,7 +337,7 @@ export async function createNewVersion(
     return { data: null, error: error?.message ?? "Failed to create version" };
   }
 
-  revalidatePath(`/admin/pipeline/${dealId}`);
+  await revalidateDealPaths(dealId);
   return { data: { id: uw.id, version: uw.version }, error: null };
 }
 
@@ -368,14 +373,22 @@ export async function upsertDebtTranches(
   uwId: string,
   tranches: {
     tranche_name: string;
+    tranche_type?: string | null;
     loan_type?: string | null;
     loan_amount: number;
     interest_rate: number;
     term_years?: number | null;
     amortization_years?: number | null;
     io_period_months?: number | null;
+    is_io?: boolean | null;
     origination_fee_pct?: number | null;
+    ltv_pct?: number | null;
+    prepay_type?: string | null;
     lender_name?: string | null;
+    max_ltv_constraint?: number | null;
+    dscr_floor_constraint?: number | null;
+    takeout_year?: number | null;
+    appraisal_cap_rate?: number | null;
     sort_order: number;
   }[]
 ): Promise<{ error: string | null }> {
@@ -390,6 +403,81 @@ export async function upsertDebtTranches(
   }
 
   await supabase.from("deal_commercial_uw").update({ updated_at: new Date().toISOString() }).eq("id", uwId);
+  return { error: null };
+}
+
+export async function upsertClosingCosts(
+  uwId: string,
+  items: {
+    line_item: string;
+    amount: number;
+    notes?: string | null;
+    sort_order: number;
+  }[]
+): Promise<{ error: string | null }> {
+  const supabase = db();
+  await supabase
+    .from("deal_commercial_sources_uses")
+    .delete()
+    .eq("uw_id", uwId)
+    .eq("category", "closing_cost");
+
+  if (items.length > 0) {
+    const { error } = await supabase
+      .from("deal_commercial_sources_uses")
+      .insert(items.map((r) => ({ uw_id: uwId, type: "use", category: "closing_cost", ...r })));
+    if (error) return { error: error.message };
+  }
+
+  await supabase.from("deal_commercial_uw").update({ updated_at: new Date().toISOString() }).eq("id", uwId);
+  return { error: null };
+}
+
+export async function upsertReserves(
+  uwId: string,
+  items: {
+    line_item: string;
+    amount: number;
+    notes?: string | null;
+    sort_order: number;
+  }[]
+): Promise<{ error: string | null }> {
+  const supabase = db();
+  await supabase
+    .from("deal_commercial_sources_uses")
+    .delete()
+    .eq("uw_id", uwId)
+    .eq("category", "reserve");
+
+  if (items.length > 0) {
+    const { error } = await supabase
+      .from("deal_commercial_sources_uses")
+      .insert(items.map((r) => ({ uw_id: uwId, type: "use", category: "reserve", ...r })));
+    if (error) return { error: error.message };
+  }
+
+  await supabase.from("deal_commercial_uw").update({ updated_at: new Date().toISOString() }).eq("id", uwId);
+  return { error: null };
+}
+
+export async function updateSUConfig(
+  uwId: string,
+  fields: {
+    budget_mode?: string;
+    takeout_enabled?: boolean;
+    value_add_contingency_pct?: number;
+    ground_up_gc_fee_pct?: number;
+    ground_up_dev_fee_pct?: number;
+    ground_up_contingency_pct?: number;
+  }
+): Promise<{ error: string | null }> {
+  const supabase = db();
+  const { error } = await supabase
+    .from("deal_commercial_uw")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", uwId);
+
+  if (error) return { error: error.message };
   return { error: null };
 }
 
@@ -412,6 +500,6 @@ export async function activateVersion(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/pipeline/${dealId}`);
+  await revalidateDealPaths(dealId);
   return { error: null };
 }

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -211,10 +212,16 @@ export function BorrowerEntityDialog({
 
           <div className="space-y-2">
             <Label htmlFor="entAddr1">Address Line 1</Label>
-            <Input
+            <AddressAutocomplete
               id="entAddr1"
               value={addressLine1}
-              onChange={(e) => setAddressLine1(e.target.value)}
+              onChange={setAddressLine1}
+              onAddressSelect={(addr) => {
+                setAddressLine1(addr.address_line1);
+                setCity(addr.city);
+                setState(addr.state);
+                setZip(addr.zip);
+              }}
               placeholder="123 Business Ave"
             />
           </div>

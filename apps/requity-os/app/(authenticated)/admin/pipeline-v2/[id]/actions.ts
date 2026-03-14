@@ -1,15 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
-
-function revalidateDeal(dealId: string) {
-  revalidatePath("/admin/pipeline-v2");
-  revalidatePath(`/admin/pipeline-v2/${dealId}`);
-  revalidatePath("/admin/pipeline");
-  revalidatePath(`/admin/pipeline/${dealId}`);
-}
+import { revalidateDealPaths as revalidateDeal } from "@/lib/pipeline/revalidate-deal";
 
 // ─── Log Rich Activity (dual-write to deal activity + CRM activities) ───
 
@@ -70,7 +64,7 @@ export async function logDealActivityRich(
         .eq("id" as never, primaryContactId as never);
     }
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("logDealActivityRich error:", err);
@@ -117,7 +111,7 @@ export async function logQuickActionV2(
       return { error: error.message };
     }
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("logQuickActionV2 error:", err);
@@ -158,7 +152,7 @@ export async function assignTeamMemberV2(
       created_by: auth.user.id,
     } as never);
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("assignTeamMemberV2 error:", err);
@@ -207,7 +201,7 @@ export async function addDealTeamMember(
       created_by: auth.user.id,
     } as never);
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("addDealTeamMember error:", err);
@@ -248,7 +242,7 @@ export async function removeDealTeamMember(
       created_by: auth.user.id,
     } as never);
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("removeDealTeamMember error:", err);
@@ -330,6 +324,7 @@ export async function saveDealDocumentRecord(params: {
   fileSizeBytes: number;
   mimeType: string;
   conditionId?: string;
+  visibility?: "internal" | "external";
 }): Promise<{ error: string | null; documentId: string | null }> {
   try {
     const auth = await requireAdmin();
@@ -337,7 +332,6 @@ export async function saveDealDocumentRecord(params: {
 
     const admin = createAdminClient();
 
-    // Generate a signed URL for the stored file
     const signedUrlResult = await admin.storage
       .from("loan-documents")
       .createSignedUrl(params.storagePath, 60 * 60 * 24 * 365);
@@ -359,6 +353,7 @@ export async function saveDealDocumentRecord(params: {
         uploaded_by: auth.user.id,
         storage_path: params.storagePath,
         review_status: "pending",
+        visibility: params.visibility || "internal",
       } as never)
       .select("id" as never)
       .single();
@@ -366,18 +361,42 @@ export async function saveDealDocumentRecord(params: {
     if (!insertResult || insertResult.error) {
       const dbError = insertResult?.error;
       console.error("saveDealDocumentRecord db error:", dbError);
-      // Clean up the uploaded file since DB insert failed
       await admin.storage.from("loan-documents").remove([params.storagePath]);
       return { error: dbError?.message ?? "Failed to save document record", documentId: null };
     }
 
     const documentId = (insertResult.data as { id: string } | null)?.id ?? null;
 
-    revalidateDeal(params.dealId);
+    await revalidateDeal(params.dealId);
     return { error: null, documentId };
   } catch (err: unknown) {
     console.error("saveDealDocumentRecord error:", err);
     return { error: err instanceof Error ? err.message : "Failed to save document record", documentId: null };
+  }
+}
+
+export async function updateDocumentVisibility(
+  docId: string,
+  dealId: string,
+  visibility: "internal" | "external"
+): Promise<{ error?: string }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { error } = await admin
+      .from("unified_deal_documents" as never)
+      .update({ visibility } as never)
+      .eq("id" as never, docId);
+
+    if (error) return { error: error.message };
+
+    await revalidateDeal(dealId);
+    return {};
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Failed to update visibility" };
   }
 }
 
@@ -406,7 +425,7 @@ export async function triggerDocumentAnalysis(
         .from("unified_deal_documents" as never)
         .update({ review_status: "error" } as never)
         .eq("id" as never, documentId as never);
-      revalidateDeal(dealId);
+      await revalidateDeal(dealId);
     } catch (updateErr) {
       console.error("Failed to mark document as errored:", updateErr);
     }
@@ -441,7 +460,7 @@ export async function deleteDealDocumentV2(
     }
 
     if (doc) {
-      revalidateDeal((doc as { deal_id: string }).deal_id);
+      await revalidateDeal((doc as { deal_id: string }).deal_id);
     }
     return { error: null };
   } catch (err: unknown) {
@@ -551,9 +570,9 @@ export async function submitDocumentReview(
     const auth = await requireAdmin();
     if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
 
-    const admin = createAdminClient();
+    const supabase = await createClient();
 
-    const { data, error } = await admin.rpc(
+    const { data, error } = await supabase.rpc(
       "apply_document_review" as never,
       {
         p_review_id: reviewId,
@@ -568,6 +587,8 @@ export async function submitDocumentReview(
       return { error: error.message };
     }
 
+    const admin = createAdminClient();
+
     // Get the deal_id from the review to revalidate
     const { data: review } = await admin
       .from("document_reviews" as never)
@@ -576,7 +597,7 @@ export async function submitDocumentReview(
       .single();
 
     if (review) {
-      revalidateDeal((review as { deal_id: string }).deal_id);
+      await revalidateDeal((review as { deal_id: string }).deal_id);
     }
 
     return { data: data as Record<string, unknown> };
@@ -623,7 +644,7 @@ export async function retriggerDocumentReview(documentId: string) {
     // Trigger edge function
     await triggerDocumentReviewEdgeFunction(documentId, dealId);
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("retriggerDocumentReview error:", err);
@@ -686,7 +707,7 @@ export async function updateDealFieldV2(
       return { error: error.message };
     }
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("updateDealFieldV2 error:", err);
@@ -718,7 +739,7 @@ export async function saveGridOverrides(
       return { error: error.message };
     }
 
-    revalidateDeal(dealId);
+    await revalidateDeal(dealId);
     return { success: true };
   } catch (err: unknown) {
     console.error("saveGridOverrides error:", err);
@@ -726,4 +747,432 @@ export async function saveGridOverrides(
       error: err instanceof Error ? err.message : "An unexpected error occurred",
     };
   }
+}
+
+// ─── Create Google Drive Folder ───
+
+export async function createDealDriveFolder(
+  dealId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      return { error: "Server configuration missing" };
+    }
+
+    const res = await fetch(
+      `${supabaseUrl}/functions/v1/create-deal-drive-folder`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ deal_id: dealId }),
+      }
+    );
+
+    if (!res.ok) {
+      let detail = `HTTP ${res.status}`;
+      try {
+        const body = await res.json();
+        detail = body.error ?? JSON.stringify(body);
+      } catch {
+        detail = await res.text().catch(() => detail);
+      }
+      return { error: detail };
+    }
+
+    await revalidateDeal(dealId);
+    return { success: true };
+  } catch (err: unknown) {
+    return {
+      error: err instanceof Error ? err.message : "An unexpected error occurred",
+    };
+  }
+}
+
+// ─── Deal Contacts (multi-borrower / signer) ───
+
+export interface DealContact {
+  id: string;
+  deal_id: string;
+  contact_id: string;
+  role: "primary" | "co_borrower";
+  is_guarantor: boolean;
+  sort_order: number;
+  created_at: string;
+  contact?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    phone: string | null;
+    borrower_id: string | null;
+  } | null;
+  borrower?: {
+    id: string;
+    credit_score: number | null;
+    experience_count: number | null;
+  } | null;
+}
+
+export async function searchContactsForDeal(query: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error, contacts: [] };
+
+  if (!query || query.trim().length < 2) return { contacts: [] };
+
+  const admin = createAdminClient();
+  const term = `%${query.trim()}%`;
+
+  const { data, error } = await admin
+    .from("crm_contacts")
+    .select("id, first_name, last_name, email, phone, company_name")
+    .or(`first_name.ilike.${term},last_name.ilike.${term},email.ilike.${term},name.ilike.${term}`)
+    .order("last_name" as never, { ascending: true })
+    .limit(10);
+
+  if (error) return { error: error.message, contacts: [] };
+  return { contacts: data ?? [] };
+}
+
+export async function fetchDealContacts(dealId: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error, dealContacts: [] };
+
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("deal_contacts")
+    .select("*, contact:crm_contacts(id, first_name, last_name, email, phone, borrower_id)")
+    .eq("deal_id", dealId)
+    .order("sort_order", { ascending: true });
+
+  if (error) return { error: error.message, dealContacts: [] };
+
+  const contacts = (data ?? []) as unknown as DealContact[];
+
+  const borrowerIds = contacts
+    .map((dc) => dc.contact?.borrower_id)
+    .filter((id): id is string => !!id);
+
+  if (borrowerIds.length > 0) {
+    const { data: borrowers } = await admin
+      .from("borrowers")
+      .select("id, credit_score, experience_count, crm_contact_id")
+      .in("id", borrowerIds);
+
+    if (borrowers) {
+      const borrowerMap = new Map(borrowers.map((b) => [b.id, b]));
+      for (const dc of contacts) {
+        if (dc.contact?.borrower_id) {
+          dc.borrower = borrowerMap.get(dc.contact.borrower_id) ?? null;
+        }
+      }
+    }
+  }
+
+  return { dealContacts: contacts };
+}
+
+async function syncBorrowerDataOnLink(
+  admin: ReturnType<typeof createAdminClient>,
+  dealId: string,
+  contactId: string
+) {
+  try {
+    // Find borrower record linked to this contact
+    const { data: contact } = await admin
+      .from("crm_contacts")
+      .select("borrower_id")
+      .eq("id", contactId)
+      .single();
+
+    if (!contact?.borrower_id) return;
+
+    const { data: borrower } = await admin
+      .from("borrowers")
+      .select("credit_score, experience_count")
+      .eq("id", contact.borrower_id)
+      .single();
+
+    if (!borrower) return;
+
+    // Get current uw_data to check for empty values
+    const { data: deal } = await admin
+      .from("unified_deals")
+      .select("uw_data")
+      .eq("id", dealId)
+      .single();
+
+    const uwData = (deal?.uw_data as Record<string, unknown>) ?? {};
+    const updates: Record<string, unknown> = {};
+
+    if (borrower.credit_score && !uwData.borrower_fico) {
+      updates.borrower_fico = borrower.credit_score;
+    }
+    if (borrower.experience_count != null && !uwData.borrower_experience) {
+      updates.borrower_experience = borrower.experience_count;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await admin
+        .from("unified_deals")
+        .update({
+          uw_data: { ...uwData, ...updates },
+        } as never)
+        .eq("id" as never, dealId as never);
+    }
+  } catch (err) {
+    console.error("syncBorrowerDataOnLink error:", err);
+  }
+}
+
+export async function addDealContact(
+  dealId: string,
+  contactId: string,
+  role: "primary" | "co_borrower" = "co_borrower",
+  isGuarantor = false
+) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+  const admin = createAdminClient();
+
+  // Enforce max 5 contacts per deal
+  const { count } = await admin
+    .from("deal_contacts")
+    .select("id", { count: "exact", head: true })
+    .eq("deal_id", dealId);
+
+  if ((count ?? 0) >= 5) {
+    return { error: "Maximum of 5 contacts per deal" };
+  }
+
+  // If adding as primary, demote existing primary to co_borrower
+  if (role === "primary") {
+    await admin
+      .from("deal_contacts")
+      .update({ role: "co_borrower" } as never)
+      .eq("deal_id" as never, dealId as never)
+      .eq("role" as never, "primary" as never);
+  }
+
+  const nextOrder = (count ?? 0) + 1;
+
+  const { error } = await admin.from("deal_contacts").insert({
+    deal_id: dealId,
+    contact_id: contactId,
+    role,
+    is_guarantor: isGuarantor,
+    sort_order: nextOrder,
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Contact already linked to this deal" };
+    return { error: error.message };
+  }
+
+  // Sync primary_contact_id on unified_deals
+  if (role === "primary") {
+    await admin
+      .from("unified_deals")
+      .update({ primary_contact_id: contactId } as never)
+      .eq("id" as never, dealId as never);
+  }
+
+  // If this is the first contact (or primary), auto-populate empty borrower fields
+  if (role === "primary" || nextOrder === 1) {
+    await syncBorrowerDataOnLink(admin, dealId, contactId);
+  }
+
+  await revalidateDeal(dealId);
+  return { success: true };
+}
+
+export async function removeDealContact(dealId: string, contactId: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+  const admin = createAdminClient();
+
+  // Check if the removed contact is primary
+  const { data: existing } = await admin
+    .from("deal_contacts")
+    .select("role")
+    .eq("deal_id", dealId)
+    .eq("contact_id", contactId)
+    .single();
+
+  const wasPrimary = existing?.role === "primary";
+
+  const { error } = await admin
+    .from("deal_contacts")
+    .delete()
+    .eq("deal_id", dealId)
+    .eq("contact_id", contactId);
+
+  if (error) return { error: error.message };
+
+  if (wasPrimary) {
+    // Promote next contact by sort_order, or clear primary_contact_id
+    const { data: remaining } = await admin
+      .from("deal_contacts")
+      .select("contact_id")
+      .eq("deal_id", dealId)
+      .order("sort_order", { ascending: true })
+      .limit(1);
+
+    if (remaining && remaining.length > 0) {
+      await admin
+        .from("deal_contacts")
+        .update({ role: "primary" } as never)
+        .eq("deal_id" as never, dealId as never)
+        .eq("contact_id" as never, remaining[0].contact_id as never);
+
+      await admin
+        .from("unified_deals")
+        .update({ primary_contact_id: remaining[0].contact_id } as never)
+        .eq("id" as never, dealId as never);
+    } else {
+      await admin
+        .from("unified_deals")
+        .update({ primary_contact_id: null } as never)
+        .eq("id" as never, dealId as never);
+    }
+  }
+
+  // Re-normalize sort_order
+  const { data: allRemaining } = await admin
+    .from("deal_contacts")
+    .select("id")
+    .eq("deal_id", dealId)
+    .order("sort_order", { ascending: true });
+
+  if (allRemaining) {
+    for (let i = 0; i < allRemaining.length; i++) {
+      await admin
+        .from("deal_contacts")
+        .update({ sort_order: i + 1 } as never)
+        .eq("id" as never, allRemaining[i].id as never);
+    }
+  }
+
+  await revalidateDeal(dealId);
+  return { success: true };
+}
+
+export async function updateDealContact(
+  dealId: string,
+  contactId: string,
+  updates: { role?: "primary" | "co_borrower"; is_guarantor?: boolean }
+) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+  const admin = createAdminClient();
+
+  // If promoting to primary, demote existing primary
+  if (updates.role === "primary") {
+    await admin
+      .from("deal_contacts")
+      .update({ role: "co_borrower" } as never)
+      .eq("deal_id" as never, dealId as never)
+      .eq("role" as never, "primary" as never);
+  }
+
+  const { error } = await admin
+    .from("deal_contacts")
+    .update(updates as never)
+    .eq("deal_id" as never, dealId as never)
+    .eq("contact_id" as never, contactId as never);
+
+  if (error) return { error: error.message };
+
+  // Sync primary_contact_id
+  if (updates.role === "primary") {
+    await admin
+      .from("unified_deals")
+      .update({ primary_contact_id: contactId } as never)
+      .eq("id" as never, dealId as never);
+  } else if (updates.role === "co_borrower") {
+    // Check if there's still a primary
+    const { data: primaries } = await admin
+      .from("deal_contacts")
+      .select("contact_id")
+      .eq("deal_id", dealId)
+      .eq("role", "primary")
+      .limit(1);
+
+    const newPrimaryId = primaries && primaries.length > 0 ? primaries[0].contact_id : null;
+    await admin
+      .from("unified_deals")
+      .update({ primary_contact_id: newPrimaryId } as never)
+      .eq("id" as never, dealId as never);
+  }
+
+  await revalidateDeal(dealId);
+  return { success: true };
+}
+
+// ─── Fetch Activity Tab Data (deferred from initial page load) ───
+
+export async function fetchActivityTabData(
+  dealId: string,
+  primaryContactId: string | null
+) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error, dealActivities: [], crmActivities: [], crmEmails: [] };
+
+  const admin = createAdminClient();
+
+  const queries: PromiseLike<unknown>[] = [
+    admin
+      .from("unified_deal_activity" as never)
+      .select("*")
+      .eq("deal_id" as never, dealId as never)
+      .order("created_at" as never, { ascending: false })
+      .limit(200),
+  ];
+
+  if (primaryContactId) {
+    queries.push(
+      admin
+        .from("crm_activities" as never)
+        .select(
+          "id, activity_type, subject, description, outcome, direction, call_duration_seconds, performed_by_name, created_at" as never
+        )
+        .eq("contact_id" as never, primaryContactId as never)
+        .order("created_at" as never, { ascending: false })
+        .limit(200),
+      admin
+        .from("crm_emails" as never)
+        .select("*" as never)
+        .eq("linked_contact_id" as never, primaryContactId as never)
+        .order("created_at" as never, { ascending: false })
+        .limit(100)
+    );
+  }
+
+  const results = await Promise.all(queries);
+
+  type QueryResult = { data: Record<string, unknown>[] | null };
+
+  const dealActivities = ((results[0] as QueryResult).data ?? []) as Record<string, unknown>[];
+  const crmActivities = primaryContactId
+    ? ((results[1] as QueryResult).data ?? []).map((a: Record<string, unknown>) => ({
+        ...a,
+        created_by_name: a.performed_by_name,
+      }))
+    : [];
+  const crmEmails = primaryContactId
+    ? ((results[2] as QueryResult).data ?? [])
+    : [];
+
+  return { dealActivities, crmActivities, crmEmails };
 }

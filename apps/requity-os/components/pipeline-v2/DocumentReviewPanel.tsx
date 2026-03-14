@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useTransition } from "react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -222,8 +222,8 @@ export function DocumentReviewPanel({
   ).length;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[560px] sm:max-w-none p-0 flex flex-col">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] p-0 flex flex-col gap-0">
         {loading ? (
           <div className="p-6 space-y-4">
             <Skeleton className="h-6 w-48" />
@@ -233,12 +233,12 @@ export function DocumentReviewPanel({
           </div>
         ) : review?.status === "error" ? (
           <div className="p-6 space-y-4">
-            <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 Review Failed
-              </SheetTitle>
-            </SheetHeader>
+              </DialogTitle>
+            </DialogHeader>
             <div className="rounded-lg p-4 bg-destructive/10 border border-destructive/20">
               <p className="text-sm text-foreground">
                 {review.error_message ||
@@ -263,12 +263,12 @@ export function DocumentReviewPanel({
           <>
             {/* Header */}
             <div className="p-6 border-b space-y-3">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2 text-base">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
                   <Sparkles className="h-4 w-4 text-blue-500" />
                   AI Document Review
-                </SheetTitle>
-              </SheetHeader>
+                </DialogTitle>
+              </DialogHeader>
 
               <div className="flex items-center gap-2 flex-wrap">
                 <FileText className="h-4 w-4 text-muted-foreground" />
@@ -309,7 +309,7 @@ export function DocumentReviewPanel({
             </div>
 
             {/* Scrollable Content */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 overflow-auto">
               <div className="p-6 space-y-6">
                 {/* Bulk Actions */}
                 {items.filter((i) => i.status === "pending").length > 0 && (
@@ -515,8 +515,8 @@ export function DocumentReviewPanel({
             </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -275,9 +275,6 @@ export async function saveCardType(
       | "status"
       | "uw_model_key"
       | "uw_grid"
-      | "uw_field_refs"
-      | "property_field_refs"
-      | "contact_field_refs"
     >
   >
 ): Promise<{ success?: boolean; error?: string }> {
