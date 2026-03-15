@@ -7,12 +7,15 @@ const supabaseAnonKey =
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Helper to fetch with caching for ISR
+const TABLES_WITHOUT_SORT_ORDER = ["site_company_info"];
+
 export async function fetchSiteData<T>(
   table: string,
   options?: {
     filter?: Record<string, string>;
     order?: { column: string; ascending?: boolean };
     eq?: [string, string | boolean];
+    skipOrder?: boolean;
   }
 ): Promise<T[]> {
   let query = supabase.from(table).select("*");
@@ -27,12 +30,15 @@ export async function fetchSiteData<T>(
     });
   }
 
-  if (options?.order) {
-    query = query.order(options.order.column, {
-      ascending: options.order.ascending ?? true,
-    });
-  } else {
-    query = query.order("sort_order", { ascending: true });
+  const skipOrder = options?.skipOrder ?? TABLES_WITHOUT_SORT_ORDER.includes(table);
+  if (!skipOrder) {
+    if (options?.order) {
+      query = query.order(options.order.column, {
+        ascending: options.order.ascending ?? true,
+      });
+    } else {
+      query = query.order("sort_order", { ascending: true });
+    }
   }
 
   const { data, error } = await query;

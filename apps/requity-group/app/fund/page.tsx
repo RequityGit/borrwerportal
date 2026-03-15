@@ -26,7 +26,7 @@ import {
 export const metadata: Metadata = {
   title: "Requity Income Fund | Consistent Monthly Income from Real Estate",
   description:
-    "Invest in the Requity Income Fund â a diversified real estate credit fund targeting 10% annual preferred return with monthly distributions, 90-day liquidity, and first-position liens.",
+    "Invest in the Requity Income Fund — a diversified real estate credit fund targeting 10% annual preferred return with monthly distributions, 90-day liquidity, and first-position liens.",
   openGraph: {
     title: "Requity Income Fund | Requity Group",
     description:
@@ -494,7 +494,7 @@ export default async function FundPage() {
                 </h3>
                 <p>
                   Capital is deployed into vetted, first-position opportunities with a
-                  focus on downside protection and consistent income â independent of
+                  focus on downside protection and consistent income — independent of
                   public equity and bond markets.
                 </p>
               </div>
@@ -586,7 +586,7 @@ export default async function FundPage() {
                 {testimonials.slice(0, 4).map((t) => (
                   <div key={t.id} className="test-card">
                     <div className="big-q">&ldquo;</div>
-                    <div className="stars">{"â".repeat(t.rating)}</div>
+                    <div className="stars">{"★".repeat(t.rating)}</div>
                     <p className="quote-text">&ldquo;{t.quote}&rdquo;</p>
                     <div className="author-name">{t.author_name}</div>
                   </div>
