@@ -34,339 +34,75 @@ declare global {
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import pricingConfig from '@/data/pricing-config.json';
 import { useLanguage } from '@/components/public/LanguageContext';
 import { LanguageToggle } from '@/components/public/LanguageToggle';
 import translations from '@/lib/translations';
+import {
+  LOAN_TYPES,
+  RESIDENTIAL_IDS,
+  COMMERCIAL_IDS,
+  RESIDENTIAL_TYPES,
+  COMMERCIAL_TYPES,
+  COMMERCIAL_TERM_TYPES,
+  RESIDENTIAL_TERM_TYPES,
+  TIMELINES,
+  EXPERIENCE_LEVELS,
+  CREDIT_SCORE_RANGES,
+  DEALS_24_MONTHS,
+  CITIZENSHIP_OPTIONS,
+  TERM_OPTIONS,
+  SLIDER_CONFIG,
+  DEFAULT_SLIDER,
+  LOAN_PROGRAMS,
+  formatPhone,
+  formatCurrencyInput as formatCurrency,
+  parseCurrency,
+  parseCreditScore,
+  parseDeals,
+  qualifyForProgram,
+  calculateTerms,
+  type LoanType,
+  type PricingProgram,
+} from '@repo/lib';
 
-/* ─── Loan Programs ─── */
-const LOAN_TYPES = [
-  {
-    id: 'CRE Bridge',
-    label: 'CRE Bridge',
-    desc: 'Short-term bridge financing for commercial real estate acquisitions and refinances.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 34h28" />
-        <path d="M8 34V18l12-8 12 8v16" />
-        <path d="M16 34v-8h8v8" />
-        <rect x="14" y="20" width="4" height="4" />
-        <rect x="22" y="20" width="4" height="4" />
-      </svg>
-    ),
-  },
-  {
-    id: 'Manufactured Housing',
-    label: 'Manufactured Housing',
-    desc: 'Financing for manufactured housing communities and park acquisitions.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="4" y="16" width="32" height="16" rx="2" />
-        <path d="M4 22h32" />
-        <path d="M10 16V12h6v4" />
-        <circle cx="12" cy="32" r="2" />
-        <circle cx="28" cy="32" r="2" />
-        <path d="M20 22v10" />
-      </svg>
-    ),
-  },
-  {
-    id: 'RV Park',
-    label: 'RV Park',
-    desc: 'Capital for RV parks, campgrounds, and outdoor hospitality properties.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M8 30l12-18 12 18" />
-        <path d="M14 30l6-9 6 9" />
-        <path d="M20 12V8" />
-        <path d="M4 30h32" />
-        <path d="M18 30v-4h4v4" />
-      </svg>
-    ),
-  },
-  {
-    id: 'Multifamily',
-    label: 'Multifamily',
-    desc: 'Financing for apartment buildings and multifamily residential properties.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="6" y="8" width="28" height="26" />
-        <path d="M6 16h28" />
-        <path d="M6 24h28" />
-        <path d="M16 8v26" />
-        <path d="M26 8v26" />
-        <path d="M18 34v-4h4v4" />
-      </svg>
-    ),
-  },
-  {
-    id: 'Fix & Flip',
-    label: 'Fix & Flip',
-    desc: 'Short-term loans for residential property renovation and resale.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 6l14 12H6L20 6z" />
-        <rect x="10" y="18" width="20" height="16" />
-        <rect x="16" y="24" width="8" height="10" />
-        <path d="M30 14l4-4M34 10l-3 1 2 2-1 3" />
-      </svg>
-    ),
-  },
-  {
-    id: 'DSCR Rental',
-    label: 'DSCR Rental',
-    desc: 'Long-term rental property loans based on property cash flow, not personal income.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="8" y="6" width="24" height="28" rx="2" />
-        <path d="M14 14h12" />
-        <path d="M14 20h12" />
-        <path d="M14 26h8" />
-        <path d="M20 6V2" />
-        <circle cx="30" cy="30" r="6" fill="var(--navy-deep)" />
-        <path d="M30 27v6M28 30h4" />
-      </svg>
-    ),
-  },
-  {
-    id: 'New Construction',
-    label: 'New Construction',
-    desc: 'Ground-up construction financing for residential and commercial projects.',
-    icon: (
-      <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 34V14h16v20" />
-        <path d="M10 34h24" />
-        <path d="M18 20h8" />
-        <path d="M18 26h8" />
-        <path d="M22 14V6l-8 8" />
-        <path d="M6 34l4-10" />
-        <path d="M8 24v10" />
-      </svg>
-    ),
-  },
-];
-
-/* ─── Loan Category Groupings ─── */
-const RESIDENTIAL_IDS = ['DSCR Rental', 'Fix & Flip', 'New Construction'];
-const COMMERCIAL_IDS = ['CRE Bridge', 'Manufactured Housing', 'RV Park', 'Multifamily'];
-const RESIDENTIAL_TYPES = LOAN_TYPES.filter((lt) => RESIDENTIAL_IDS.includes(lt.id));
-const COMMERCIAL_TYPES = LOAN_TYPES.filter((lt) => COMMERCIAL_IDS.includes(lt.id));
-
-const TIMELINES = [
-  'Immediate — Under Contract',
-  'Within 30 Days',
-  '30–60 Days',
-  '60–90 Days',
-  '90+ Days',
-  'Just Exploring Options',
-];
-
-const EXPERIENCE_LEVELS = [
-  'First-Time Investor',
-  '1–3 Deals Completed',
-  '4–10 Deals Completed',
-  '10–25 Deals Completed',
-  '25+ Deals Completed',
-  'Institutional / Fund',
-];
-
-/* ─── Loan Program Pricing (synced from Google Sheets → data/pricing-config.json) ─── */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface PricingProgramRequirements {
-  minCreditScore: number;
-  minDeals24Months: number;
-  citizenship: string;
-}
-
-interface PricingProgram {
-  loanTermMonths: number;
-  requirements: PricingProgramRequirements;
-  [key: string]: unknown;
-}
-
-interface LoanProgramConfig {
-  programs: PricingProgram[];
-  [key: string]: unknown;
-}
-
-const LOAN_PROGRAMS: Record<string, LoanProgramConfig> = pricingConfig.loanPrograms as Record<string, LoanProgramConfig>;
-
-const COMMERCIAL_TERM_TYPES = ['CRE Bridge', 'RV Park', 'Multifamily'];
-const RESIDENTIAL_TERM_TYPES = ['Fix & Flip', 'DSCR Rental', 'Manufactured Housing', 'New Construction'];
-const TERM_OPTIONS = [
-  { months: 12, exitPoints: 0, label: '12 Months', exitLabel: '0 exit points' },
-  { months: 18, exitPoints: 1, label: '18 Months', exitLabel: '1 exit point' },
-  { months: 24, exitPoints: 2, label: '24 Months', exitLabel: '2 exit points' },
-];
-
-const CREDIT_SCORE_RANGES = [
-  '760 or higher',
-  '720–759',
-  '680–719',
-  '650–679',
-  '620–649',
-  'Below 620',
-  'Not sure',
-];
-
-const DEALS_24_MONTHS = [
-  '0 — First deal',
-  '1–2 deals',
-  '3–5 deals',
-  '6–10 deals',
-  '10+ deals',
-];
-
-const CITIZENSHIP_OPTIONS = [
-  'US Citizen',
-  'Permanent Resident (Green Card)',
-  'Foreign National',
-  'Other / Not Sure',
-];
-
-/* ─── Slider Config (per property type — all identical for now) ─── */
-const SLIDER_CONFIG = {
-  "Single Family Residence (1-4 units)": { min: 50, max: 90, default: 75 },
-  "Multifamily (5+ units)": { min: 50, max: 90, default: 75 },
-  "Mixed Use": { min: 50, max: 90, default: 75 },
-  "Commercial": { min: 50, max: 90, default: 75 },
-  "New Construction": { min: 50, max: 90, default: 75 },
-  "Land": { min: 50, max: 90, default: 75 },
+/* ─── Loan Type Icons (local, since they contain JSX) ─── */
+const LOAN_TYPE_ICONS: Record<string, React.ReactNode> = {
+  'CRE Bridge': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 34h28" /><path d="M8 34V18l12-8 12 8v16" /><path d="M16 34v-8h8v8" /><rect x="14" y="20" width="4" height="4" /><rect x="22" y="20" width="4" height="4" />
+    </svg>
+  ),
+  'Manufactured Housing': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="16" width="32" height="16" rx="2" /><path d="M4 22h32" /><path d="M10 16V12h6v4" /><circle cx="12" cy="32" r="2" /><circle cx="28" cy="32" r="2" /><path d="M20 22v10" />
+    </svg>
+  ),
+  'RV Park': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 30l12-18 12 18" /><path d="M14 30l6-9 6 9" /><path d="M20 12V8" /><path d="M4 30h32" /><path d="M18 30v-4h4v4" />
+    </svg>
+  ),
+  'Multifamily': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="8" width="28" height="26" /><path d="M6 16h28" /><path d="M6 24h28" /><path d="M16 8v26" /><path d="M26 8v26" /><path d="M18 34v-4h4v4" />
+    </svg>
+  ),
+  'Fix & Flip': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6l14 12H6L20 6z" /><rect x="10" y="18" width="20" height="16" /><rect x="16" y="24" width="8" height="10" /><path d="M30 14l4-4M34 10l-3 1 2 2-1 3" />
+    </svg>
+  ),
+  'DSCR Rental': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="6" width="24" height="28" rx="2" /><path d="M14 14h12" /><path d="M14 20h12" /><path d="M14 26h8" /><path d="M20 6V2" /><circle cx="30" cy="30" r="6" fill="var(--navy-deep)" /><path d="M30 27v6M28 30h4" />
+    </svg>
+  ),
+  'New Construction': (
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 34V14h16v20" /><path d="M10 34h24" /><path d="M18 20h8" /><path d="M18 26h8" /><path d="M22 14V6l-8 8" /><path d="M6 34l4-10" /><path d="M8 24v10" />
+    </svg>
+  ),
 };
-const DEFAULT_SLIDER = { min: 50, max: 90, default: 75 };
-
-/* ─── Helpers ─── */
-function formatPhone(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length === 0) return '';
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
-function formatCurrency(value: string) {
-  const digits = value.replace(/\D/g, '');
-  if (!digits) return '';
-  return '$' + parseInt(digits).toLocaleString('en-US');
-}
-
-function parseCurrency(value: string) {
-  if (!value) return 0;
-  return parseInt(value.replace(/[^0-9]/g, '')) || 0;
-}
-
-function parseCreditScore(value: string) {
-  if (!value || value === 'Not sure') return 0;
-  const match = value.match(/^(\d+)/);
-  return match ? parseInt(match[1]) : 0;
-}
-
-function parseDeals(value: string) {
-  if (!value) return 0;
-  if (value.startsWith('0')) return 0;
-  if (value.startsWith('1')) return 1;
-  if (value.startsWith('3')) return 3;
-  if (value.startsWith('6')) return 6;
-  if (value.startsWith('10+')) return 10;
-  return 0;
-}
-
-/* ─── Qualification & Terms Engine ─── */
-function qualifyForProgram(form: Record<string, string>) {
-  const config = LOAN_PROGRAMS[form.loanType];
-  if (!config) return null;
-
-  const creditScore = parseCreditScore(form.creditScore);
-  const deals = parseDeals(form.dealsInLast24Months);
-  const isUSResident = ['US Citizen', 'Permanent Resident (Green Card)'].includes(form.citizenshipStatus);
-
-  for (const program of config.programs) {
-    const req = program.requirements;
-    const meetsCredit = req.minCreditScore === 0 || creditScore >= req.minCreditScore;
-    const meetsExperience = deals >= req.minDeals24Months;
-    const meetsCitizenship = req.citizenship === 'any' || isUSResident;
-
-    if (meetsCredit && meetsExperience && meetsCitizenship) {
-      return program;
-    }
-  }
-  // Fallback to last program (least restrictive)
-  return config.programs[config.programs.length - 1];
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function calculateTerms(form: Record<string, string>, program: Record<string, any>) {
-  const purchasePrice = parseCurrency(form.purchasePrice);
-  const rehabBudget = parseCurrency(form.rehabBudget);
-  const arv = parseCurrency(form.afterRepairValue);
-  const requestedLoan = parseCurrency(form.loanAmount);
-  const totalCost = purchasePrice + rehabBudget;
-
-  const maxByLTV = arv > 0 ? Math.floor(arv * (program.maxLTV / 100)) : null;
-  const maxByLTC = totalCost > 0 ? Math.floor(totalCost * (program.maxLTC / 100)) : null;
-  const maxByLTP = purchasePrice > 0 ? Math.floor(purchasePrice * (program.maxLTP / 100)) : null;
-
-  const constraints = [maxByLTV, maxByLTC, maxByLTP].filter((v) => v !== null);
-  const maxLoan = constraints.length > 0 ? Math.min(...constraints) : null;
-
-  const estimatedLoan =
-    maxLoan !== null
-      ? requestedLoan > 0
-        ? Math.min(requestedLoan, maxLoan)
-        : maxLoan
-      : requestedLoan;
-
-  // Origination fee with minimum floor
-  const minFee = program.minOriginationFee || 0;
-  const calculatedFee = estimatedLoan > 0 ? Math.floor(estimatedLoan * (program.originationPoints / 100)) : 0;
-  const originationFee = estimatedLoan > 0 ? Math.max(calculatedFee, minFee) : null;
-  const originationFeeFloored = minFee > 0 && calculatedFee < minFee;
-
-  const monthlyInterest = estimatedLoan > 0 ? Math.round((estimatedLoan * (program.interestRate / 100)) / 12) : null;
-
-  // Term and exit points
-  const loanTermMonths = program.loanTermMonths || program.maxTerm || 12;
-  const exitPoints = program.exitPoints || 0;
-  const exitFee = estimatedLoan > 0 ? Math.floor(estimatedLoan * (exitPoints / 100)) : 0;
-
-  // Term sheet only fields
-  const legalDocFee = program.legalDocFee || 0;
-  const bpoAppraisalCost = program.bpoAppraisalCost || 0;
-  const bpoAppraisalNote = program.bpoAppraisalNote || '';
-
-  return {
-    programName: program.name,
-    programId: program.id,
-    interestRate: program.interestRate,
-    rateType: program.rateType,
-    originationPoints: program.originationPoints,
-    minOriginationFee: minFee,
-    maxLTV: program.maxLTV,
-    maxLTC: program.maxLTC,
-    maxLTP: program.maxLTP,
-    maxTerm: program.maxTerm,
-    termNote: program.termNote,
-    loanTermMonths,
-    exitPoints,
-    exitFee,
-    legalDocFee,
-    bpoAppraisalCost,
-    bpoAppraisalNote,
-    maxLoan,
-    estimatedLoan,
-    originationFee,
-    originationFeeFloored,
-    monthlyInterest,
-    maxByLTV,
-    maxByLTC,
-    maxByLTP,
-    purchasePrice,
-    rehabBudget,
-    arv,
-    totalCost,
-    capped: maxLoan !== null && requestedLoan > maxLoan,
-  };
-}
 
 /* ─── Component ─── */
 export default function ApplyPage() {
@@ -893,7 +629,7 @@ export default function ApplyPage() {
                         className="loan-type-card"
                         onClick={() => selectLoanType(lt.id)}
                       >
-                        <div className="lt-icon">{lt.icon}</div>
+                        <div className="lt-icon">{LOAN_TYPE_ICONS[lt.id]}</div>
                         <div className="lt-label">{lt.label}</div>
                         <div className="lt-desc">{lt.desc}</div>
                       </button>
