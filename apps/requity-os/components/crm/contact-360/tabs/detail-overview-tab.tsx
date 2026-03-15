@@ -25,7 +25,7 @@ import type {
   CompanyData,
 } from "../types";
 import { usePageLayout } from "@/hooks/usePageLayout";
-import { useInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
+import { useOptionalInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
 import { EditableSection } from "@/components/inline-layout-editor/EditableSection";
 import { EditableFieldSlot } from "@/components/inline-layout-editor/EditableFieldSlot";
 import { FieldPicker } from "@/components/inline-layout-editor/FieldPicker";
@@ -94,12 +94,7 @@ export function DetailOverviewTab({
 
   // Inline layout editor awareness
   const layout = usePageLayout("contact_detail");
-  let inlineLayout: ReturnType<typeof useInlineLayout> | null = null;
-  try {
-    inlineLayout = useInlineLayout();
-  } catch {
-    // Not inside InlineLayoutProvider - that's fine
-  }
+  const inlineLayout = useOptionalInlineLayout();
   const isEditing = inlineLayout?.state.isEditing ?? false;
 
   const [quickAddCompanyOpen, setQuickAddCompanyOpen] = useState(false);

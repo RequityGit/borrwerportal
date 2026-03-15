@@ -1,4 +1,4 @@
-export { InlineLayoutProvider, useInlineLayout } from "./InlineLayoutContext";
+export { InlineLayoutProvider, useInlineLayout, useOptionalInlineLayout } from "./InlineLayoutContext";
 export type { PendingChanges, InlineLayoutState } from "./InlineLayoutContext";
 export { InlineLayoutToolbar } from "./InlineLayoutToolbar";
 export { FieldPicker } from "./FieldPicker";

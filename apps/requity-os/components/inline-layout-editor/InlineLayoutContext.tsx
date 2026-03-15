@@ -520,3 +520,8 @@ export function useInlineLayout() {
   if (!ctx) throw new Error("useInlineLayout must be used within InlineLayoutProvider");
   return ctx;
 }
+
+/** Use when the component may render outside InlineLayoutProvider. Returns null when not inside provider. */
+export function useOptionalInlineLayout(): InlineLayoutContextValue | null {
+  return useContext(InlineLayoutContext);
+}

@@ -54,7 +54,7 @@ import type {
   FieldLayout,
 } from "@/components/crm/contact-360/types";
 import { usePageLayout } from "@/hooks/usePageLayout";
-import { useInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
+import { useOptionalInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
 import { EditableSection } from "@/components/inline-layout-editor/EditableSection";
 import { FieldPicker } from "@/components/inline-layout-editor/FieldPicker";
 import type { LayoutSection } from "@/hooks/useDealLayout";
@@ -130,12 +130,7 @@ export function CompanyOverviewTab({
 
   // Inline layout editor awareness
   const layout = usePageLayout("company_detail");
-  let inlineLayout: ReturnType<typeof useInlineLayout> | null = null;
-  try {
-    inlineLayout = useInlineLayout();
-  } catch {
-    // Not inside InlineLayoutProvider - that's fine
-  }
+  const inlineLayout = useOptionalInlineLayout();
   const isEditing = inlineLayout?.state.isEditing ?? false;
 
   const types = (localData.company_types as string[] | undefined)?.length

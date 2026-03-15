@@ -34,7 +34,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { DealTeamSection } from "@/components/deal-team/DealTeamSection";
 import type { DealTeamContact } from "@/app/types/deal-team";
-import { useInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
+import { useOptionalInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
 import { EditableSection } from "@/components/inline-layout-editor/EditableSection";
 import { EditableFieldSlot } from "@/components/inline-layout-editor/EditableFieldSlot";
 import { FieldPicker } from "@/components/inline-layout-editor/FieldPicker";
@@ -122,12 +122,7 @@ export function EditableOverview({
   const layout = useDealLayout();
 
   // Inline layout editor context (may not exist if provider not mounted)
-  let inlineLayout: ReturnType<typeof useInlineLayout> | null = null;
-  try {
-    inlineLayout = useInlineLayout();
-  } catch {
-    // Not inside InlineLayoutProvider - that's fine
-  }
+  const inlineLayout = useOptionalInlineLayout();
   const isEditing = inlineLayout?.state.isEditing ?? false;
 
   // When editing, use inline layout state for sections/fields; otherwise use DB layout

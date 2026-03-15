@@ -13,7 +13,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RentRollSubTab } from "./financials/RentRollSubTab";
 import { T12SubTab } from "./financials/T12SubTab";
-import { useInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
+import { useOptionalInlineLayout } from "@/components/inline-layout-editor/InlineLayoutContext";
 import { EditableSection } from "@/components/inline-layout-editor/EditableSection";
 import { EditableFieldSlot } from "@/components/inline-layout-editor/EditableFieldSlot";
 import { FieldPicker } from "@/components/inline-layout-editor/FieldPicker";
@@ -324,14 +324,8 @@ function PropertyDetailsContent({
   const hasAddress = !!(localData.property_address ?? localData.address_line1);
   const hasState = !!(localData.property_state ?? localData.state);
 
-  // Inline layout editor support — must be called unconditionally (hooks rule)
-  let inlineLayout: ReturnType<typeof useInlineLayout> | null = null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    inlineLayout = useInlineLayout();
-  } catch {
-    // Not inside InlineLayoutProvider
-  }
+  // Inline layout editor support
+  const inlineLayout = useOptionalInlineLayout();
   const isEditing = inlineLayout?.state.isEditing ?? false;
 
   // When editing, use inline layout state; otherwise DB layout
