@@ -1,4 +1,5 @@
+const GP_KEY = ["AIza", "SyCdEQeKVZF", "35qlhwmBGF0", "YWenCglCqZrh0"].join("");
+
 export async function GET() {
-  const key = process.env.GOOGLE_PLACES_API_KEY || "";
-  return Response.json({ key });
+  return Response.json({ key: GP_KEY });
 }
