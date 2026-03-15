@@ -1006,6 +1006,24 @@ footer {
 .reveal-children.visible > *:nth-child(5) { transition-delay: 0.30s; opacity: 1; transform: translateY(0); }
 .reveal-children.visible > *:nth-child(6) { transition-delay: 0.36s; opacity: 1; transform: translateY(0); }
 
+/* Prevent inline grid minmax from causing horizontal overflow */
+@media (max-width: 480px) {
+  [style*="minmax(340px"] { grid-template-columns: 1fr !important; }
+  [style*="minmax(300px"] { grid-template-columns: 1fr !important; }
+  [style*="minmax(280px"] { grid-template-columns: 1fr !important; }
+  [style*="minmax(250px"] { grid-template-columns: 1fr !important; }
+}
+
+/* Small screen grid overflow fix */
+@media (max-width: 400px) {
+  .test-card .quote-text { font-size: 16px; }
+  .test-card { padding: 24px 20px; }
+  .value-item { padding: 28px 24px; }
+  .card { padding: 24px 20px; }
+  .card-navy { padding: 24px 20px; }
+  .fund-highlights { grid-template-columns: 1fr !important; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    Utility Classes
    ═══════════════════════════════════════════════════════════════ */
@@ -1016,3 +1034,53 @@ footer {
 
 /* Max width for body text readability */
 .max-prose { max-width: 680px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Comprehensive Mobile Responsive Overrides
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Nav logo */
+  .nav-logo img { height: 48px; }
+
+  /* Buttons */
+  .btn-primary, .btn-primary-light {
+    padding: 0 28px; height: 50px; font-size: 13px;
+    width: 100%; justify-content: center;
+  }
+  .btn-secondary, .btn-outline-light {
+    padding: 0 24px; height: 50px; font-size: 13px;
+    width: 100%; justify-content: center;
+  }
+
+  /* Testimonial grid overflow */
+  .test-card .quote-text { font-size: 17px; }
+
+  /* Fund card */
+  .fund-card { border-radius: 12px; }
+
+  /* Type hero */
+  .type-hero { letter-spacing: -1px; }
+
+  /* Dark-to-light curve */
+  .dark-to-light { height: 60px; }
+  .dark-to-light::after { height: 60px; }
+
+  /* PageHero */
+  .page-hero { min-height: 85vh !important; padding-bottom: 48px !important; }
+  .page-hero-body { gap: 24px !important; flex-direction: column; }
+
+  /* FooterCTA */
+  .footer-cta-section { padding: 80px 0 !important; }
+
+  /* Story grid on about page */
+  .story-grid { grid-template-columns: 1fr !important; }
+  .story-grid p { grid-column: auto !important; }
+
+  /* Milestone cards */
+  .milestone-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+}
+
+/* Story grid defaults */
+.story-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px;
+}

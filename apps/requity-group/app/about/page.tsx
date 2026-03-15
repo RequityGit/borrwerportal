@@ -136,7 +136,7 @@ export default async function AboutPage() {
               <div>
                 <SectionLabel>Our Story</SectionLabel>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 48px" }}>
+              <div className="story-grid">
                 <p className="type-body" style={{ color: "var(--text-mid)", marginBottom: 36, maxWidth: 680 }}>
                   Requity Group was founded on a simple thesis: the most compelling risk-adjusted returns in real
                   estate come from hands-on operators working in markets too small for institutional capital to

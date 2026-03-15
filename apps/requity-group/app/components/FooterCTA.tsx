@@ -17,7 +17,7 @@ export default function FooterCTA({
 }: FooterCTAProps) {
   return (
     <section
-      className="dark-zone"
+      className="dark-zone footer-cta-section"
       style={{ padding: "140px 0", position: "relative", overflow: "hidden" }}
     >
       {/* Grid pattern */}

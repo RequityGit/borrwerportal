@@ -17,7 +17,7 @@ export default function PageHero({
 }: PageHeroProps) {
   return (
     <section
-      className="dark-zone hero-gradient"
+      className="dark-zone hero-gradient page-hero"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -64,6 +64,7 @@ export default function PageHero({
         </h1>
         {body && (
           <div
+            className="page-hero-body"
             style={{
               display: "flex",
               gap: 60,
