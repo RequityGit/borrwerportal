@@ -53,7 +53,7 @@ export default async function RootLayout({
     fetchSiteData<NavItem>("site_navigation", {
       eq: ["is_published", true],
     }),
-    fetchSiteData<CompanyInfo>("site_company_info"),
+    fetchSiteData<CompanyInfo>("site_company_info", { skipDefaultOrder: true }),
   ]);
 
   const company = companyData[0] ?? null;

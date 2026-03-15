@@ -6,6 +6,8 @@
 
 [build.environment]
   NODE_OPTIONS = "--max-old-space-size=4096"
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_GOOGLE_PLACES_API_KEY"
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
 
 [build.cancel]
   auto = false

@@ -13,6 +13,7 @@ export async function fetchSiteData<T>(
     filter?: Record<string, string>;
     order?: { column: string; ascending?: boolean };
     eq?: [string, string | boolean];
+    skipDefaultOrder?: boolean;
   }
 ): Promise<T[]> {
   let query = supabase.from(table).select("*");
@@ -31,7 +32,7 @@ export async function fetchSiteData<T>(
     query = query.order(options.order.column, {
       ascending: options.order.ascending ?? true,
     });
-  } else {
+  } else if (options?.skipDefaultOrder !== true) {
     query = query.order("sort_order", { ascending: true });
   }
 
