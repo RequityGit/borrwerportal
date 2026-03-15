@@ -186,10 +186,15 @@ export interface FieldPermissions {
 }
 
 export interface FieldLayout {
+  /** page_layout_fields row ID (for inline editor) */
+  id?: string;
+  /** field_configurations row ID (for inline editor gear icon) */
+  field_config_id?: string | null;
   field_key: string;
   field_label: string;
   field_type: string;
   column_position: string;
+  column_span?: string;
   display_order: number;
   is_visible: boolean;
   is_required: boolean;

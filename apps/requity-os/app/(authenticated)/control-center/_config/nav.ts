@@ -10,7 +10,6 @@ import {
   Wrench,
   ScrollText,
   ClipboardList,
-  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,19 +41,6 @@ export const NAV_GROUPS: NavGroup[] = [
         desc: "View all portal users, grant or revoke roles, and manage activation status.",
         href: "/control-center/users",
         icon: Users,
-      },
-    ],
-  },
-  {
-    id: "data-model",
-    label: "Data Model",
-    items: [
-      {
-        id: "field-manager",
-        label: "Field Manager",
-        desc: "Manage object fields, relationships, conditional visibility, and formulas. Page layouts are edited inline on each detail page.",
-        href: "/control-center/object-manager",
-        icon: SlidersHorizontal,
       },
     ],
   },

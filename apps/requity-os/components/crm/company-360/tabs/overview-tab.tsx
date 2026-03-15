@@ -31,6 +31,7 @@ import {
 } from "@/components/crm/contact-360/contact-detail-shared";
 import {
   renderDynamicFieldsInline,
+  type LayoutEditConfig,
 } from "@/components/crm/shared-field-renderer";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/format";
@@ -379,6 +380,21 @@ export function CompanyOverviewTab({
     );
   }
 
+  // Compute layout section IDs for field-level editing
+  function getLayoutSectionId(sectionKey: string): string | undefined {
+    if (isEditing && inlineLayout) {
+      const found = inlineLayout.state.sections.find((s) => s.section_key === sectionKey);
+      if (found) return found.id;
+    }
+    return sectionKey;
+  }
+
+  function getEditConfig(sectionKey: string): LayoutEditConfig | undefined {
+    if (!isEditing) return undefined;
+    const sectionId = getLayoutSectionId(sectionKey);
+    return sectionId ? { sectionId } : undefined;
+  }
+
   const sectionContent: Record<string, ReactNode> = {
     lender_performance: isLender ? (
       <SectionCard title="Lender Performance" icon={TrendingUp} key="lender_performance">
@@ -396,7 +412,15 @@ export function CompanyOverviewTab({
     company_information: (
       <SectionCard title="Company Information" icon={Building2} key="company_information">
         {sectionFields.company_information?.length
-          ? renderDynamicFieldsInline(sectionFields.company_information, localData, false, inlineCallbacks)
+          ? renderDynamicFieldsInline(
+              sectionFields.company_information,
+              localData,
+              false,
+              inlineCallbacks,
+              undefined,
+              undefined,
+              getEditConfig("company_information"),
+            )
           : renderCompanyInfoFallback()}
       </SectionCard>
     ),

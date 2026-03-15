@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type ReactNode } from "react";
+import React, { useState, useCallback, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ import type {
 import { formatCurrency, formatDate, formatPhoneNumber, formatPhoneInput, formatPercent } from "@/lib/format";
 import { evaluateFormula } from "@/lib/formula-engine";
 import type { FieldLayout } from "./contact-360/types";
+import { EditableFieldSlot } from "@/components/inline-layout-editor/EditableFieldSlot";
 
 // --- Field key → object property mapping for mismatches ---
 export const FIELD_KEY_TO_PROP: Record<string, string> = {
@@ -37,7 +38,7 @@ export const FIELD_KEY_TO_PROP: Record<string, string> = {
 };
 
 // Dropdown options are now fully managed in field_configurations DB table.
-// Edited via Object Manager at /control-center/object-manager.
+// Edited via the inline layout editor on each detail page.
 
 // --- field_type → CrmFieldType mapping for edit dialogs ---
 export const FC_TYPE_TO_CRM: Record<string, CrmFieldType> = {
@@ -602,6 +603,12 @@ export function CrmInlineField({
 
 // ─── Inline Dynamic Fields Renderer ───
 
+/** Optional config to enable layout-editing controls (gear, move, remove, span) around each field. */
+export interface LayoutEditConfig {
+  /** The section ID this set of fields belongs to (needed by EditableFieldSlot). */
+  sectionId: string;
+}
+
 export function renderDynamicFieldsInline(
   fields: FieldLayout[],
   dataObj: Record<string, unknown>,
@@ -614,6 +621,8 @@ export function renderDynamicFieldsInline(
   },
   hiddenFieldKeys?: Set<string>,
   readOnlyFieldKeys?: Set<string>,
+  /** When provided, each field is wrapped in EditableFieldSlot for layout editing controls. */
+  layoutEditConfig?: LayoutEditConfig,
 ): ReactNode {
   const visible = fields
     .filter((f) => f.is_visible)
@@ -626,7 +635,7 @@ export function renderDynamicFieldsInline(
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5">
-      {visible.map((f) => {
+      {visible.map((f, idx) => {
         const propKey = FIELD_KEY_TO_PROP[f.field_key] ?? f.field_key;
         const rawValue = dataObj[propKey];
 
@@ -634,26 +643,48 @@ export function renderDynamicFieldsInline(
         const isReadOnlyCustom = READONLY_CUSTOM_FIELDS.has(f.field_key);
         const isReadOnly = readOnlyFieldKeys?.has(f.field_key);
 
+        let fieldContent: ReactNode;
         if (isFormula || isReadOnlyCustom || isReadOnly) {
-          return renderField(f, dataObj, isSuperAdmin);
+          fieldContent = renderField(f, dataObj, isSuperAdmin);
+        } else {
+          const options = callbacks.optionsOverrides?.[f.field_key]
+            ?? f.dropdown_options
+            ?? undefined;
+
+          fieldContent = (
+            <CrmInlineField
+              key={f.field_key}
+              field={f}
+              value={rawValue}
+              onChange={(val) => callbacks.onChange(propKey, val)}
+              onBlur={() => callbacks.onBlur(propKey)}
+              disabled={callbacks.disabled}
+              options={options ?? undefined}
+              showYearNavigation={f.field_key === "date_of_birth"}
+            />
+          );
         }
 
-        const options = callbacks.optionsOverrides?.[f.field_key]
-          ?? f.dropdown_options
-          ?? undefined;
+        // Wrap in EditableFieldSlot when layout editing is enabled and the field has a layout row ID
+        if (layoutEditConfig && f.id) {
+          return (
+            <EditableFieldSlot
+              key={f.field_key}
+              fieldId={f.id}
+              fieldLabel={f.field_label}
+              columnSpan={f.column_span ?? "third"}
+              sectionId={layoutEditConfig.sectionId}
+              fieldIndex={idx}
+              totalFields={visible.length}
+              fieldConfigId={f.field_config_id}
+              fieldKey={f.field_key}
+            >
+              {fieldContent}
+            </EditableFieldSlot>
+          );
+        }
 
-        return (
-          <CrmInlineField
-            key={f.field_key}
-            field={f}
-            value={rawValue}
-            onChange={(val) => callbacks.onChange(propKey, val)}
-            onBlur={() => callbacks.onBlur(propKey)}
-            disabled={callbacks.disabled}
-            options={options ?? undefined}
-            showYearNavigation={f.field_key === "date_of_birth"}
-          />
-        );
+        return <React.Fragment key={f.field_key}>{fieldContent}</React.Fragment>;
       })}
     </div>
   );

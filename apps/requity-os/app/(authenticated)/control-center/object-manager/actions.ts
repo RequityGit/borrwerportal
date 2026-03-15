@@ -600,6 +600,35 @@ export async function updateRelationship(
 }
 
 // ---------------------------------------------------------------------------
+// Delete relationship
+// ---------------------------------------------------------------------------
+
+export async function deleteRelationship(
+  relId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const auth = await requireSuperAdmin();
+    if ("error" in auth) return { error: auth.error };
+
+    const admin = createAdminClient();
+
+    // Delete associated roles first
+    await admin.from(REL_ROLES).delete().eq("relationship_id" as never, relId as never);
+
+    const { error } = await admin
+      .from(OBJ_RELS)
+      .delete()
+      .eq("id" as never, relId as never);
+
+    if (error) return { error: error.message };
+    revalidate();
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "An unexpected error occurred" };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Update relationship role
 // ---------------------------------------------------------------------------
 

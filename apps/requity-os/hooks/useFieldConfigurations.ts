@@ -107,7 +107,7 @@ export function useFieldConfigurations(
   // Track a refetch counter that increments when invalidation events fire
   const [refetchKey, setRefetchKey] = useState(0);
 
-  // Listen for invalidation events from Object Manager saves
+  // Listen for invalidation events from inline editor saves
   useEffect(() => {
     const handler = () => {
       invalidateFieldConfigCache(module);
@@ -185,7 +185,7 @@ export function useFieldConfigurations(
 
 /**
  * Invalidate the field config cache for a specific module or all modules.
- * Call this after making changes to field_configurations via the Object Manager.
+ * Call this after making changes to field_configurations via the inline editor.
  */
 export function invalidateFieldConfigCache(module?: string) {
   if (module) {
@@ -197,7 +197,7 @@ export function invalidateFieldConfigCache(module?: string) {
 
 /**
  * Broadcast a field config invalidation event to all mounted hooks.
- * Call this from the Object Manager after saving field changes.
+ * Call this from the inline editor after saving field changes.
  */
 export function broadcastFieldConfigInvalidation() {
   if (typeof window !== "undefined") {

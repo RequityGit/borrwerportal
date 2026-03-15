@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 // Asset-Class-Driven Conditional Visibility Engine
-// Used by Object Manager, pipeline views, intake forms
+// Used by inline editor, pipeline views, intake forms
 // ═══════════════════════════════════════════════════════════
 
 export const ASSET_CLASSES = [

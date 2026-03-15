@@ -60,7 +60,7 @@ interface RawFieldConfig {
 }
 
 // Dropdown options are now fully managed in field_configurations DB table.
-// Edited via Object Manager at /control-center/object-manager.
+// Edited via inline editor at the inline layout editor.
 
 function mapFieldType(
   fcType: string
@@ -133,7 +133,7 @@ export interface UwFieldConfigsResult {
  *
  * This replaces useResolvedCardType for field definitions. Card types are no
  * longer the source of truth for which fields appear on a deal; the Condition
- * Matrix in the Object Manager is.
+ * Matrix in the inline editor is.
  */
 export function useUwFieldConfigs(
   visibilityContext?: VisibilityContext | null
@@ -149,7 +149,7 @@ export function useUwFieldConfigs(
   // Track a refetch counter that increments when invalidation events fire
   const [refetchKey, setRefetchKey] = useState(0);
 
-  // Listen for invalidation events from Object Manager saves
+  // Listen for invalidation events from inline editor saves
   useEffect(() => {
     const handler = () => {
       invalidateUwFieldConfigsCache();

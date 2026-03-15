@@ -9,3 +9,4 @@ export { FieldConfigPopover } from "./FieldConfigPopover";
 export { CreateFieldDialog } from "./CreateFieldDialog";
 export { TabManager, TabEditPopover } from "./TabManager";
 export { CrmInlineEditorWrapper } from "./CrmInlineEditorWrapper";
+export { InlineRelationshipDialog } from "./InlineRelationshipDialog";

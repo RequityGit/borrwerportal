@@ -13,6 +13,7 @@ import { QuickAddCompanyDialog } from "@/components/crm/quick-add-company-dialog
 import {
   renderDynamicFieldsInline,
   FIELD_KEY_TO_PROP,
+  type LayoutEditConfig,
 } from "@/components/crm/shared-field-renderer";
 import { getSectionIcon } from "@/lib/icon-map";
 import { AddressAutocomplete, type ParsedAddress } from "@/components/ui/address-autocomplete";
@@ -256,7 +257,7 @@ export function DetailOverviewTab({
     });
   }
 
-  function renderFieldSection(section: SectionLayout): ReactNode {
+  function renderFieldSection(section: SectionLayout, layoutSectionId?: string): ReactNode {
     let fields = sectionFields[section.section_key];
     if (!fields?.length) return null;
 
@@ -283,6 +284,10 @@ export function DetailOverviewTab({
       company_id: localCompanies.map((c) => ({ label: c.name, value: c.id })),
     };
 
+    // When in layout edit mode, pass config so fields get EditableFieldSlot wrapping
+    const editConfig: LayoutEditConfig | undefined =
+      isEditing && layoutSectionId ? { sectionId: layoutSectionId } : undefined;
+
     return (
       <SectionCard key={section.section_key} title={section.section_label} icon={Icon}>
         {renderDynamicFieldsInline(
@@ -297,6 +302,7 @@ export function DetailOverviewTab({
           },
           hiddenFieldKeys,
           readOnlyFieldKeys,
+          editConfig,
         )}
       </SectionCard>
     );
@@ -386,11 +392,11 @@ export function DetailOverviewTab({
     );
   }
 
-  function renderSection(section: SectionLayout): ReactNode {
+  function renderSection(section: SectionLayout, layoutSectionId?: string): ReactNode {
     if (section.section_key === "address") {
       return renderAddressSection();
     }
-    return renderFieldSection(section);
+    return renderFieldSection(section, layoutSectionId);
   }
 
   // Get all used field keys for the FieldPicker
@@ -429,10 +435,10 @@ export function DetailOverviewTab({
   return (
     <div className="flex flex-col gap-5">
       {resolvedSections.map((section, sectionIdx) => {
-        const content = renderSection(section as SectionLayout);
+        const layoutSec = toLayoutSection(section, sectionIdx);
+        const content = renderSection(section as SectionLayout, layoutSec.id);
         if (!isEditing) return content;
 
-        const layoutSec = toLayoutSection(section, sectionIdx);
         const fieldSections = resolvedSections.filter(s => ("section_type" in s ? s.section_type : "") === "fields");
 
         return (

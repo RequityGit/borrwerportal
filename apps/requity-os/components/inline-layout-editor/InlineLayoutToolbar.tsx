@@ -10,10 +10,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Save, X, Plus, Loader2 } from "lucide-react";
+import { Save, X, Plus, Loader2, Network } from "lucide-react";
 import { toast } from "sonner";
 import { useInlineLayout } from "./InlineLayoutContext";
 import { TabManager } from "./TabManager";
+import { InlineRelationshipDialog } from "./InlineRelationshipDialog";
 import {
   reorderLayoutSections,
   reorderLayoutFields,
@@ -147,6 +148,16 @@ export function InlineLayoutToolbar({ onSaveComplete, tabs, pageType = "deal_det
               onTabsChanged={onSaveComplete}
             />
           )}
+          <InlineRelationshipDialog pageType={pageType}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+            >
+              <Network className="h-3 w-3" />
+              Relationships
+            </Button>
+          </InlineRelationshipDialog>
           <Button
             variant="outline"
             size="sm"

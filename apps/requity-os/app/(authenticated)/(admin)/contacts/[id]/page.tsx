@@ -471,7 +471,7 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
   if (sectionIds.length > 0) {
     const { data: fieldRows } = await admin
       .from("page_layout_fields" as never)
-      .select("field_key, display_order, column_position, is_visible, section_id, field_config_id, source_object_key" as never)
+      .select("id, field_key, display_order, column_position, column_span, is_visible, section_id, field_config_id, source_object_key" as never)
       .in("section_id" as never, sectionIds as never)
       .order("display_order" as never, { ascending: true });
 
@@ -525,10 +525,13 @@ export default async function CrmContactDetailPage({ params }: PageProps) {
 
       if (!sectionFields[sectionKey]) sectionFields[sectionKey] = [];
       sectionFields[sectionKey].push({
+        id: row.id as string,
+        field_config_id: row.field_config_id as string | null,
         field_key: row.field_key as string,
         field_label: fc.field_label,
         field_type: fc.field_type,
         column_position: row.column_position as string,
+        column_span: (row.column_span as string) ?? "half",
         display_order: row.display_order as number,
         is_visible: row.is_visible as boolean,
         is_required: fc.is_required,
