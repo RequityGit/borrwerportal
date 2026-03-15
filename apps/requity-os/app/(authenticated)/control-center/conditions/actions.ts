@@ -17,7 +17,9 @@ export interface ConditionFormData {
   borrower_description: string | null;
   responsible_party: string | null;
   critical_path_item: boolean;
+  is_borrower_facing: boolean;
   requires_approval: boolean;
+  per_borrower: boolean;
   sort_order: number | null;
   is_active: boolean;
 }
@@ -42,7 +44,9 @@ export async function saveCondition(data: ConditionFormData) {
       borrower_description: data.borrower_description,
       responsible_party: data.responsible_party,
       critical_path_item: data.critical_path_item,
+      is_borrower_facing: data.is_borrower_facing,
       requires_approval: data.requires_approval,
+      per_borrower: data.per_borrower,
       sort_order: data.sort_order,
       is_active: data.is_active,
     };
@@ -130,6 +134,7 @@ export async function updateConditionInline(
     applies_to_dscr: boolean;
     applies_to_guc: boolean;
     applies_to_transactional: boolean;
+    is_borrower_facing: boolean;
   }>
 ) {
   try {

@@ -19,6 +19,7 @@ export interface EmailTemplate {
   notification_type_id: string | null;
   last_edited_by: string | null;
   last_edited_at: string | null;
+  internal_description: string | null;
   created_at: string;
   updated_at: string;
   /** Derived from notification_types join — not a real column */
@@ -53,15 +54,31 @@ export interface UpdateTemplateInput {
   text_body_template?: string | null;
   available_variables?: TemplateVariable[];
   is_active?: boolean;
+  internal_description?: string | null;
 }
 
 export const TEMPLATE_CATEGORIES = [
   "lending",
+  "lending_processing",
   "investments",
   "operations",
   "crm",
   "system",
 ] as const;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  lending: "Lending",
+  lending_processing: "Lending - Processing",
+  investments: "Investments",
+  operations: "Operations",
+  crm: "CRM",
+  system: "System",
+};
+
+export function formatCategory(cat: string | undefined | null): string {
+  if (!cat) return "General";
+  return CATEGORY_LABELS[cat] ?? cat.charAt(0).toUpperCase() + cat.slice(1);
+}
 
 export const MERGE_VARIABLES: TemplateVariable[] = [
   { key: "borrower_name", label: "Borrower Name", example: "John Smith" },

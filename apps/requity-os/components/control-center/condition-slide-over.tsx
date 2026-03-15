@@ -38,7 +38,9 @@ interface ConditionTemplate {
   borrower_description: string | null;
   responsible_party: string | null;
   critical_path_item: boolean | null;
+  is_borrower_facing?: boolean | null;
   requires_approval: boolean | null;
+  per_borrower?: boolean | null;
   sort_order: number | null;
   is_active: boolean | null;
   created_at: string;
@@ -84,7 +86,9 @@ export function ConditionSlideOver({
     borrower_description: null,
     responsible_party: null,
     critical_path_item: false,
+    is_borrower_facing: true,
     requires_approval: false,
+    per_borrower: false,
     sort_order: null,
     is_active: true,
   });
@@ -111,7 +115,9 @@ export function ConditionSlideOver({
         borrower_description: condition.borrower_description,
         responsible_party: condition.responsible_party,
         critical_path_item: condition.critical_path_item ?? false,
+        is_borrower_facing: condition.is_borrower_facing ?? true,
         requires_approval: condition.requires_approval ?? false,
+        per_borrower: condition.per_borrower ?? false,
         sort_order: condition.sort_order,
         is_active: condition.is_active ?? true,
       });
@@ -135,7 +141,9 @@ export function ConditionSlideOver({
         borrower_description: null,
         responsible_party: null,
         critical_path_item: false,
+        is_borrower_facing: true,
         requires_approval: false,
+        per_borrower: false,
         sort_order: maxSort + 1,
         is_active: true,
       });
@@ -390,20 +398,39 @@ export function ConditionSlideOver({
             </Select>
           </div>
 
-          {/* Critical Path Item */}
+          {/* Borrower Facing */}
           <div className="flex items-center justify-between">
             <div>
-              <Label>Critical Path Item</Label>
+              <Label>Borrower Facing</Label>
               <p className="text-xs text-muted-foreground">
-                Blocks loan stage progression when not fulfilled
+                Visible to borrowers on upload links and their portal
               </p>
             </div>
             <Switch
-              checked={formData.critical_path_item}
+              checked={formData.is_borrower_facing ?? true}
               onCheckedChange={(v) =>
                 setFormData((prev) => ({
                   ...prev,
-                  critical_path_item: v,
+                  is_borrower_facing: v,
+                }))
+              }
+            />
+          </div>
+
+          {/* Per Borrower */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Per Borrower</Label>
+              <p className="text-xs text-muted-foreground">
+                Creates one of this condition for each borrower on the deal (e.g., Driver&apos;s License, PFS, SREO)
+              </p>
+            </div>
+            <Switch
+              checked={formData.per_borrower}
+              onCheckedChange={(v) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  per_borrower: v,
                 }))
               }
             />

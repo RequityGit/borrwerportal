@@ -41,12 +41,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  if (!mounted) {
-    return <>{children}</>;
-  }
+  // Always render the Provider so useContext(ThemeContext) never runs outside a provider (avoids SSR/null errors)
+  const value = mounted
+    ? { theme, toggleTheme, setTheme }
+    : { theme: "light" as const, toggleTheme: () => {}, setTheme: () => {} };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

@@ -101,7 +101,7 @@ export default async function DealDetailRoute({ params }: PageProps) {
       .order("full_name" as never),
     admin
       .from("unified_deal_conditions" as never)
-      .select("*")
+      .select("*, loan_condition_templates:template_id(internal_description, borrower_description)" as never)
       .eq("deal_id" as never, dealId as never)
       .order("sort_order" as never),
     admin
@@ -154,7 +154,16 @@ export default async function DealDetailRoute({ params }: PageProps) {
 
   const cardType = cardTypeResult.data;
   const stageConfigs = ((stageConfigsRaw as unknown as { data: StageConfig[] | null }).data ?? []);
-  const conditions = ((conditionsRaw as unknown as { data: DealCondition[] | null }).data ?? []);
+  const conditionsWithJoin = ((conditionsRaw as unknown as { data: (DealCondition & { loan_condition_templates?: { internal_description: string | null; borrower_description: string | null } | null })[] | null }).data ?? []);
+  const conditions: DealCondition[] = conditionsWithJoin.map((c) => {
+    const template = c.loan_condition_templates;
+    return {
+      ...c,
+      template_guidance: template?.internal_description ?? null,
+      template_borrower_description: template?.borrower_description ?? null,
+      loan_condition_templates: undefined,
+    };
+  }) as unknown as DealCondition[];
   const documents = ((documentsRaw as unknown as { data: Record<string, unknown>[] | null }).data ?? []);
   const tasks = ((tasksRaw as unknown as { data: OpsTask[] | null }).data ?? []);
   const dealTeamMembers: DealTeamMemberRow[] =

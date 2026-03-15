@@ -29,8 +29,10 @@ import {
   Archive,
   Link2,
   X,
-  Pencil,
   AlertTriangle,
+  Check,
+  Info,
+  User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,6 +68,12 @@ import {
   triggerDocumentAnalysis,
   getDocumentSignedUrl,
   updateDocumentVisibility,
+  updateConditionDocumentApproval,
+  requestConditionRevision,
+  triggerConditionReview,
+  getConditionReview,
+  type ConditionReviewData,
+  type ConditionCriterionResult,
 } from "@/app/(authenticated)/(admin)/pipeline/[id]/actions";
 import { createClient } from "@/lib/supabase/client";
 import { parseComment, relativeTime } from "@/lib/comment-utils";
@@ -95,6 +103,7 @@ export interface DealDocument {
   visibility?: string | null;
   _uploaded_by_name?: string | null;
   condition_id?: string | null;
+  condition_approval_status?: string | null;
   archived_at?: string | null;
 }
 
@@ -102,7 +111,10 @@ interface DiligenceTabProps {
   documents: DealDocument[];
   conditions: DealCondition[];
   dealId: string;
+  dealName?: string;
   googleDriveFolderUrl?: string | null;
+  currentUserId?: string;
+  currentUserName?: string;
 }
 
 // ─── Shared Utilities ───
@@ -198,7 +210,7 @@ const CONDITION_STATUS_CONFIG: Record<
     pillClass: "bg-muted text-muted-foreground",
   },
   rejected: {
-    label: "Rejected",
+    label: "Revision Requested",
     pillClass: "bg-destructive/10 text-destructive",
   },
 };
@@ -289,19 +301,115 @@ function StatusIcon({
   );
 }
 
+// ─── Helpers: render text with clickable URLs ───
+
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+function textWithLinks(content: string) {
+  const parts = content.split(URL_REGEX);
+  return parts.map((part, i) =>
+    part.match(URL_REGEX) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 hover:opacity-90"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 // ─── Document Preview Modal ───
 
 function DocPreviewModal({
   doc,
   open,
   onOpenChange,
+  onApprovalChange,
+  onUnlinkDoc,
+  linkedCondition,
+  onRequestRevision,
 }: {
   doc: DealDocument | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onApprovalChange?: (docId: string, status: "approved" | "denied") => Promise<void>;
+  onUnlinkDoc?: (docId: string) => void;
+  /** When doc is linked to a condition, pass its details for review context */
+  linkedCondition?: {
+    conditionId: string;
+    conditionName: string;
+    templateGuidance: string | null;
+    borrowerComment: string | null;
+  } | null;
+  onRequestRevision?: (conditionId: string, feedback: string) => Promise<void>;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [revisionFeedback, setRevisionFeedback] = useState("");
+  const [submittingRevision, setSubmittingRevision] = useState(false);
+
+  // AI Review state
+  const [aiReview, setAiReview] = useState<ConditionReviewData | null>(null);
+  const [aiReviewLoading, setAiReviewLoading] = useState(false);
+  const [aiReviewError, setAiReviewError] = useState<string | null>(null);
+  const [aiReviewExpanded, setAiReviewExpanded] = useState(true);
+
+  // Reset revision form and AI review when modal closes or doc changes
+  useEffect(() => {
+    if (!open) {
+      setShowRevisionForm(false);
+      setRevisionFeedback("");
+      setAiReview(null);
+      setAiReviewError(null);
+      setAiReviewLoading(false);
+    }
+  }, [open]);
+
+  // Check for existing AI review when modal opens with a condition-linked doc
+  useEffect(() => {
+    if (!open || !doc || !linkedCondition?.conditionId) return;
+    setAiReview(null);
+    setAiReviewError(null);
+    getConditionReview(doc.id, linkedCondition.conditionId).then((res) => {
+      if (res.data) {
+        setAiReview(res.data);
+      }
+      // If no review found, that's fine - user can trigger one
+    });
+  }, [open, doc?.id, linkedCondition?.conditionId]);
+
+  async function handleRunAiReview() {
+    if (!doc || !linkedCondition?.conditionId) return;
+    setAiReviewLoading(true);
+    setAiReviewError(null);
+    setAiReview(null);
+    try {
+      const result = await triggerConditionReview(
+        doc.id,
+        linkedCondition.conditionId,
+        doc.deal_id
+      );
+      if (result.error) {
+        setAiReviewError(result.error);
+      } else if (result.data) {
+        setAiReview(result.data);
+        setAiReviewExpanded(true);
+      }
+    } catch (err) {
+      setAiReviewError(
+        err instanceof Error ? err.message : "AI review failed"
+      );
+    } finally {
+      setAiReviewLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!open || !doc) {
@@ -322,16 +430,421 @@ function DocPreviewModal({
   const ext = getFileExt(doc.document_name);
   const isPdf = ext === "pdf";
   const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
+  const isLinkedToCondition = Boolean(doc.condition_id);
+  const approval = doc.condition_approval_status ?? "pending";
+  const showApprovalActions =
+    isLinkedToCondition && (onApprovalChange || onUnlinkDoc);
+  const hasGuidance = linkedCondition?.templateGuidance?.trim();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex flex-col gap-1.5 p-2 !left-[1%] !top-[1%] !h-[98vh] !max-h-[98vh] !w-[98vw] !max-w-[98vw] !translate-x-0 !translate-y-0 md:!left-[1%] md:!top-[1%] md:!translate-x-0 md:!translate-y-0">
         <DialogHeader className="shrink-0 py-0.5">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
-            <DialogTitle className="truncate text-base">{doc.document_name}</DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <FileText className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+              <DialogTitle className="truncate text-base">{doc.document_name}</DialogTitle>
+            </div>
+            {showApprovalActions && (
+              <div className="flex shrink-0 items-center gap-1">
+                {onApprovalChange && (
+                  <>
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                        approval === "approved" &&
+                          "bg-green-500/15 text-green-600 dark:text-green-400",
+                        approval === "denied" &&
+                          "bg-destructive/15 text-destructive",
+                        approval === "pending" && "text-muted-foreground"
+                      )}
+                    >
+                      {approval === "approved"
+                        ? "Approved"
+                        : approval === "denied"
+                          ? "Revision Needed"
+                          : "Pending"}
+                    </span>
+                    {approval !== "approved" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 text-xs"
+                        disabled={approving}
+                        onClick={async () => {
+                          setApproving(true);
+                          await onApprovalChange(doc.id, "approved");
+                          setApproving(false);
+                        }}
+                      >
+                        {approving ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Check className="h-3 w-3" strokeWidth={2} />
+                        )}
+                        Approve
+                      </Button>
+                    )}
+                    {approval !== "denied" && onRequestRevision && doc.condition_id ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+                        disabled={approving || submittingRevision}
+                        onClick={() => setShowRevisionForm(!showRevisionForm)}
+                      >
+                        <AlertTriangle className="h-3 w-3" strokeWidth={2} />
+                        Request Revision
+                      </Button>
+                    ) : approval !== "denied" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+                        disabled={approving}
+                        onClick={async () => {
+                          setApproving(true);
+                          await onApprovalChange(doc.id, "denied");
+                          setApproving(false);
+                        }}
+                      >
+                        <X className="h-3 w-3" strokeWidth={2} />
+                        Deny
+                      </Button>
+                    ) : null}
+                  </>
+                )}
+                {linkedCondition?.conditionId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-7 gap-1 text-xs",
+                      aiReview
+                        ? "text-violet-600 border-violet-200 dark:text-violet-400 dark:border-violet-800"
+                        : "text-violet-600 hover:text-violet-700 hover:border-violet-300 dark:text-violet-400"
+                    )}
+                    disabled={aiReviewLoading}
+                    onClick={handleRunAiReview}
+                  >
+                    {aiReviewLoading ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" strokeWidth={2} />
+                    )}
+                    {aiReview ? "Re-run AI Review" : "AI Review"}
+                  </Button>
+                )}
+                {onUnlinkDoc && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      onUnlinkDoc(doc.id);
+                      onOpenChange(false);
+                    }}
+                  >
+                    <X className="h-3 w-3" strokeWidth={2} />
+                    Unlink
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </DialogHeader>
+
+        {/* What to look for: internal condition guidance for review */}
+        {hasGuidance && (
+          <div className="shrink-0 flex items-start gap-2.5 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2.5 dark:border-primary/20 dark:bg-primary/10">
+            <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary/50" strokeWidth={1.5} aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary/50 dark:text-primary/40 mb-1">
+                What to look for
+                {linkedCondition?.conditionName && (
+                  <span className="normal-case font-medium text-primary/40 ml-1.5">
+                    · {linkedCondition.conditionName}
+                  </span>
+                )}
+              </p>
+              <div className="text-xs text-foreground/85 leading-relaxed max-h-20 overflow-y-auto pr-1">
+                {textWithLinks((linkedCondition?.templateGuidance ?? "").trim())}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Borrower comment: note submitted with their documents */}
+        {linkedCondition?.borrowerComment && (
+          <div className="shrink-0 flex items-start gap-2.5 rounded-lg border border-blue-500/15 bg-blue-500/5 px-3 py-2.5 dark:border-blue-400/20 dark:bg-blue-400/10">
+            <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 text-blue-500/50 dark:text-blue-400/50" strokeWidth={1.5} aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-500/50 dark:text-blue-400/40 mb-1">
+                Borrower Note
+                {linkedCondition?.conditionName && (
+                  <span className="normal-case font-medium text-blue-500/40 dark:text-blue-400/30 ml-1.5">
+                    · {linkedCondition.conditionName}
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-foreground/85 leading-relaxed">{linkedCondition.borrowerComment}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Revision feedback form (inline in modal) */}
+        {showRevisionForm && onRequestRevision && doc.condition_id && (
+          <div className="shrink-0 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-destructive/50 mb-1">
+              Borrower-Facing Feedback
+            </p>
+            <p className="text-[10px] text-muted-foreground mb-2">
+              This message will be visible to the borrower on their upload portal. Be specific about what needs to change.
+            </p>
+            <Textarea
+              value={revisionFeedback}
+              onChange={(e) => setRevisionFeedback(e.target.value)}
+              placeholder='e.g. "Bank statement must show 3 consecutive months. The uploaded file only covers January."'
+              className="text-xs min-h-[60px] mb-2 bg-background"
+              autoFocus
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={!revisionFeedback.trim() || submittingRevision}
+                onClick={async () => {
+                  if (!doc.condition_id) return;
+                  setSubmittingRevision(true);
+                  try {
+                    await onRequestRevision(doc.condition_id, revisionFeedback.trim());
+                    // Also deny the document
+                    if (onApprovalChange) {
+                      await onApprovalChange(doc.id, "denied");
+                    }
+                    setShowRevisionForm(false);
+                    setRevisionFeedback("");
+                    onOpenChange(false);
+                  } finally {
+                    setSubmittingRevision(false);
+                  }
+                }}
+                className="text-xs h-7"
+              >
+                {submittingRevision ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                ) : (
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                )}
+                Send Revision Request
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowRevisionForm(false);
+                  setRevisionFeedback("");
+                }}
+                className="text-xs h-7"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* AI Condition Review Results */}
+        {aiReviewLoading && (
+          <div className="shrink-0 flex items-center gap-3 rounded-lg border border-violet-500/20 bg-violet-500/5 px-4 py-3 dark:border-violet-400/20 dark:bg-violet-400/10">
+            <div className="relative">
+              <Sparkles className="h-4 w-4 text-violet-500/70 dark:text-violet-400/70 animate-pulse" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-violet-600 dark:text-violet-400">Analyzing document against review criteria...</p>
+              <div className="mt-1.5 h-1 w-full rounded-full bg-violet-500/10 overflow-hidden">
+                <div className="h-full rounded-full bg-violet-500/40 animate-[pulse_2s_ease-in-out_infinite]" style={{ width: "60%" }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {aiReviewError && !aiReviewLoading && (
+          <div className="shrink-0 flex items-start gap-2.5 rounded-lg border border-destructive/15 bg-destructive/5 px-3 py-2.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive/60" strokeWidth={1.5} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-destructive/50 mb-0.5">AI Review Failed</p>
+              <p className="text-xs text-destructive/70">{aiReviewError}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px] text-destructive/60 hover:text-destructive"
+              onClick={handleRunAiReview}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {aiReview && !aiReviewLoading && (
+          <div className="shrink-0 rounded-lg border border-violet-500/20 bg-violet-500/5 dark:border-violet-400/20 dark:bg-violet-400/10 overflow-hidden">
+            {/* Header - always visible */}
+            <button
+              type="button"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-violet-500/5 transition-colors"
+              onClick={() => setAiReviewExpanded(!aiReviewExpanded)}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-violet-500/70 dark:text-violet-400/70" strokeWidth={1.5} />
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500/60 dark:text-violet-400/50">
+                  AI Review
+                </p>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    aiReview.recommendation === "approve" &&
+                      "bg-green-500/15 text-green-600 dark:text-green-400",
+                    aiReview.recommendation === "request_revision" &&
+                      "bg-red-500/15 text-red-600 dark:text-red-400",
+                    aiReview.recommendation === "needs_manual_review" &&
+                      "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  )}
+                >
+                  {aiReview.recommendation === "approve" && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                  {aiReview.recommendation === "request_revision" && <X className="h-2.5 w-2.5" strokeWidth={3} />}
+                  {aiReview.recommendation === "needs_manual_review" && <AlertTriangle className="h-2.5 w-2.5" strokeWidth={2} />}
+                  {aiReview.recommendation === "approve"
+                    ? "Recommend Approve"
+                    : aiReview.recommendation === "request_revision"
+                      ? "Recommend Revision"
+                      : "Manual Review Needed"}
+                </span>
+                {aiReview.criteria_results.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground/60">
+                    {aiReview.criteria_results.filter((c) => c.result === "pass").length}/{aiReview.criteria_results.length} criteria passed
+                  </span>
+                )}
+              </div>
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-violet-500/40 transition-transform",
+                  !aiReviewExpanded && "-rotate-90"
+                )}
+                strokeWidth={1.5}
+              />
+            </button>
+
+            {/* Expanded content */}
+            {aiReviewExpanded && (
+              <div className="border-t border-violet-500/10 dark:border-violet-400/10 px-3 pb-3">
+                {/* Criteria results */}
+                {aiReview.criteria_results.length > 0 && (
+                  <div className="mt-2.5 space-y-1.5">
+                    {aiReview.criteria_results.map((cr, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex items-start gap-2 rounded-md px-2.5 py-2 text-xs",
+                          cr.result === "pass" && "bg-green-500/5",
+                          cr.result === "fail" && "bg-red-500/5",
+                          cr.result === "unclear" && "bg-amber-500/5"
+                        )}
+                      >
+                        <span className="shrink-0 mt-0.5">
+                          {cr.result === "pass" && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={2} />
+                          )}
+                          {cr.result === "fail" && (
+                            <X className="h-3.5 w-3.5 text-red-500 rounded-full bg-red-500/10 p-[1px]" strokeWidth={2.5} />
+                          )}
+                          {cr.result === "unclear" && (
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" strokeWidth={2} />
+                          )}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground/80 leading-snug">{cr.criterion}</p>
+                          <p className="text-muted-foreground/70 mt-0.5 leading-relaxed">{cr.detail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Summary */}
+                {aiReview.summary && (
+                  <div className="mt-2.5 rounded-md bg-background/50 px-2.5 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40 mb-0.5">Summary</p>
+                    <p className="text-xs text-foreground/75 leading-relaxed">{aiReview.summary}</p>
+                  </div>
+                )}
+
+                {/* Flags */}
+                {aiReview.flags.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {aiReview.flags.map((flag, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5 text-xs">
+                        <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5 text-amber-500" strokeWidth={2} />
+                        <span className="text-amber-700 dark:text-amber-400">{flag}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recommendation reasoning + actions */}
+                <div className="mt-2.5 flex items-start justify-between gap-3">
+                  <p className="text-[10px] text-muted-foreground/60 leading-relaxed italic flex-1">
+                    {aiReview.recommendation_reasoning}
+                  </p>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {aiReview.recommendation === "approve" && onApprovalChange && approval !== "approved" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 gap-1 text-[10px] text-green-600 hover:text-green-700 border-green-200 hover:border-green-300 dark:text-green-400 dark:border-green-800"
+                        disabled={approving}
+                        onClick={async () => {
+                          setApproving(true);
+                          await onApprovalChange(doc.id, "approved");
+                          setApproving(false);
+                        }}
+                      >
+                        <Check className="h-2.5 w-2.5" strokeWidth={2.5} />
+                        Approve
+                      </Button>
+                    )}
+                    {aiReview.recommendation === "request_revision" && onRequestRevision && doc.condition_id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 gap-1 text-[10px] text-destructive hover:text-destructive border-destructive/20 hover:border-destructive/30"
+                        onClick={() => {
+                          // Pre-populate revision form with AI reasoning
+                          const failedCriteria = aiReview.criteria_results
+                            .filter((c) => c.result === "fail")
+                            .map((c) => `${c.criterion}: ${c.detail}`)
+                            .join("\n");
+                          setRevisionFeedback(failedCriteria || aiReview.recommendation_reasoning);
+                          setShowRevisionForm(true);
+                        }}
+                      >
+                        <AlertTriangle className="h-2.5 w-2.5" strokeWidth={2.5} />
+                        Request Revision
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Meta */}
+                <div className="mt-2 flex items-center gap-3 text-[9px] text-muted-foreground/40">
+                  <span>{(aiReview.processing_time_ms / 1000).toFixed(1)}s</span>
+                  <span>{aiReview.tokens_used.toLocaleString()} tokens</span>
+                  <span>{aiReview.document_type.replace(/_/g, " ")}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-auto rounded border border-border bg-muted/30 p-1">
           {loading ? (
             <div className="flex min-h-[60vh] items-center justify-center">
@@ -687,73 +1200,6 @@ function LinkDocumentPopover({
   );
 }
 
-// ─── Pinned Note Editor ───
-
-function PinnedNoteEditor({
-  conditionId,
-  currentNote,
-  onSave,
-  onClose,
-}: {
-  conditionId: string;
-  currentNote: string | null;
-  onSave: (condId: string, note: string | null) => void;
-  onClose: () => void;
-}) {
-  const [text, setText] = useState(currentNote ?? "");
-
-  return (
-    <div className="mt-2 ml-8 p-2.5 rounded-lg bg-warning/5 border border-warning/15 max-w-lg">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <Pencil className="h-3 w-3 text-warning" strokeWidth={1.5} />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-warning">
-          Pinned Note
-        </span>
-      </div>
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Add a note for this condition..."
-        autoFocus
-        rows={2}
-        className="text-xs resize-none"
-      />
-      <div className="flex items-center justify-between mt-1.5">
-        <div>
-          {currentNote && (
-            <button
-              type="button"
-              onClick={() => {
-                onSave(conditionId, null);
-                onClose();
-              }}
-              className="text-[10px] px-1.5 py-0.5 rounded text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-            >
-              Clear note
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 text-[10px] border-warning/20 text-warning hover:bg-warning/10"
-            onClick={() => {
-              onSave(conditionId, text.trim() || null);
-              onClose();
-            }}
-          >
-            Save
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ─── DOCUMENTS SECTION ───
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -762,20 +1208,27 @@ function DocumentsSection({
   documents,
   conditions,
   dealId,
+  dealName,
   googleDriveFolderUrl,
   onPreviewDoc,
+  currentUserId,
+  currentUserName,
 }: {
   documents: DealDocument[];
   conditions: DealCondition[];
   dealId: string;
+  dealName?: string;
   googleDriveFolderUrl?: string | null;
   onPreviewDoc: (doc: DealDocument) => void;
+  currentUserId?: string;
+  currentUserName?: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, startUpload] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [togglingVisId, setTogglingVisId] = useState<string | null>(null);
+  const [runningAiReviewId, setRunningAiReviewId] = useState<string | null>(null);
   const [docSearch, setDocSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
@@ -890,15 +1343,6 @@ function DocumentsSection({
             toast.error(`Failed to save ${file.name}: ${saveResult.error}`);
           } else {
             toast.success(`Uploaded ${file.name}`);
-            if (saveResult.documentId) {
-              triggerDocumentAnalysis(saveResult.documentId, dealId).then(
-                (result) => {
-                  if (result.error) {
-                    toast.error(`AI review failed for ${file.name}: ${result.error}`);
-                  }
-                }
-              );
-            }
           }
         } catch (err) {
           toast.error(
@@ -1032,6 +1476,9 @@ function DocumentsSection({
         <SecureUploadLinkDialog
           dealId={dealId}
           conditions={conditions}
+          dealName={dealName}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
           trigger={
             <button
               type="button"
@@ -1148,30 +1595,55 @@ function DocumentsSection({
                         {isExternal ? "SHARED" : "INT"}
                       </button>
 
-                      {/* AI review badge */}
-                      <ReviewStatusBadge
-                        status={
-                          doc.review_status as
-                            | "pending"
-                            | "processing"
-                            | "ready"
-                            | "applied"
-                            | "partially_applied"
-                            | "rejected"
-                            | "error"
-                            | null
-                        }
-                        onClick={() => {
-                          if (doc.review_status === "error") {
-                            retriggerDocumentReview(doc.id);
-                          } else if (
-                            doc.review_status &&
-                            !["pending", "processing"].includes(doc.review_status)
-                          ) {
-                            onPreviewDoc(doc);
+                      {/* AI review: per-item button when queued, badge otherwise */}
+                      {doc.review_status === "pending" ? (
+                        <button
+                          type="button"
+                          disabled={runningAiReviewId !== null}
+                          onClick={async () => {
+                            setRunningAiReviewId(doc.id);
+                            const result = await triggerDocumentAnalysis(doc.id, dealId);
+                            setRunningAiReviewId(null);
+                            if (result?.error) {
+                              toast.error(result.error);
+                            } else {
+                              toast.success("AI review started for this document.");
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0 text-[9px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground cursor-pointer shrink-0 disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                          {runningAiReviewId === doc.id ? (
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-2.5 w-2.5" strokeWidth={1.5} />
+                          )}
+                          AI Review
+                        </button>
+                      ) : (
+                        <ReviewStatusBadge
+                          status={
+                            doc.review_status as
+                              | "pending"
+                              | "processing"
+                              | "ready"
+                              | "applied"
+                              | "partially_applied"
+                              | "rejected"
+                              | "error"
+                              | null
                           }
-                        }}
-                      />
+                          onClick={() => {
+                            if (doc.review_status === "error") {
+                              retriggerDocumentReview(doc.id);
+                            } else if (
+                              doc.review_status &&
+                              !["pending", "processing"].includes(doc.review_status)
+                            ) {
+                              onPreviewDoc(doc);
+                            }
+                          }}
+                        />
+                      )}
 
                       <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
                         {formatDate(doc.created_at)}
@@ -1275,52 +1747,83 @@ function ConditionRow({
   condDocs,
   isRowExpanded,
   isLinking,
-  isEditingNote,
   noteCount,
   dealId,
   currentUserId,
   currentUserName,
   onToggleRow,
-  onSetEditingNote,
   onSetLinkingCondition,
-  onSavePinnedNote,
   onStatusChange,
   onUploadToCondition,
   onLinkDoc,
   onUnlinkDoc,
   getAvailableDocsForLinking,
+  onPreviewDoc,
+  onApprovalChange,
+  onRequestRevision,
 }: {
   condition: DealCondition;
   condDocs: DealDocument[];
   isRowExpanded: boolean;
   isLinking: boolean;
-  isEditingNote: boolean;
   noteCount: number;
   dealId: string;
   currentUserId: string;
   currentUserName: string;
   onToggleRow: () => void;
-  onSetEditingNote: (id: string | null) => void;
   onSetLinkingCondition: (id: string | null) => void;
-  onSavePinnedNote: (condId: string, note: string | null) => void;
   onStatusChange: (condId: string, currentStatus: string, newStatus: string) => void;
   onUploadToCondition: (condId: string, file: File) => Promise<void>;
   onLinkDoc: (condId: string, docId: string) => void;
-  onUnlinkDoc: (docId: string) => void;
+  onUnlinkDoc?: (docId: string) => void;
   getAvailableDocsForLinking: (condId: string) => DealDocument[];
+  onPreviewDoc?: (doc: DealDocument) => void;
+  onApprovalChange?: (docId: string, status: "approved" | "denied") => Promise<void>;
+  onRequestRevision?: (condId: string, feedback: string) => Promise<void>;
 }) {
   const [uploading, setUploading] = useState(false);
   const [optimisticStatus, setOptimisticStatus] = useState(cond.status);
+  const [approvingDocId, setApprovingDocId] = useState<string | null>(null);
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [revisionFeedback, setRevisionFeedback] = useState("");
+  const [submittingRevision, setSubmittingRevision] = useState(false);
+
+  // AI Review state for expanded row
+  const [conditionAiReview, setConditionAiReview] = useState<ConditionReviewData | null>(null);
+  const [conditionAiReviewDoc, setConditionAiReviewDoc] = useState<string | null>(null);
 
   // Sync optimistic status when server data changes
   useEffect(() => {
     setOptimisticStatus(cond.status);
   }, [cond.status]);
 
+  // Load existing AI review when row expands
+  useEffect(() => {
+    if (!isRowExpanded || condDocs.length === 0) return;
+    // Find most recent doc with a review
+    const doc = condDocs[0];
+    if (!doc) return;
+    getConditionReview(doc.id, cond.id).then((res) => {
+      if (res.data) {
+        setConditionAiReview(res.data);
+        setConditionAiReviewDoc(doc.document_name);
+      }
+    });
+  }, [isRowExpanded, cond.id, condDocs]);
+
   const isClearedStatus = ["approved", "waived", "not_applicable"].includes(cond.status);
+  const hasDocsNeedingReview = condDocs.some(
+    (d) => (d.condition_approval_status ?? "pending") === "pending"
+  );
 
   return (
-    <div className="border-b border-border last:border-b-0">
+    <div
+      className={cn(
+        "border-b border-border last:border-b-0 transition-colors",
+        hasDocsNeedingReview &&
+          "bg-primary/5 ring-1 ring-primary/25 ring-inset dark:ring-primary/20"
+      )}
+    >
       {/* Compact row */}
       <div
         role="button"
@@ -1347,25 +1850,13 @@ function ConditionRow({
           >
             {cond.condition_name}
           </span>
-          {cond.critical_path_item && (
-            <span className="shrink-0 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-              Critical
-            </span>
-          )}
-          {/* Pinned note badge */}
-          {cond.internal_description && !isEditingNote && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSetEditingNote(cond.id);
-              }}
-              className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-warning/10 text-warning border border-warning/15 hover:bg-warning/20 transition-colors cursor-pointer"
-              title="View/edit pinned note"
+          {cond.assigned_contact_id && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400 shrink-0"
+              title="Assigned to specific borrower"
             >
-              <Pencil className="h-2 w-2" strokeWidth={2} />
-              Note
-            </button>
+              <User className="h-2.5 w-2.5" />
+            </span>
           )}
         </div>
 
@@ -1396,21 +1887,6 @@ function ConditionRow({
           className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Note */}
-          <button
-            type="button"
-            onClick={() => onSetEditingNote(isEditingNote ? null : cond.id)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer",
-              isEditingNote
-                ? "bg-warning/10 text-warning"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-            title="Pinned note"
-          >
-            <Pencil className="h-3 w-3" strokeWidth={1.5} />
-            Note
-          </button>
           {/* Link */}
           <LinkDocumentPopover
             open={isLinking}
@@ -1448,6 +1924,39 @@ function ConditionRow({
             )}
             Upload
           </label>
+          {/* AI Review - opens preview of first doc */}
+          {condDocs.length > 0 && onPreviewDoc && (
+            <button
+              type="button"
+              onClick={() => {
+                // Open the most recent doc in preview (which has AI review button)
+                const doc = condDocs[0];
+                if (doc) onPreviewDoc(doc);
+              }}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-violet-600/70 hover:text-violet-600 hover:bg-violet-500/5 dark:text-violet-400/70 dark:hover:text-violet-400 transition-colors cursor-pointer"
+              title="Open document for AI review"
+            >
+              <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+              AI Review
+            </button>
+          )}
+          {/* Request Revision */}
+          {onRequestRevision && (
+            <button
+              type="button"
+              onClick={() => {
+                // Expand the row and show revision form
+                if (!isRowExpanded) onToggleRow();
+                setShowRevisionForm(true);
+                setRevisionFeedback(cond.borrower_feedback ?? "");
+              }}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-destructive/70 hover:text-destructive hover:bg-destructive/5 transition-colors cursor-pointer"
+              title="Request revision from borrower"
+            >
+              <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
+              Revision
+            </button>
+          )}
         </div>
 
         {/* Status select */}
@@ -1459,7 +1968,7 @@ function ConditionRow({
               onStatusChange(cond.id, cond.status, val);
             }}
           >
-            <SelectTrigger className="h-7 w-[110px] text-xs">
+            <SelectTrigger className="h-7 w-[140px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1481,65 +1990,302 @@ function ConditionRow({
         />
       </div>
 
-      {/* Pinned note preview */}
-      {cond.internal_description && !isEditingNote && !isRowExpanded && (
-        <div
-          onClick={() => onSetEditingNote(cond.id)}
-          className="mx-4 mb-2 ml-12 px-2.5 py-1.5 rounded bg-warning/5 border border-warning/10 cursor-pointer hover:bg-warning/8 transition-colors max-w-lg"
-        >
-          <div className="flex items-start gap-1.5">
-            <Pencil className="h-3 w-3 shrink-0 mt-0.5 text-warning/50" strokeWidth={1.5} />
-            <span className="text-[11px] text-warning/60 leading-relaxed flex-1 line-clamp-2">
-              {cond.internal_description}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Pinned note editor */}
-      {isEditingNote && (
-        <div className="px-4 pb-2">
-          <PinnedNoteEditor
-            conditionId={cond.id}
-            currentNote={cond.internal_description ?? null}
-            onSave={onSavePinnedNote}
-            onClose={() => onSetEditingNote(null)}
-          />
-        </div>
-      )}
-
-      {/* Linked document chips */}
+      {/* Linked document chips (preview + approve/deny) */}
       {condDocs.length > 0 && !isRowExpanded && (
         <div className="flex items-center gap-1.5 mx-4 mb-2 ml-12 flex-wrap">
-          {condDocs.map((doc) => (
-            <span
-              key={doc.id}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border flex items-center gap-1 hover:text-foreground hover:border-foreground/20 transition-colors group/chip"
-            >
-              <FileTypeBadge name={doc.document_name} small />
-              <span className="max-w-[120px] truncate">
-                {doc.document_name}
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUnlinkDoc(doc.id);
-                }}
-                className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors hidden group-hover/chip:inline cursor-pointer"
-                title="Unlink"
+          {condDocs.map((doc) => {
+            const approval = doc.condition_approval_status ?? "pending";
+            const isApproving = approvingDocId === doc.id;
+            const needsReview = approval === "pending";
+            return (
+              <span
+                key={doc.id}
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 transition-colors group/chip",
+                  needsReview
+                    ? "bg-primary/10 text-foreground border-primary/30 shadow-[0_0_0_1px_hsl(var(--primary)/0.15)] hover:bg-primary/15 hover:border-primary/40"
+                    : "bg-muted text-muted-foreground border-border hover:text-foreground hover:border-foreground/20"
+                )}
               >
-                <X className="h-2.5 w-2.5" strokeWidth={2} />
-              </button>
-            </span>
-          ))}
+                <FileTypeBadge name={doc.document_name} small />
+                <span className="max-w-[120px] truncate">
+                  {doc.document_name}
+                </span>
+                {onPreviewDoc && doc.storage_path && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreviewDoc(doc);
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Preview"
+                  >
+                    <Eye className="h-2.5 w-2.5" strokeWidth={2} />
+                  </button>
+                )}
+                {onApprovalChange && (
+                  <>
+                    <span
+                      className={cn(
+                        "px-1 rounded text-[9px] font-medium",
+                        approval === "approved" &&
+                          "bg-green-500/15 text-green-600 dark:text-green-400",
+                        approval === "denied" &&
+                          "bg-destructive/15 text-destructive",
+                        approval === "pending" && "text-muted-foreground"
+                      )}
+                    >
+                      {approval === "approved"
+                        ? "Approved"
+                        : approval === "denied"
+                          ? "Revision Needed"
+                          : "Pending"}
+                    </span>
+                    {approval !== "approved" && (
+                      <button
+                        type="button"
+                        disabled={isApproving}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setApprovingDocId(doc.id);
+                          await onApprovalChange(doc.id, "approved");
+                          setApprovingDocId(null);
+                        }}
+                        className="text-muted-foreground hover:text-green-600 dark:hover:text-green-400 transition-colors cursor-pointer disabled:opacity-50"
+                        title="Approve"
+                      >
+                        {isApproving ? (
+                          <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        ) : (
+                          <Check className="h-2.5 w-2.5" strokeWidth={2} />
+                        )}
+                      </button>
+                    )}
+                    {approval !== "denied" && (
+                      <button
+                        type="button"
+                        disabled={isApproving}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setApprovingDocId(doc.id);
+                          await onApprovalChange(doc.id, "denied");
+                          setApprovingDocId(null);
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors cursor-pointer disabled:opacity-50"
+                        title="Deny"
+                      >
+                        <X className="h-2.5 w-2.5" strokeWidth={2} />
+                      </button>
+                    )}
+                  </>
+                )}
+                {onUnlinkDoc && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onUnlinkDoc(doc.id);
+                    }}
+                    className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors hidden group-hover/chip:inline cursor-pointer"
+                    title="Unlink"
+                  >
+                    <X className="h-2.5 w-2.5" strokeWidth={2} />
+                  </button>
+                )}
+              </span>
+            );
+          })}
         </div>
       )}
 
-      {/* Expanded note thread */}
+      {/* Expanded content: template guidance + note thread */}
       {isRowExpanded && (
         <div className="border-t border-border bg-muted/50 pl-4 pr-4 pb-4 pt-3">
           <div className="pl-6">
+            {/* Template guidance (read-only, from condition template) */}
+            {cond.template_guidance && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5">
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/50" strokeWidth={1.5} />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/40 block mb-0.5">What to look for</span>
+                  <p className="text-xs text-primary/70 leading-relaxed">{cond.template_guidance}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Borrower comment (from their submission) */}
+            {cond.borrower_comment && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg bg-blue-500/5 border border-blue-500/10 px-3 py-2.5">
+                <MessageSquare className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-500/50" strokeWidth={1.5} />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500/40 block mb-0.5">Borrower Note</span>
+                  <p className="text-xs text-blue-500/70 leading-relaxed">{cond.borrower_comment}</p>
+                </div>
+              </div>
+            )}
+
+            {/* AI Review results (persisted from document review) */}
+            {conditionAiReview && (
+              <div className="mb-3 rounded-lg bg-violet-500/5 border border-violet-500/10 dark:border-violet-400/15 dark:bg-violet-400/5 overflow-hidden">
+                <div className="flex items-start gap-2 px-3 py-2.5">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 mt-0.5 text-violet-500/50 dark:text-violet-400/50" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-violet-500/50 dark:text-violet-400/40">
+                        AI Review
+                      </span>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[9px] font-semibold",
+                          conditionAiReview.recommendation === "approve" &&
+                            "bg-green-500/15 text-green-600 dark:text-green-400",
+                          conditionAiReview.recommendation === "request_revision" &&
+                            "bg-red-500/15 text-red-600 dark:text-red-400",
+                          conditionAiReview.recommendation === "needs_manual_review" &&
+                            "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        )}
+                      >
+                        {conditionAiReview.recommendation === "approve" && <Check className="h-2 w-2" strokeWidth={3} />}
+                        {conditionAiReview.recommendation === "request_revision" && <X className="h-2 w-2" strokeWidth={3} />}
+                        {conditionAiReview.recommendation === "needs_manual_review" && <AlertTriangle className="h-2 w-2" strokeWidth={2.5} />}
+                        {conditionAiReview.recommendation === "approve"
+                          ? "Approve"
+                          : conditionAiReview.recommendation === "request_revision"
+                            ? "Revision"
+                            : "Manual Review"}
+                      </span>
+                      {conditionAiReviewDoc && (
+                        <span className="text-[9px] text-muted-foreground/40 truncate">
+                          {conditionAiReviewDoc}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Criteria results - compact */}
+                    {conditionAiReview.criteria_results.length > 0 && (
+                      <div className="space-y-0.5 mb-1.5">
+                        {conditionAiReview.criteria_results.map((cr, idx) => (
+                          <div key={idx} className="flex items-start gap-1.5 text-xs">
+                            <span className="shrink-0 mt-[1px]">
+                              {cr.result === "pass" && <CheckCircle2 className="h-3 w-3 text-green-500" strokeWidth={2} />}
+                              {cr.result === "fail" && <X className="h-3 w-3 text-red-500 rounded-full bg-red-500/10 p-[1px]" strokeWidth={2.5} />}
+                              {cr.result === "unclear" && <AlertTriangle className="h-3 w-3 text-amber-500" strokeWidth={2} />}
+                            </span>
+                            <span className="text-foreground/70 leading-snug">
+                              <span className="font-medium">{cr.criterion}</span>
+                              {cr.detail && (
+                                <span className="text-muted-foreground/60"> - {cr.detail}</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Summary */}
+                    <p className="text-xs text-violet-600/60 dark:text-violet-400/50 leading-relaxed">{conditionAiReview.summary}</p>
+
+                    {/* Flags */}
+                    {conditionAiReview.flags.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {conditionAiReview.flags.map((flag, idx) => (
+                          <div key={idx} className="flex items-start gap-1 text-[11px]">
+                            <AlertTriangle className="h-2.5 w-2.5 shrink-0 mt-0.5 text-amber-500" strokeWidth={2} />
+                            <span className="text-amber-700 dark:text-amber-400">{flag}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Request Revision action */}
+            {onRequestRevision && (
+              <div className="mb-3">
+                {/* Show existing feedback if any */}
+                {cond.status === "rejected" && cond.borrower_feedback && (
+                  <div className="mb-2 flex items-start gap-2 rounded-lg bg-destructive/5 border border-destructive/10 px-3 py-2.5">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-destructive/50" strokeWidth={1.5} />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-destructive/40 block mb-0.5">Borrower Feedback (visible to borrower)</span>
+                      <p className="text-xs text-destructive/70 leading-relaxed">{cond.borrower_feedback}</p>
+                    </div>
+                  </div>
+                )}
+
+                {!showRevisionForm ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowRevisionForm(true);
+                      setRevisionFeedback(cond.borrower_feedback ?? "");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[11px] font-medium text-destructive/70 hover:text-destructive hover:bg-destructive/5 border border-transparent hover:border-destructive/10 transition-colors"
+                  >
+                    <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
+                    Request Revision
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-destructive/50 mb-1.5">
+                      Borrower-Facing Feedback
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mb-2">
+                      This message will be visible to the borrower on their upload portal. Be specific about what needs to change.
+                    </p>
+                    <Textarea
+                      value={revisionFeedback}
+                      onChange={(e) => setRevisionFeedback(e.target.value)}
+                      placeholder='e.g. "Bank statement must show 3 consecutive months. The uploaded file only covers January."'
+                      className="text-xs min-h-[60px] mb-2 bg-background"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={!revisionFeedback.trim() || submittingRevision}
+                        onClick={async () => {
+                          setSubmittingRevision(true);
+                          try {
+                            await onRequestRevision(cond.id, revisionFeedback.trim());
+                            setShowRevisionForm(false);
+                            setRevisionFeedback("");
+                          } finally {
+                            setSubmittingRevision(false);
+                          }
+                        }}
+                        className="text-xs h-7"
+                      >
+                        {submittingRevision ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                        )}
+                        Send Revision Request
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowRevisionForm(false);
+                          setRevisionFeedback("");
+                        }}
+                        className="text-xs h-7"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Condition notes */}
             <ConditionNoteThread
               conditionId={cond.id}
               dealId={dealId}
@@ -1562,16 +2308,21 @@ function ConditionsSection({
   conditions,
   documents,
   dealId,
+  onPreviewDoc,
+  onApprovalChange,
+  onUnlinkDoc,
 }: {
   conditions: DealCondition[];
   documents: DealDocument[];
   dealId: string;
+  onPreviewDoc?: (doc: DealDocument) => void;
+  onApprovalChange?: (docId: string, status: "approved" | "denied") => Promise<void>;
+  onUnlinkDoc?: (docId: string) => void;
 }) {
   const router = useRouter();
   const [phaseFilter, setPhaseFilter] = useState<
     "all" | "processing" | "post_closing"
   >("all");
-  const [criticalOnly, setCriticalOnly] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
@@ -1580,7 +2331,6 @@ function ConditionsSection({
   const [linkingConditionId, setLinkingConditionId] = useState<string | null>(
     null
   );
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentUserName, setCurrentUserName] = useState("");
 
@@ -1605,7 +2355,6 @@ function ConditionsSection({
     const group = getCategoryGroup(c.category);
     if (phaseFilter === "processing" && group === "post_closing") return false;
     if (phaseFilter === "post_closing" && group !== "post_closing") return false;
-    if (criticalOnly && !c.critical_path_item) return false;
     return true;
   });
 
@@ -1689,37 +2438,6 @@ function ConditionsSection({
     setLinkingConditionId(null);
   }
 
-  // Unlink doc from condition
-  async function unlinkDoc(docId: string) {
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("unified_deal_documents" as never)
-      .update({ condition_id: null } as never)
-      .eq("id" as never, docId as never);
-    if (error) {
-      toast.error(`Failed to unlink document: ${error.message}`);
-    } else {
-      toast.success("Document unlinked");
-      router.refresh();
-    }
-  }
-
-  // Save pinned note to internal_description
-  async function savePinnedNote(condId: string, note: string | null) {
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("unified_deal_conditions" as never)
-      .update({ internal_description: note } as never)
-      .eq("id" as never, condId as never);
-    if (error) {
-      toast.error(`Failed to save note: ${error.message}`);
-    } else {
-      toast.success(note ? "Note saved" : "Note cleared");
-      router.refresh();
-    }
-    setEditingNoteId(null);
-  }
-
   // Status change handler
   async function handleStatusChange(
     conditionId: string,
@@ -1735,6 +2453,22 @@ function ConditionsSection({
       toast.error(`Failed to update: ${result.error}`);
     } else {
       toast.success("Condition updated");
+      router.refresh();
+    }
+  }
+
+  // Request revision on a condition (sets status to rejected with borrower feedback)
+  async function handleRequestRevision(conditionId: string, feedback: string) {
+    const result = await requestConditionRevision(
+      conditionId,
+      dealId,
+      feedback,
+      null // primaryContactId not available here; action logs without it
+    );
+    if (result.error) {
+      toast.error(`Failed to request revision: ${result.error}`);
+    } else {
+      toast.success("Revision requested - borrower will see feedback on their upload portal");
       router.refresh();
     }
   }
@@ -1848,23 +2582,6 @@ function ConditionsSection({
             {label}
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => setCriticalOnly(!criticalOnly)}
-          className="ml-2 flex items-center gap-1.5 border-0 bg-transparent p-0 cursor-pointer"
-        >
-          <div
-            className={cn(
-              "flex h-4 w-4 items-center justify-center rounded border-2 transition-colors",
-              criticalOnly ? "border-primary bg-primary" : "border-border"
-            )}
-          >
-            {criticalOnly && (
-              <CheckCircle2 className="h-2.5 w-2.5 text-primary-foreground" />
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground">Critical Path</span>
-        </button>
       </div>
 
       {filtered.length === 0 && (
@@ -1916,20 +2633,20 @@ function ConditionsSection({
                     condDocs={docsByCondition.get(cond.id) ?? []}
                     isRowExpanded={expandedRows.has(cond.id)}
                     isLinking={linkingConditionId === cond.id}
-                    isEditingNote={editingNoteId === cond.id}
                     noteCount={noteCounts[cond.id] ?? 0}
                     dealId={dealId}
                     currentUserId={currentUserId}
                     currentUserName={currentUserName}
                     onToggleRow={() => toggleRow(cond.id)}
-                    onSetEditingNote={(id) => setEditingNoteId(id)}
                     onSetLinkingCondition={(id) => setLinkingConditionId(id)}
-                    onSavePinnedNote={savePinnedNote}
                     onStatusChange={handleStatusChange}
                     onUploadToCondition={uploadToCondition}
                     onLinkDoc={linkDoc}
-                    onUnlinkDoc={unlinkDoc}
+                    onUnlinkDoc={onUnlinkDoc ?? (() => {})}
                     getAvailableDocsForLinking={getAvailableDocsForLinking}
+                    onPreviewDoc={onPreviewDoc}
+                    onApprovalChange={onApprovalChange}
+                    onRequestRevision={handleRequestRevision}
                   />
                 ))}
               </div>
@@ -1949,12 +2666,55 @@ export function DiligenceTab({
   documents,
   conditions,
   dealId,
+  dealName,
   googleDriveFolderUrl,
+  currentUserId,
+  currentUserName,
 }: DiligenceTabProps) {
+  const router = useRouter();
   const [previewDoc, setPreviewDoc] = useState<DealDocument | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [reviewDoc, setReviewDoc] = useState<DealDocument | null>(null);
+
+  async function handleApprovalChange(
+    docId: string,
+    status: "approved" | "denied"
+  ) {
+    const result = await updateConditionDocumentApproval(docId, status);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(
+        status === "approved" ? "Document approved" : "Document denied"
+      );
+      router.refresh();
+    }
+  }
+
+  async function handleRevisionFromPreview(conditionId: string, feedback: string) {
+    const result = await requestConditionRevision(conditionId, dealId, feedback, null);
+    if (result.error) {
+      toast.error(`Failed to request revision: ${result.error}`);
+    } else {
+      toast.success("Revision requested - borrower will see feedback on their upload portal");
+      router.refresh();
+    }
+  }
+
+  async function unlinkDoc(docId: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("unified_deal_documents" as never)
+      .update({ condition_id: null } as never)
+      .eq("id" as never, docId as never);
+    if (error) {
+      toast.error(`Failed to unlink document: ${error.message}`);
+    } else {
+      toast.success("Document unlinked");
+      router.refresh();
+    }
+  }
 
   function handlePreviewDoc(doc: DealDocument) {
     // If it has a review status that's ready, open review panel instead
@@ -1977,8 +2737,11 @@ export function DiligenceTab({
         documents={documents}
         conditions={conditions}
         dealId={dealId}
+        dealName={dealName}
         googleDriveFolderUrl={googleDriveFolderUrl}
         onPreviewDoc={handlePreviewDoc}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
       />
 
       {/* Conditions Section */}
@@ -1986,6 +2749,12 @@ export function DiligenceTab({
         conditions={conditions}
         documents={documents}
         dealId={dealId}
+        onPreviewDoc={(doc) => {
+          setPreviewDoc(doc);
+          setPreviewOpen(true);
+        }}
+        onApprovalChange={handleApprovalChange}
+        onUnlinkDoc={unlinkDoc}
       />
 
       {/* Preview modal */}
@@ -1993,6 +2762,24 @@ export function DiligenceTab({
         doc={previewDoc}
         open={previewOpen}
         onOpenChange={setPreviewOpen}
+        onApprovalChange={handleApprovalChange}
+        onUnlinkDoc={unlinkDoc}
+        onRequestRevision={handleRevisionFromPreview}
+        linkedCondition={
+          previewDoc?.condition_id
+            ? (() => {
+                const c = conditions.find((x) => x.id === previewDoc.condition_id);
+                return c
+                  ? {
+                      conditionId: c.id,
+                      conditionName: c.condition_name,
+                      templateGuidance: c.template_guidance ?? null,
+                      borrowerComment: c.borrower_comment ?? null,
+                    }
+                  : null;
+              })()
+            : null
+        }
       />
 
       {/* AI Review Panel */}

@@ -143,6 +143,7 @@ export interface DealCondition {
   borrower_description: string | null;
   responsible_party: string | null;
   critical_path_item: boolean;
+  is_borrower_facing: boolean;
   requires_approval: boolean;
   is_required: boolean;
   sort_order: number;
@@ -155,6 +156,18 @@ export interface DealCondition {
   reviewed_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Original template internal description (read-only guidance) */
+  template_guidance?: string | null;
+  /** Original template borrower description (read-only) */
+  template_borrower_description?: string | null;
+  /** Borrower-facing feedback explaining what needs to be revised */
+  borrower_feedback?: string | null;
+  /** When the borrower feedback was last updated */
+  feedback_updated_at?: string | null;
+  /** Comment submitted by borrower alongside their document submission */
+  borrower_comment?: string | null;
+  /** Borrower contact this condition is assigned to (per-borrower conditions) */
+  assigned_contact_id?: string | null;
 }
 
 export interface DealTask {

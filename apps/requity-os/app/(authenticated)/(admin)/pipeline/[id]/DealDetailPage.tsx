@@ -101,6 +101,7 @@ import {
 } from "@/app/(authenticated)/(admin)/pipeline/actions";
 import { normalizeAssetClass, isCommercialDeal, type VisibilityContext } from "@/lib/visibility-engine";
 import { DealActivityTab } from "@/components/pipeline/tabs/DealActivityTab";
+import { DealMessagesPanel } from "@/components/pipeline/DealMessagesPanel";
 import { DealNotePreview } from "@/components/pipeline/DealNotePreview";
 import type { DealPreviewNote } from "@/components/pipeline/DealNotePreview";
 import { logQuickActionV2, addDealTeamMember, removeDealTeamMember, createDealDriveFolder } from "./actions";
@@ -183,6 +184,7 @@ function DealDetailPageInner({
     "Underwriting",
     "Borrower",
     "Diligence",
+    "Messages",
   ] as const;
   const tabs = UNIVERSAL_TABS;
 
@@ -573,7 +575,18 @@ function DealDetailPageInner({
                 documents={documents as unknown as { id: string; deal_id: string; document_name: string; file_url: string; file_size_bytes: number | null; mime_type: string | null; category: string | null; uploaded_by: string | null; created_at: string; review_status: string | null; storage_path: string | null; visibility?: string | null; _uploaded_by_name?: string | null; archived_at?: string | null; condition_id?: string | null }[]}
                 conditions={conditions}
                 dealId={deal.id}
+                dealName={(deal as { name?: string }).name ?? undefined}
                 googleDriveFolderUrl={(deal as unknown as Record<string, unknown>).google_drive_folder_url as string | null}
+                currentUserId={currentUserId}
+                currentUserName={currentUserName}
+              />
+            </div>
+          )}
+          {loadedTabs.has("Messages") && (
+            <div className={activeTab !== "Messages" ? "hidden" : undefined}>
+              <DealMessagesPanel
+                dealId={deal.id}
+                currentUserId={currentUserId}
               />
             </div>
           )}

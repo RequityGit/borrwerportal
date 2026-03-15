@@ -460,6 +460,26 @@ export async function saveDealDocumentRecord(params: {
 
     const documentId = (insertResult.data as { id: string } | null)?.id ?? null;
 
+    // Fire-and-forget: sync to Google Drive
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && serviceRoleKey && documentId) {
+      fetch(`${supabaseUrl}/functions/v1/sync-document-to-drive`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          document_id: documentId,
+          deal_id: params.dealId,
+          storage_path: params.storagePath,
+          file_name: params.documentName,
+          mime_type: params.mimeType,
+        }),
+      }).catch(() => {});
+    }
+
     await revalidateDeal(params.dealId);
     return { error: null, documentId };
   } catch (err: unknown) {
@@ -487,6 +507,21 @@ export async function updateDocumentVisibility(
     if (error) return { error: error.message };
 
     await revalidateDeal(dealId);
+
+    // Fire-and-forget: move file in Google Drive into/out of Shared folder
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && serviceRoleKey) {
+      fetch(`${supabaseUrl}/functions/v1/move-document-drive-folder`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ document_id: docId, deal_id: dealId }),
+      }).catch(() => {});
+    }
+
     return {};
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : "Failed to update visibility" };
@@ -559,6 +594,49 @@ export async function deleteDealDocumentV2(
   } catch (err: unknown) {
     console.error("deleteDealDocumentV2 error:", err);
     return { error: err instanceof Error ? err.message : "Delete failed" };
+  }
+}
+
+/** Set human approve/deny for a condition-linked document (used in conditions section). */
+export async function updateConditionDocumentApproval(
+  documentId: string,
+  status: "approved" | "denied"
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+    const { data: doc, error: fetchError } = await admin
+      .from("unified_deal_documents" as never)
+      .select("deal_id, condition_id" as never)
+      .eq("id" as never, documentId as never)
+      .single();
+
+    if (fetchError || !doc) {
+      return { error: "Document not found" };
+    }
+    if (!(doc as { condition_id: string | null }).condition_id) {
+      return { error: "Document is not linked to a condition" };
+    }
+
+    const { error: updateError } = await admin
+      .from("unified_deal_documents" as never)
+      .update({ condition_approval_status: status } as never)
+      .eq("id" as never, documentId as never);
+
+    if (updateError) {
+      console.error("updateConditionDocumentApproval error:", updateError);
+      return { error: updateError.message };
+    }
+
+    await revalidateDeal((doc as { deal_id: string }).deal_id);
+    return { error: null };
+  } catch (err: unknown) {
+    console.error("updateConditionDocumentApproval error:", err);
+    return {
+      error: err instanceof Error ? err.message : "Failed to update approval",
+    };
   }
 }
 
@@ -744,6 +822,180 @@ export async function retriggerDocumentReview(documentId: string) {
     return {
       error:
         err instanceof Error ? err.message : "Failed to retrigger review",
+    };
+  }
+}
+
+// ─── AI Condition Review ───
+
+export interface ConditionCriterionResult {
+  criterion: string;
+  result: "pass" | "fail" | "unclear";
+  detail: string;
+}
+
+export interface ConditionReviewData {
+  review_id: string;
+  criteria_results: ConditionCriterionResult[];
+  recommendation: "approve" | "request_revision" | "needs_manual_review";
+  recommendation_reasoning: string;
+  summary: string;
+  flags: string[];
+  document_type: string;
+  processing_time_ms: number;
+  tokens_used: number;
+}
+
+/**
+ * Trigger an AI condition review for a specific document linked to a condition.
+ * Calls the /api/deals/[dealId]/review-condition-document endpoint.
+ */
+export async function triggerConditionReview(
+  documentId: string,
+  conditionId: string,
+  dealId: string
+): Promise<{ data?: ConditionReviewData; error?: string }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    // Delete any existing condition review for this doc+condition pair
+    await admin
+      .from("document_reviews" as never)
+      .delete()
+      .eq("document_id" as never, documentId as never)
+      .eq("condition_id" as never, conditionId as never);
+
+    // Reset document review status
+    await admin
+      .from("unified_deal_documents" as never)
+      .update({ review_status: "pending" } as never)
+      .eq("id" as never, documentId as never);
+
+    // Call the review API (absolute URL required when fetch runs in Node/server action)
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.URL ||
+      (typeof process.env.PORT === "string"
+        ? `http://localhost:${process.env.PORT}`
+        : "http://localhost:3000");
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+
+    const response = await fetch(
+      `${baseUrl.replace(/\/$/, "")}/api/deals/${dealId}/review-condition-document`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ document_id: documentId, condition_id: conditionId }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { error: result.error || "AI review failed" };
+    }
+
+    await revalidateDeal(dealId);
+
+    return {
+      data: {
+        review_id: result.review_id,
+        criteria_results: result.criteria_results ?? [],
+        recommendation: result.recommendation ?? "needs_manual_review",
+        recommendation_reasoning: result.recommendation_reasoning ?? "",
+        summary: result.summary ?? "",
+        flags: result.flags ?? [],
+        document_type: result.document_type ?? "other",
+        processing_time_ms: result.processing_time_ms ?? 0,
+        tokens_used: result.tokens_used ?? 0,
+      },
+    };
+  } catch (err: unknown) {
+    console.error("triggerConditionReview error:", err);
+    return {
+      error: err instanceof Error ? err.message : "Failed to trigger AI review",
+    };
+  }
+}
+
+/**
+ * Fetch an existing condition review for a document+condition pair.
+ */
+export async function getConditionReview(
+  documentId: string,
+  conditionId: string
+): Promise<{ data?: ConditionReviewData; error?: string }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    const admin = createAdminClient();
+
+    const { data: review, error: reviewError } = await admin
+      .from("document_reviews" as never)
+      .select("*" as never)
+      .eq("document_id" as never, documentId as never)
+      .eq("condition_id" as never, conditionId as never)
+      .order("created_at" as never, { ascending: false })
+      .limit(1)
+      .single();
+
+    if (reviewError || !review) {
+      return { error: "No review found" };
+    }
+
+    const r = review as {
+      id: string;
+      status: string;
+      raw_extraction: {
+        criteria_results?: ConditionCriterionResult[];
+        recommendation?: string;
+        recommendation_reasoning?: string;
+        summary?: string;
+        flags?: string[];
+        document_type?: string;
+      } | null;
+      summary: string | null;
+      flags: string[] | null;
+      document_type: string | null;
+      processing_time_ms: number | null;
+      tokens_used: number | null;
+      error_message: string | null;
+    };
+
+    if (r.status === "processing") {
+      return { error: "Review is still processing" };
+    }
+
+    if (r.status === "error") {
+      return { error: r.error_message || "Review failed" };
+    }
+
+    const extraction = r.raw_extraction;
+
+    return {
+      data: {
+        review_id: r.id,
+        criteria_results: extraction?.criteria_results ?? [],
+        recommendation: (extraction?.recommendation as ConditionReviewData["recommendation"]) ?? "needs_manual_review",
+        recommendation_reasoning: extraction?.recommendation_reasoning ?? "",
+        summary: extraction?.summary ?? r.summary ?? "",
+        flags: extraction?.flags ?? r.flags ?? [],
+        document_type: extraction?.document_type ?? r.document_type ?? "other",
+        processing_time_ms: r.processing_time_ms ?? 0,
+        tokens_used: r.tokens_used ?? 0,
+      },
+    };
+  } catch (err: unknown) {
+    console.error("getConditionReview error:", err);
+    return {
+      error: err instanceof Error ? err.message : "Failed to load condition review",
     };
   }
 }
@@ -1052,6 +1304,17 @@ export async function addDealContact(
     await syncBorrowerDataOnLink(admin, dealId, contactId);
   }
 
+  // Auto-generate per-borrower conditions for this contact
+  try {
+    await admin.rpc("generate_borrower_conditions" as never, {
+      p_deal_id: dealId,
+      p_contact_id: contactId,
+    } as never);
+  } catch (err) {
+    // Non-blocking: log but don't fail the contact add
+    console.error("generate_borrower_conditions error:", err);
+  }
+
   await revalidateDeal(dealId);
   return { success: true };
 }
@@ -1345,13 +1608,14 @@ export async function createSecureUploadLink(
     maxUploads?: number;
     conditionIds?: string[];
     includeGeneralUpload?: boolean;
+    contactId?: string;
     /** Client origin (e.g. window.location.origin) so the link matches the host the user is on; avoids 404 when NEXT_PUBLIC_APP_URL is wrong or unset */
     origin?: string;
   }
-): Promise<{ error: string | null; url: string | null; linkId: string | null }> {
+): Promise<{ error: string | null; url: string | null; linkId: string | null; expiresAt: string | null }> {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return { error: auth.error ?? "Unauthorized", url: null, linkId: null };
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized", url: null, linkId: null, expiresAt: null };
 
     const admin = createAdminClient();
     const expiresAt = new Date();
@@ -1368,13 +1632,14 @@ export async function createSecureUploadLink(
         expires_at: expiresAt.toISOString(),
         max_uploads: opts.maxUploads || null,
         include_general_upload: opts.includeGeneralUpload ?? true,
+        contact_id: opts.contactId || null,
       })
-      .select("id, token")
+      .select("id, token, expires_at")
       .single();
 
     if (error || !link) {
       console.error("createSecureUploadLink error:", error);
-      return { error: error?.message ?? "Failed to create upload link", url: null, linkId: null };
+      return { error: error?.message ?? "Failed to create upload link", url: null, linkId: null, expiresAt: null };
     }
 
     if (opts.mode === "checklist" && opts.conditionIds && opts.conditionIds.length > 0) {
@@ -1399,14 +1664,16 @@ export async function createSecureUploadLink(
         ? opts.origin.replace(/\/$/, "")
         : process.env.NEXT_PUBLIC_APP_URL || "https://portal.requitygroup.com";
     const url = `${base}/upload/${link.token}`;
+    const expiresAtStr = (link as { expires_at?: string }).expires_at ?? null;
 
-    return { error: null, url, linkId: link.id };
+    return { error: null, url, linkId: link.id, expiresAt: expiresAtStr };
   } catch (err) {
     console.error("createSecureUploadLink error:", err);
     return {
       error: err instanceof Error ? err.message : "Failed to create upload link",
       url: null,
       linkId: null,
+      expiresAt: null,
     };
   }
 }
@@ -1472,5 +1739,95 @@ export async function listSecureUploadLinks(
   } catch (err) {
     console.error("listSecureUploadLinks error:", err);
     return { error: err instanceof Error ? err.message : "Failed to list links", links: [] };
+  }
+}
+
+// ─── Request Condition Revision ───
+
+/**
+ * Sets a condition to "rejected" status with borrower-facing feedback.
+ * This feedback is displayed on the borrower's upload link page so they
+ * know exactly what to fix and can re-upload.
+ */
+export async function requestConditionRevision(
+  conditionId: string,
+  dealId: string,
+  borrowerFeedback: string,
+  primaryContactId: string | null
+): Promise<{ error: string | null }> {
+  try {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error ?? "Unauthorized" };
+
+    if (!borrowerFeedback.trim()) {
+      return { error: "Feedback is required when requesting a revision" };
+    }
+
+    const admin = createAdminClient();
+
+    // Update condition: set status to rejected, add borrower feedback
+    const { error: updateErr } = await admin
+      .from("unified_deal_conditions" as never)
+      .update({
+        status: "rejected",
+        borrower_feedback: borrowerFeedback.trim(),
+        feedback_updated_at: new Date().toISOString(),
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: auth.user.id,
+      } as never)
+      .eq("id" as never, conditionId as never);
+
+    if (updateErr) {
+      console.error("requestConditionRevision update error:", updateErr);
+      return { error: updateErr.message };
+    }
+
+    // Get condition name for activity log
+    const { data: condData } = await admin
+      .from("unified_deal_conditions" as never)
+      .select("condition_name" as never)
+      .eq("id" as never, conditionId as never)
+      .single();
+
+    const condName = (condData as { condition_name: string } | null)?.condition_name ?? "Condition";
+
+    // Log activity
+    await logDealActivityRich(
+      dealId,
+      primaryContactId,
+      "condition_revision_requested",
+      `Revision requested: ${condName}`,
+      `Borrower feedback: ${borrowerFeedback.trim()}`
+    );
+
+    // Queue revision into settling period batch (15-min debounce)
+    import("@/lib/emails/condition-notifications").then(({ queueNotificationBatch }) => {
+      queueNotificationBatch({
+        adminClient: admin,
+        dealId,
+        batchType: "condition_status",
+        change: {
+          condition_id: conditionId,
+          condition_name: condName,
+          new_status: "rejected",
+          feedback: borrowerFeedback.trim(),
+          changed_at: new Date().toISOString(),
+        },
+      }).then((result) => {
+        if (result.queued) {
+          console.log(`[settling-period] Queued revision for condition ${conditionId}`);
+        }
+      }).catch((err) => {
+        console.error("[settling-period] Queue failed:", err);
+      });
+    }).catch((err) => {
+      console.error("[settling-period] Failed to import email module:", err);
+    });
+
+    await revalidateDeal(dealId);
+    return { error: null };
+  } catch (err) {
+    console.error("requestConditionRevision error:", err);
+    return { error: err instanceof Error ? err.message : "Failed to request revision" };
   }
 }

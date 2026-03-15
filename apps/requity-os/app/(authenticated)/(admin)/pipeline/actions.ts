@@ -777,6 +777,20 @@ export async function updateConditionStatusAction(
       updates.reviewed_by = auth.user.id;
     }
 
+    // Get condition name + deal_id before update (for notifications)
+    let condName = "";
+    let resolvedDealId = dealId ?? "";
+    if (newStatus === "approved" || newStatus === "waived") {
+      const { data: condData } = await admin
+        .from("unified_deal_conditions" as never)
+        .select("condition_name, deal_id" as never)
+        .eq("id" as never, conditionId as never)
+        .single();
+      const cd = condData as { condition_name: string; deal_id: string } | null;
+      condName = cd?.condition_name ?? "";
+      resolvedDealId = cd?.deal_id ?? resolvedDealId;
+    }
+
     const { error } = await admin
       .from("unified_deal_conditions" as never)
       .update(updates as never)
@@ -785,6 +799,32 @@ export async function updateConditionStatusAction(
     if (error) {
       console.error("updateConditionStatusAction error:", error);
       return { error: error.message };
+    }
+
+    // Queue notification into settling period batch (15-min debounce)
+    if ((newStatus === "approved" || newStatus === "waived") && resolvedDealId) {
+      import("@/lib/emails/condition-notifications")
+        .then(({ queueNotificationBatch }) =>
+          queueNotificationBatch({
+            adminClient: admin,
+            dealId: resolvedDealId,
+            batchType: "condition_status",
+            change: {
+              condition_id: conditionId,
+              condition_name: condName,
+              new_status: newStatus,
+              changed_at: new Date().toISOString(),
+            },
+          })
+        )
+        .then((result) => {
+          if (result.queued) {
+            console.log(`[settling-period] Queued approval for ${condName}`);
+          }
+        })
+        .catch((err) => {
+          console.error("[settling-period] Queue failed:", err);
+        });
     }
 
     await revalidatePipeline(dealId);

@@ -373,7 +373,7 @@ export const CONDITION_STATUSES = [
   { value: "approved", label: "Approved" },
   { value: "waived", label: "Waived" },
   { value: "not_applicable", label: "Not Applicable" },
-  { value: "rejected", label: "Rejected" },
+  { value: "rejected", label: "Revision Requested" },
 ] as const;
 export const CONDITION_STATUS_VALUES = [
   "pending",

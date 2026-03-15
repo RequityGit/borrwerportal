@@ -15,6 +15,7 @@ import {
 import { Copy, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EmailTemplate } from "@/app/(authenticated)/(admin)/email-templates/types";
+import { formatCategory } from "@/app/(authenticated)/(admin)/email-templates/types";
 import { deleteTemplateAction } from "@/app/(authenticated)/(admin)/email-templates/actions-write";
 import {
   duplicateTemplateAction,
@@ -116,8 +117,8 @@ export function TemplateList({ templates: initial }: TemplateListProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="capitalize">
-                      {t.category ?? "general"}
+                    <Badge variant="secondary">
+                      {formatCategory(t.category)}
                     </Badge>
                   </TableCell>
                   <TableCell>

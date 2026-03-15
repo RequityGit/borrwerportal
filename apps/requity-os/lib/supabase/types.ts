@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _debug_log: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: number
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: number
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: number
+        }
+        Relationships: []
+      }
       ai_call_logs: {
         Row: {
           caller_number: string | null
@@ -4354,6 +4372,75 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_contact_preferences: {
+        Row: {
+          contact_id: string
+          created_at: string
+          deal_id: string
+          id: string
+          is_primary: boolean
+          notify_email: boolean
+          notify_sms: boolean
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          is_primary?: boolean
+          notify_email?: boolean
+          notify_sms?: boolean
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          is_primary?: boolean
+          notify_email?: boolean
+          notify_sms?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_contact_preferences_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_contact_preferences_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_contact_preferences_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "deal_contact_preferences_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
+          {
+            foreignKeyName: "deal_contact_preferences_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_contacts: {
         Row: {
           contact_id: string
@@ -4413,6 +4500,141 @@ export type Database = {
           },
           {
             foreignKeyName: "deal_contacts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_message_routing: {
+        Row: {
+          channel: string
+          contact_id: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          routing_token: string
+        }
+        Insert: {
+          channel?: string
+          contact_id?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          routing_token: string
+        }
+        Update: {
+          channel?: string
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          routing_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_message_routing_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_message_routing_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_message_routing_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "deal_message_routing_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
+          {
+            foreignKeyName: "deal_message_routing_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_messages: {
+        Row: {
+          body: string
+          contact_id: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          metadata: Json | null
+          sender_id: string | null
+          sender_type: string
+          source: string
+        }
+        Insert: {
+          body: string
+          contact_id?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          metadata?: Json | null
+          sender_id?: string | null
+          sender_type: string
+          source?: string
+        }
+        Update: {
+          body?: string
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          metadata?: Json | null
+          sender_id?: string | null
+          sender_type?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "deal_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
+          {
+            foreignKeyName: "deal_messages_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "unified_deals"
@@ -5178,6 +5400,7 @@ export type Database = {
       }
       document_reviews: {
         Row: {
+          condition_id: string | null
           created_at: string
           deal_id: string
           document_id: string
@@ -5198,6 +5421,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          condition_id?: string | null
           created_at?: string
           deal_id: string
           document_id: string
@@ -5218,6 +5442,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          condition_id?: string | null
           created_at?: string
           deal_id?: string
           document_id?: string
@@ -5238,6 +5463,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "document_reviews_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deal_conditions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "document_reviews_deal_id_fkey"
             columns: ["deal_id"]
@@ -6910,6 +7142,7 @@ export type Database = {
           display_name: string
           html_body_template: string
           id: string
+          internal_description: string | null
           is_active: boolean
           last_edited_at: string | null
           last_edited_by: string | null
@@ -6927,6 +7160,7 @@ export type Database = {
           display_name: string
           html_body_template: string
           id?: string
+          internal_description?: string | null
           is_active?: boolean
           last_edited_at?: string | null
           last_edited_by?: string | null
@@ -6944,6 +7178,7 @@ export type Database = {
           display_name?: string
           html_body_template?: string
           id?: string
+          internal_description?: string | null
           is_active?: boolean
           last_edited_at?: string | null
           last_edited_by?: string | null
@@ -8888,9 +9123,12 @@ export type Database = {
           condition_name: string
           created_at: string
           critical_path_item: boolean | null
+          default_borrower_feedback: string | null
           id: string
           internal_description: string | null
           is_active: boolean | null
+          is_borrower_facing: boolean | null
+          per_borrower: boolean
           required_stage: Database["public"]["Enums"]["condition_stage"]
           requires_approval: boolean | null
           responsible_party: string | null
@@ -8908,9 +9146,12 @@ export type Database = {
           condition_name: string
           created_at?: string
           critical_path_item?: boolean | null
+          default_borrower_feedback?: string | null
           id?: string
           internal_description?: string | null
           is_active?: boolean | null
+          is_borrower_facing?: boolean | null
+          per_borrower?: boolean
           required_stage?: Database["public"]["Enums"]["condition_stage"]
           requires_approval?: boolean | null
           responsible_party?: string | null
@@ -8928,9 +9169,12 @@ export type Database = {
           condition_name?: string
           created_at?: string
           critical_path_item?: boolean | null
+          default_borrower_feedback?: string | null
           id?: string
           internal_description?: string | null
           is_active?: boolean | null
+          is_borrower_facing?: boolean | null
+          per_borrower?: boolean
           required_stage?: Database["public"]["Enums"]["condition_stage"]
           requires_approval?: boolean | null
           responsible_party?: string | null
@@ -10422,6 +10666,47 @@ export type Database = {
             columns: ["unified_condition_id"]
             isOneToOne: false
             referencedRelation: "unified_deal_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_batches: {
+        Row: {
+          batch_type: string
+          changes: Json
+          created_at: string
+          deal_id: string
+          id: string
+          send_after: string
+          sent_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_type?: string
+          changes?: Json
+          created_at?: string
+          deal_id: string
+          id?: string
+          send_after: string
+          sent_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_type?: string
+          changes?: Json
+          created_at?: string
+          deal_id?: string
+          id?: string
+          send_after?: string
+          sent_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_batches_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "unified_deals"
             referencedColumns: ["id"]
           },
         ]
@@ -12795,12 +13080,22 @@ export type Database = {
           city: string | null
           created_at: string
           default_language: string | null
+          display_name: string | null
+          gchat_webhook_url: string | null
           id: string
           knowledge_base: Json | null
+          manager_email: string | null
+          manager_name: string | null
+          manager_phone: string | null
+          monday_person_id: number | null
+          monday_team_id: number | null
           name: string
           property_type: string
           retell_agent_id: string | null
+          retell_chat_agent_id: string | null
           retell_phone_number_id: string | null
+          retell_voice_agent_id: string | null
+          slug: string | null
           state: string | null
           system_prompt: string | null
           timezone: string | null
@@ -12818,12 +13113,22 @@ export type Database = {
           city?: string | null
           created_at?: string
           default_language?: string | null
+          display_name?: string | null
+          gchat_webhook_url?: string | null
           id?: string
           knowledge_base?: Json | null
+          manager_email?: string | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          monday_person_id?: number | null
+          monday_team_id?: number | null
           name: string
           property_type: string
           retell_agent_id?: string | null
+          retell_chat_agent_id?: string | null
           retell_phone_number_id?: string | null
+          retell_voice_agent_id?: string | null
+          slug?: string | null
           state?: string | null
           system_prompt?: string | null
           timezone?: string | null
@@ -12841,12 +13146,22 @@ export type Database = {
           city?: string | null
           created_at?: string
           default_language?: string | null
+          display_name?: string | null
+          gchat_webhook_url?: string | null
           id?: string
           knowledge_base?: Json | null
+          manager_email?: string | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          monday_person_id?: number | null
+          monday_team_id?: number | null
           name?: string
           property_type?: string
           retell_agent_id?: string | null
+          retell_chat_agent_id?: string | null
           retell_phone_number_id?: string | null
+          retell_voice_agent_id?: string | null
+          slug?: string | null
           state?: string | null
           system_prompt?: string | null
           timezone?: string | null
@@ -13436,6 +13751,7 @@ export type Database = {
       }
       secure_upload_links: {
         Row: {
+          contact_id: string | null
           created_at: string
           created_by: string
           deal_id: string
@@ -13452,6 +13768,7 @@ export type Database = {
           upload_count: number
         }
         Insert: {
+          contact_id?: string | null
           created_at?: string
           created_by: string
           deal_id: string
@@ -13468,6 +13785,7 @@ export type Database = {
           upload_count?: number
         }
         Update: {
+          contact_id?: string | null
           created_at?: string
           created_by?: string
           deal_id?: string
@@ -13484,6 +13802,34 @@ export type Database = {
           upload_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "secure_upload_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "secure_upload_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "secure_upload_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "secure_upload_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
           {
             foreignKeyName: "secure_upload_links_deal_id_fkey"
             columns: ["deal_id"]
@@ -15574,8 +15920,11 @@ export type Database = {
       }
       unified_deal_conditions: {
         Row: {
+          assigned_contact_id: string | null
           assigned_to: string | null
+          borrower_comment: string | null
           borrower_description: string | null
+          borrower_feedback: string | null
           category: string
           condition_name: string
           created_at: string | null
@@ -15583,10 +15932,14 @@ export type Database = {
           deal_id: string
           document_urls: string[] | null
           due_date: string | null
+          feedback_updated_at: string | null
           id: string
           internal_description: string | null
+          is_borrower_facing: boolean | null
           is_required: boolean | null
+          last_reminder_sent_at: string | null
           notes: string | null
+          reminder_count: number
           required_stage: string
           requires_approval: boolean | null
           responsible_party: string | null
@@ -15599,8 +15952,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assigned_contact_id?: string | null
           assigned_to?: string | null
+          borrower_comment?: string | null
           borrower_description?: string | null
+          borrower_feedback?: string | null
           category?: string
           condition_name: string
           created_at?: string | null
@@ -15608,10 +15964,14 @@ export type Database = {
           deal_id: string
           document_urls?: string[] | null
           due_date?: string | null
+          feedback_updated_at?: string | null
           id?: string
           internal_description?: string | null
+          is_borrower_facing?: boolean | null
           is_required?: boolean | null
+          last_reminder_sent_at?: string | null
           notes?: string | null
+          reminder_count?: number
           required_stage?: string
           requires_approval?: boolean | null
           responsible_party?: string | null
@@ -15624,8 +15984,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assigned_contact_id?: string | null
           assigned_to?: string | null
+          borrower_comment?: string | null
           borrower_description?: string | null
+          borrower_feedback?: string | null
           category?: string
           condition_name?: string
           created_at?: string | null
@@ -15633,10 +15996,14 @@ export type Database = {
           deal_id?: string
           document_urls?: string[] | null
           due_date?: string | null
+          feedback_updated_at?: string | null
           id?: string
           internal_description?: string | null
+          is_borrower_facing?: boolean | null
           is_required?: boolean | null
+          last_reminder_sent_at?: string | null
           notes?: string | null
+          reminder_count?: number
           required_stage?: string
           requires_approval?: boolean | null
           responsible_party?: string | null
@@ -15649,6 +16016,34 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "unified_deal_conditions_assigned_contact_id_fkey"
+            columns: ["assigned_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deal_conditions_assigned_contact_id_fkey"
+            columns: ["assigned_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts_active"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_deal_conditions_assigned_contact_id_fkey"
+            columns: ["assigned_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "unified_deal_conditions_assigned_contact_id_fkey"
+            columns: ["assigned_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_duplicate_candidates"
+            referencedColumns: ["potential_duplicate_id"]
+          },
           {
             foreignKeyName: "unified_deal_conditions_deal_id_fkey"
             columns: ["deal_id"]
@@ -15667,7 +16062,9 @@ export type Database = {
       }
       unified_deal_documents: {
         Row: {
+          archived_at: string | null
           category: string | null
+          condition_approval_status: string | null
           condition_id: string | null
           created_at: string
           deal_id: string
@@ -15680,11 +16077,14 @@ export type Database = {
           mime_type: string | null
           review_status: string | null
           storage_path: string | null
+          submission_status: string
           uploaded_by: string | null
           visibility: string
         }
         Insert: {
+          archived_at?: string | null
           category?: string | null
+          condition_approval_status?: string | null
           condition_id?: string | null
           created_at?: string
           deal_id: string
@@ -15697,11 +16097,14 @@ export type Database = {
           mime_type?: string | null
           review_status?: string | null
           storage_path?: string | null
+          submission_status?: string
           uploaded_by?: string | null
           visibility?: string
         }
         Update: {
+          archived_at?: string | null
           category?: string | null
+          condition_approval_status?: string | null
           condition_id?: string | null
           created_at?: string
           deal_id?: string
@@ -15714,6 +16117,7 @@ export type Database = {
           mime_type?: string | null
           review_status?: string | null
           storage_path?: string | null
+          submission_status?: string
           uploaded_by?: string | null
           visibility?: string
         }
@@ -17830,6 +18234,10 @@ export type Database = {
         Args: { p_billing_month: string; p_created_by: string }
         Returns: string
       }
+      generate_borrower_conditions: {
+        Args: { p_contact_id: string; p_deal_id: string }
+        Returns: number
+      }
       generate_deal_conditions: { Args: { p_deal_id: string }; Returns: number }
       generate_loan_conditions: { Args: { p_loan_id: string }; Returns: number }
       generate_nacha_file: {
@@ -18890,3 +19298,4 @@ export const Constants = {
     },
   },
 } as const
+

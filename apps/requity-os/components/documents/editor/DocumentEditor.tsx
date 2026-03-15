@@ -90,6 +90,7 @@ export function DocumentEditor({
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         horizontalRule: false,

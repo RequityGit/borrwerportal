@@ -21,6 +21,7 @@ const PUBLIC_ROUTES = [
   "/auth/confirm",
   "/upload",
   "/api/upload-link", // token-based upload (no auth required)
+  "/api/deal-messages", // token-based borrower messaging (auth handled in route)
 ];
 
 export async function middleware(request: NextRequest) {

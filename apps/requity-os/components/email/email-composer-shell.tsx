@@ -25,6 +25,8 @@ interface EmailComposerShellProps {
   isDirty: boolean;
   children: React.ReactNode;
   footer: React.ReactNode;
+  /** Optional class for the root container (e.g. z-[100] when opening from inside a dialog) */
+  containerClassName?: string;
 }
 
 export function EmailComposerShell({
@@ -35,6 +37,7 @@ export function EmailComposerShell({
   isDirty,
   children,
   footer,
+  containerClassName,
 }: EmailComposerShellProps) {
   const [mode, setMode] = useState<ComposerMode>("normal");
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -79,7 +82,8 @@ export function EmailComposerShell({
         className={cn(
           "fixed bottom-0 right-6 z-50 flex flex-col rounded-t-lg border border-border bg-background shadow-xl transition-all duration-200",
           "max-sm:inset-x-0 max-sm:right-0",
-          mode === "expanded" ? "sm:w-[700px]" : "sm:w-[520px]"
+          mode === "expanded" ? "sm:w-[700px]" : "sm:w-[520px]",
+          containerClassName
         )}
       >
         {/* Header bar */}

@@ -23,7 +23,6 @@ import {
   RotateCcw,
   ArrowUp,
   ArrowDown,
-  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +40,9 @@ interface ConditionTemplate {
   borrower_description: string | null;
   responsible_party: string | null;
   critical_path_item: boolean | null;
+  is_borrower_facing?: boolean | null;
   requires_approval: boolean | null;
+  per_borrower?: boolean | null;
   sort_order: number | null;
   is_active: boolean | null;
   created_at: string;
@@ -78,6 +79,7 @@ interface ConditionCategorySectionProps {
       applies_to_dscr: boolean;
       applies_to_guc: boolean;
       applies_to_transactional: boolean;
+      is_borrower_facing: boolean;
     }>
   ) => Promise<boolean>;
 }
@@ -232,8 +234,11 @@ export function ConditionCategorySection({
                 <th className="text-left font-medium text-muted-foreground px-4 py-2 w-16">
                   RP
                 </th>
-                <th className="text-center font-medium text-muted-foreground px-4 py-2 w-10">
-                  CP
+                <th className="text-center font-medium text-muted-foreground px-4 py-2 w-10" title="Borrower Facing">
+                  BF
+                </th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-2 w-10" title="Per Borrower">
+                  PB
                 </th>
                 <th className="text-right font-medium text-muted-foreground px-4 py-2 w-[140px]">
                   Actions
@@ -336,8 +341,39 @@ export function ConditionCategorySection({
                       : "—"}
                   </td>
                   <td className="px-4 py-2 text-center">
-                    {item.critical_path_item && (
-                      <AlertCircle className="h-3.5 w-3.5 text-red-500 mx-auto" />
+                    <button
+                      onClick={() =>
+                        onInlineUpdate(item.id, {
+                          is_borrower_facing: !(item.is_borrower_facing ?? true),
+                        })
+                      }
+                      className={cn(
+                        "h-5 w-5 rounded-full border-2 mx-auto flex items-center justify-center transition-colors",
+                        (item.is_borrower_facing ?? true)
+                          ? "border-teal-500 bg-teal-500/20 text-teal-500"
+                          : "border-muted-foreground/30 text-transparent hover:border-muted-foreground/50"
+                      )}
+                      title={
+                        (item.is_borrower_facing ?? true)
+                          ? "Borrower facing (click to make internal)"
+                          : "Internal only (click to make borrower facing)"
+                      }
+                    >
+                      {(item.is_borrower_facing ?? true) && (
+                        <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    {item.per_borrower ? (
+                      <span
+                        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-500/20 text-violet-600 text-[10px] font-bold"
+                        title="Per Borrower: creates one per borrower on the deal"
+                      >
+                        PB
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/30">-</span>
                     )}
                   </td>
                   <td className="px-4 py-2 text-right">

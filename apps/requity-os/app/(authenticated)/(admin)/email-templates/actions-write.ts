@@ -115,6 +115,8 @@ export async function updateTemplateAction(
         input.available_variables
       );
     if (input.is_active !== undefined) updateData.is_active = input.is_active;
+    if (input.internal_description !== undefined)
+      updateData.internal_description = input.internal_description;
 
     // Track who last edited
     updateData.last_edited_by = userId;

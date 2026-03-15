@@ -10,6 +10,7 @@ import {
   X,
   Clock,
   ExternalLink,
+  User,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,7 +38,39 @@ import {
   createSecureUploadLink,
   revokeSecureUploadLink,
   listSecureUploadLinks,
+  fetchDealContacts,
 } from "@/app/(authenticated)/(admin)/pipeline/[id]/actions";
+import { EmailComposeSheet } from "@/components/crm/email-compose-sheet";
+
+/** Draft body for "Send by email" when sharing a secure upload link. */
+function buildUploadLinkEmailBody(
+  dealName: string,
+  uploadUrl: string,
+  expiresAt: string | null
+): string {
+  const expiryLine =
+    expiresAt &&
+    `This link expires on ${new Date(expiresAt).toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })}.`;
+  return [
+    "Hello,",
+    "",
+    `Please use the secure link below to upload your documents for ${dealName}.`,
+    "",
+    uploadUrl,
+    "",
+    ...(expiryLine ? [expiryLine, ""] : []),
+    "If you have any questions, please reply to this email.",
+    "",
+    "Best regards",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   borrower_documents: "Borrower Documents",
@@ -62,6 +95,9 @@ interface SecureUploadLinkDialogProps {
   dealId: string;
   conditions: DealCondition[];
   trigger: React.ReactNode;
+  dealName?: string;
+  currentUserId?: string;
+  currentUserName?: string;
 }
 
 interface UploadLink {
@@ -80,6 +116,9 @@ export function SecureUploadLinkDialog({
   dealId,
   conditions,
   trigger,
+  dealName,
+  currentUserId,
+  currentUserName,
 }: SecureUploadLinkDialogProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"create" | "manage">("manage");
@@ -97,21 +136,48 @@ export function SecureUploadLinkDialog({
   );
   const [includeGeneralUpload, setIncludeGeneralUpload] = useState(true);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  const [generatedExpiresAt, setGeneratedExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [emailSheetOpen, setEmailSheetOpen] = useState(false);
   const [creating, startCreating] = useTransition();
   const [revoking, startRevoking] = useTransition();
 
-  const outstandingConditions = conditions.filter((c) =>
-    ["pending", "submitted", "under_review"].includes(c.status)
+  // Deal contacts for "Send to" picker
+  const [dealContacts, setDealContacts] = useState<
+    { contactId: string; name: string; email: string | null; role: string }[]
+  >([]);
+  const [selectedContactId, setSelectedContactId] = useState<string>("");
+
+  const outstandingConditions = conditions.filter(
+    (c) =>
+      ["pending", "submitted", "under_review"].includes(c.status) &&
+      c.is_borrower_facing !== false
   );
 
   useEffect(() => {
     if (open) {
       loadLinks();
+      loadContacts();
       resetForm();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  async function loadContacts() {
+    const result = await fetchDealContacts(dealId);
+    if (!result.error && result.dealContacts) {
+      const mapped = (result.dealContacts as { contact_id: string; role: string; contact?: { id: string; first_name: string | null; last_name: string | null; email: string | null } }[]).map((dc) => ({
+        contactId: dc.contact_id,
+        name: [dc.contact?.first_name, dc.contact?.last_name].filter(Boolean).join(" ") || "Unknown",
+        email: dc.contact?.email ?? null,
+        role: dc.role,
+      }));
+      setDealContacts(mapped);
+      // Auto-select primary contact
+      const primary = mapped.find((c) => c.role === "primary");
+      if (primary) setSelectedContactId(primary.contactId);
+    }
+  }
 
   useEffect(() => {
     if (mode === "checklist") {
@@ -136,7 +202,11 @@ export function SecureUploadLinkDialog({
     setSelectedConditionIds(new Set());
     setIncludeGeneralUpload(true);
     setGeneratedUrl(null);
+    setGeneratedExpiresAt(null);
     setCopied(false);
+    // Re-select primary contact
+    const primary = dealContacts.find((c) => c.role === "primary");
+    if (primary) setSelectedContactId(primary.contactId);
   }
 
   function handleCreate() {
@@ -152,6 +222,7 @@ export function SecureUploadLinkDialog({
             ? Array.from(selectedConditionIds)
             : undefined,
         includeGeneralUpload,
+        contactId: selectedContactId || undefined,
         origin: typeof window !== "undefined" ? window.location.origin : undefined,
       });
 
@@ -159,6 +230,7 @@ export function SecureUploadLinkDialog({
         toast.error(result.error);
       } else if (result.url) {
         setGeneratedUrl(result.url);
+        setGeneratedExpiresAt(result.expiresAt ?? null);
         toast.success("Upload link created");
         loadLinks();
       }
@@ -316,17 +388,63 @@ export function SecureUploadLinkDialog({
                     </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="w-full rounded-md border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50"
-                >
-                  Create another link
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {currentUserId && currentUserName && (
+                    <button
+                      type="button"
+                      onClick={() => setEmailSheetOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Send by email
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="rounded-md border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50"
+                  >
+                    Create another link
+                  </button>
+                </div>
               </div>
             ) : (
               /* Form */
               <>
+                {/* Send to (borrower contact) — placed first so filtering works before mode selection */}
+                {dealContacts.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      Send to
+                    </Label>
+                    <Select
+                      value={selectedContactId}
+                      onValueChange={setSelectedContactId}
+                    >
+                      <SelectTrigger className="text-xs">
+                        <SelectValue placeholder="Select borrower contact" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dealContacts.map((c) => (
+                          <SelectItem key={c.contactId} value={c.contactId}>
+                            <span>{c.name}</span>
+                            {c.role === "primary" && (
+                              <span className="ml-1.5 text-[10px] text-muted-foreground">(Primary)</span>
+                            )}
+                            {c.email && (
+                              <span className="ml-1.5 text-[10px] text-muted-foreground">{c.email}</span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Pre-selects this borrower for message attribution. All borrowers see the full condition list.
+                    </p>
+                  </div>
+                )}
+
                 {/* Mode selector */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Link Type</Label>
@@ -510,6 +628,31 @@ export function SecureUploadLinkDialog({
           </div>
         )}
       </DialogContent>
+      {currentUserId && currentUserName && (
+        <EmailComposeSheet
+          open={emailSheetOpen}
+          onOpenChange={setEmailSheetOpen}
+          toEmail=""
+          toName=""
+          containerClassName="z-[100]"
+          initialSubject={`Document upload link for ${dealName ?? "your deal"}`}
+          initialBody={
+            generatedUrl
+              ? buildUploadLinkEmailBody(
+                  dealName ?? "your deal",
+                  generatedUrl,
+                  generatedExpiresAt
+                )
+              : ""
+          }
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          onSendSuccess={() => {
+            setEmailSheetOpen(false);
+            toast.success("Email sent");
+          }}
+        />
+      )}
     </Dialog>
   );
 }

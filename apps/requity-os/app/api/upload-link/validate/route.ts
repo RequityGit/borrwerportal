@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     const { data: link, error } = await admin
       .from("secure_upload_links")
-      .select("id, deal_id, mode, label, instructions, expires_at, max_uploads, upload_count, status, include_general_upload")
+      .select("id, deal_id, mode, label, instructions, expires_at, max_uploads, upload_count, status, include_general_upload, contact_id")
       .eq("token", token)
       .single();
 
@@ -44,6 +44,13 @@ export async function POST(request: Request) {
 
     const dealName = deal?.name ?? "Document Upload";
 
+    interface ConditionDoc {
+      name: string;
+      uploaded_at: string;
+      staged: boolean;
+      id: string;
+    }
+
     let conditions: {
       id: string;
       condition_name: string;
@@ -51,6 +58,10 @@ export async function POST(request: Request) {
       category: string | null;
       status: string;
       document_count: number;
+      documents: ConditionDoc[];
+      staged_count: number;
+      borrower_feedback: string | null;
+      feedback_updated_at: string | null;
     }[] = [];
 
     if (link.mode === "checklist") {
@@ -65,35 +76,52 @@ export async function POST(request: Request) {
 
         const { data: conditionRows } = await admin
           .from("unified_deal_conditions")
-          .select("id, condition_name, borrower_description, category, status")
-          .in("id", conditionIds);
+          .select("id, condition_name, borrower_description, category, status, borrower_feedback, feedback_updated_at")
+          .in("id", conditionIds) as { data: { id: string; condition_name: string; borrower_description: string | null; category: string | null; status: string; borrower_feedback: string | null; feedback_updated_at: string | null }[] | null };
 
-        const { data: docCounts } = await admin
-          .from("unified_deal_documents")
-          .select("condition_id")
-          .eq("deal_id", link.deal_id)
-          .in("condition_id", conditionIds)
-          .is("deleted_at", null);
+        // Fetch full document details (name + timestamp + submission_status)
+        const { data: docRows } = await admin
+          .from("unified_deal_documents" as never)
+          .select("id, condition_id, document_name, created_at, submission_status" as never)
+          .eq("deal_id" as never, link.deal_id as never)
+          .in("condition_id" as never, conditionIds as never)
+          .is("deleted_at" as never, null as never)
+          .order("created_at" as never, { ascending: false } as never);
 
-        const countMap = new Map<string, number>();
-        if (docCounts) {
-          for (const d of docCounts) {
+        const docMap = new Map<string, ConditionDoc[]>();
+        if (docRows) {
+          for (const d of docRows as { id: string; condition_id: string | null; document_name: string; created_at: string; submission_status: string }[]) {
             if (d.condition_id) {
-              countMap.set(d.condition_id, (countMap.get(d.condition_id) || 0) + 1);
+              const docs = docMap.get(d.condition_id) || [];
+              docs.push({
+                id: d.id,
+                name: d.document_name,
+                uploaded_at: d.created_at,
+                staged: d.submission_status === "staged",
+              });
+              docMap.set(d.condition_id, docs);
             }
           }
         }
 
         const orderMap = new Map(linkConditions.map((lc) => [lc.condition_id, lc.sort_order]));
         conditions = (conditionRows || [])
-          .map((c) => ({
-            id: c.id,
-            condition_name: c.condition_name,
-            borrower_description: c.borrower_description,
-            category: c.category,
-            status: c.status,
-            document_count: countMap.get(c.id) || 0,
-          }))
+          .map((c) => {
+            const docs = docMap.get(c.id) || [];
+            const stagedCount = docs.filter((d) => d.staged).length;
+            return {
+              id: c.id,
+              condition_name: c.condition_name,
+              borrower_description: c.borrower_description,
+              category: c.category,
+              status: c.status,
+              document_count: docs.filter((d) => !d.staged).length,
+              documents: docs,
+              staged_count: stagedCount,
+              borrower_feedback: c.borrower_feedback ?? null,
+              feedback_updated_at: c.feedback_updated_at ?? null,
+            };
+          })
           .sort((a, b) => (orderMap.get(a.id) || 0) - (orderMap.get(b.id) || 0));
       }
     }
@@ -102,8 +130,35 @@ export async function POST(request: Request) {
       ? link.max_uploads - link.upload_count
       : null;
 
+    // Resolve contact name if link is tied to a specific borrower
+    let contactName: string | null = null;
+    let contactId: string | null = link.contact_id ?? null;
+    if (contactId) {
+      const { data: contact } = await admin
+        .from("crm_contacts")
+        .select("first_name, last_name")
+        .eq("id", contactId)
+        .single();
+      if (contact) {
+        contactName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
+      }
+    }
+
+    // Fetch all borrower contacts on this deal for the identity picker
+    const { data: dealContactRows } = await admin
+      .from("deal_contacts")
+      .select("contact_id, role, contact:crm_contacts(id, first_name, last_name)")
+      .eq("deal_id", link.deal_id) as { data: { contact_id: string; role: string; contact: { id: string; first_name: string | null; last_name: string | null } | null }[] | null };
+
+    const dealContacts = (dealContactRows || []).map((dc) => ({
+      id: dc.contact_id,
+      name: [dc.contact?.first_name, dc.contact?.last_name].filter(Boolean).join(" ") || "Unknown",
+      role: dc.role,
+    }));
+
     return NextResponse.json({
       valid: true,
+      dealId: link.deal_id,
       dealName,
       mode: link.mode,
       label: link.label,
@@ -111,6 +166,9 @@ export async function POST(request: Request) {
       includeGeneralUpload: link.include_general_upload,
       remainingUploads: remaining,
       conditions,
+      contactId,
+      contactName,
+      dealContacts,
     });
   } catch (err) {
     console.error("upload-link/validate error:", err instanceof Error ? err.message : err);

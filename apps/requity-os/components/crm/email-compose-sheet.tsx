@@ -50,6 +50,8 @@ interface EmailComposeSheetProps {
   initialAttachments?: File[];
   /** Called after a successful email send with the crm_emails record ID */
   onSendSuccess?: (emailId: string) => void;
+  /** Optional class for the composer container (e.g. z-[100] when opened from inside a dialog) */
+  containerClassName?: string;
 }
 
 export function EmailComposeSheet({
@@ -67,6 +69,7 @@ export function EmailComposeSheet({
   initialBody,
   initialAttachments,
   onSendSuccess,
+  containerClassName,
 }: EmailComposeSheetProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -109,6 +112,25 @@ export function EmailComposeSheet({
     subject: initialSubject ?? "",
     body: initialBody ?? "",
   });
+  // When sheet first opens, sync initial subject/body into form (e.g. from "Send by email" with link)
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
+    if (!justOpened) return;
+    const hasInitialContent = initialSubject != null || initialBody != null;
+    setForm((prev) => ({
+      ...prev,
+      ...(toEmail ? { to_email: toEmail } : {}),
+      ...(toName ? { to_name: toName } : {}),
+      ...(hasInitialContent
+        ? {
+            subject: initialSubject ?? prev.subject,
+            body: initialBody ?? prev.body,
+          }
+        : {}),
+    }));
+  }, [open, toEmail, toName, initialSubject, initialBody]);
   const [attachments, setAttachments] = useState<Attachment[]>(
     () => (initialAttachments ?? []).map((f) => ({ file: f, id: crypto.randomUUID() }))
   );
@@ -437,6 +459,7 @@ export function EmailComposeSheet({
       title="New Email"
       subtitle={`from ${senderEmail}`}
       isDirty={isDirty}
+      containerClassName={containerClassName}
       footer={
         <>
           <div className="flex items-center gap-1.5">
